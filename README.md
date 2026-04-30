@@ -150,6 +150,27 @@ non-coder playtesters.
   `UpgradeStation`). Uses the built-in `rbxasset://textures/particles/sparkles_main.dds`
   so no external asset dependency.
 
+## Sound design (scaffolded, IDs blank)
+
+`Constants.SOUND_IDS` exposes three slots — `tier_up`, `daily_bonus`,
+`purchase_fail` — that the HUD's `playSound` helper consumes. Each slot is
+empty (`""`) by default, which means silence: the helper short-circuits if
+the ID isn't a real `rbxassetid://N` string.
+
+Pick assets from Roblox's free sound library (in Studio: View → Toolbox →
+Audio), grab their IDs, and paste them in:
+
+```lua
+Constants.SOUND_IDS = {
+    tier_up     = "rbxassetid://9120000000",  -- replace with real id
+    daily_bonus = "rbxassetid://9120000001",
+    purchase_fail = "rbxassetid://9120000002",
+}
+```
+
+Once filled, the existing toasts in `HUD.client.luau` start playing the
+sounds automatically — no further wiring needed.
+
 ## What's NOT in v1 yet
 
 - 3 Game Passes (Starter Pack / VIP / Premium) — `Constants.GAME_PASSES.*`
@@ -157,5 +178,3 @@ non-coder playtesters.
   need to create the passes in Creator Hub and paste the asset IDs.
 - Custom GUI for the upgrade button preview (currently a BillboardGui
   text label).
-- Sound design (free Roblox-library SoundIds wired through a Constants
-  table; need David to pick coin / chime / jingle assets).

@@ -145,7 +145,24 @@ end)
 -- ----- Toast layer (daily-bonus banner + tier-up flash) -----
 
 local TweenService = game:GetService("TweenService")
+local SoundService = game:GetService("SoundService")
 local AMBER = Color3.fromRGB(255, 176, 0)
+
+-- Sound layer. SoundIds live in Constants.SOUND_IDS as either a stable
+-- "rbxassetid://N" string or "" (empty). Empty short-circuits, so the
+-- world is silent until David picks library assets and updates the table.
+local function playSound(assetId: string?, volume: number?)
+    if not assetId or assetId == "" or assetId == "0" then return end
+    local s = Instance.new("Sound")
+    s.SoundId = assetId
+    s.Volume = volume or 0.6
+    s.PlayOnRemove = false
+    s.Parent = SoundService
+    s:Play()
+    s.Ended:Connect(function() s:Destroy() end)
+    -- Defensive cleanup if Ended never fires (network failure on stream)
+    task.delay(8, function() if s.Parent then s:Destroy() end end)
+end
 
 local function showToast(headline: string, sub: string, accent: Color3, holdSec: number?)
     -- Center-screen banner that fades in, holds, fades out. Stacks if called
@@ -231,6 +248,7 @@ remotes.DailyBonusGranted.OnClientEvent:Connect(function(streak: number, reward:
         AMBER,
         5
     )
+    playSound(Constants.SOUND_IDS.daily_bonus, 0.6)
 end)
 
 remotes.TierUpgraded.OnClientEvent:Connect(function(newTier: number, mult: number)
@@ -242,6 +260,7 @@ remotes.TierUpgraded.OnClientEvent:Connect(function(newTier: number, mult: numbe
         4
     )
     flashScreen(PINK, 0.6)
+    playSound(Constants.SOUND_IDS.tier_up, 0.7)
 end)
 
 print("[HUD] mounted")

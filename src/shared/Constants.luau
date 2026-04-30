@@ -58,6 +58,15 @@ Constants.GAME_PASS_MULT = {
 Constants.LEADERBOARD_REFRESH_SEC = 10
 Constants.LEADERBOARD_TOP_N = 10
 
+-- Sound design hooks. Set IDs to a `rbxassetid://N` numeric string after
+-- picking assets from Roblox's free sound library. Until set, `playSound`
+-- on the client no-ops gracefully (no error, just silence).
+Constants.SOUND_IDS = {
+    tier_up = "",       -- played on successful upgrade
+    daily_bonus = "",   -- played when streak reward lands
+    purchase_fail = "", -- played when prompt rejects (insufficient_coins)
+}
+
 -- Per-tier plot art. Foundation Material + Color paints visible progression
 -- so a tier-5 plot looks unmistakably wealthier than a tier-1 plot at a glance.
 -- Indexed identically to UPGRADE_TIERS.
