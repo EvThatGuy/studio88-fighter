@@ -18,6 +18,8 @@ local REMOTE_NAMES = {
     {name = "PurchaseUpgrade", class = "RemoteEvent"},
     {name = "BalanceUpdated", class = "RemoteEvent"},
     {name = "LeaderboardUpdated", class = "RemoteEvent"},
+    {name = "TierUpgraded", class = "RemoteEvent"},
+    {name = "DailyBonusGranted", class = "RemoteEvent"},
 }
 
 local function ensureFolder(): Folder

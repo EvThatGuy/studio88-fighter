@@ -58,4 +58,16 @@ Constants.GAME_PASS_MULT = {
 Constants.LEADERBOARD_REFRESH_SEC = 10
 Constants.LEADERBOARD_TOP_N = 10
 
+-- Per-tier plot art. Foundation Material + Color paints visible progression
+-- so a tier-5 plot looks unmistakably wealthier than a tier-1 plot at a glance.
+-- Indexed identically to UPGRADE_TIERS.
+Constants.TIER_PLOT_ART = {
+    [1] = {material = Enum.Material.Concrete,     color = Color3.fromRGB( 20,  17,  31)}, -- raw concrete
+    [2] = {material = Enum.Material.Slate,        color = Color3.fromRGB( 38,  30,  56)}, -- slate
+    [3] = {material = Enum.Material.SmoothPlastic,color = Color3.fromRGB( 64,  48,  92)}, -- painted
+    [4] = {material = Enum.Material.Marble,       color = Color3.fromRGB(112,  84, 156)}, -- marble
+    [5] = {material = Enum.Material.Marble,       color = Color3.fromRGB(184, 124, 220)}, -- bright marble
+    [6] = {material = Enum.Material.Neon,         color = Color3.fromRGB(255,  46, 136)}, -- neon pink capstone
+}
+
 return Constants

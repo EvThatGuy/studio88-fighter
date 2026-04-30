@@ -14,6 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
 
 local remotes = Remotes.get()
 
@@ -37,6 +38,14 @@ function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
     -- Push fresh balance immediately so HUD doesn't wait for next tick
     pcall(function()
         remotes.BalanceUpdated:FireClient(player, data.coins, data.lifetimeCoins)
+    end)
+    -- Repaint the plot to match the new tier and fire FX on the client
+    local plot = PlotAssigner.getPlotFor(player.UserId)
+    if plot then
+        PlotAssigner.applyTierArt(plot, nextTier)
+    end
+    pcall(function()
+        remotes.TierUpgraded:FireClient(player, nextTier, tierSpec.incomeMult)
     end)
     print(string.format("[UpgradeStation] %s -> tier %d (cost %d paid)",
         player.Name, nextTier, tierSpec.cost))

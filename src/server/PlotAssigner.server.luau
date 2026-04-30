@@ -4,13 +4,24 @@
 -- workspace at that anchor's CFrame, stamp Owner=userId on every tagged
 -- part inside the plot so Dropper / Collector / UpgradeButton can resolve
 -- which player they belong to.
+--
+-- Exports a small lookup so UpgradeStation can find the player's plot
+-- model without re-walking the workspace each purchase.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 
+local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
+local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+
+local PlotAssigner = {}
+
 local plotTemplate: Model? = nil
+-- userId -> plot Model (cleared on PlayerRemoving)
+local plotsByUserId: {[number]: Model} = {}
 
 local function getTemplate(): Model
     -- WorldBuilder runs synchronously at script start, but it lives in a
@@ -40,6 +51,21 @@ local function stampOwner(plot: Model, userId: number)
             descendant:SetAttribute("OwnerUserId", userId)
         end
     end
+end
+
+function PlotAssigner.applyTierArt(plot: Model, tier: number)
+    -- Paint the foundation Material + Color to match the tier.
+    -- Idempotent: caller can spam this, last write wins.
+    local foundation = plot:FindFirstChild("Foundation") :: BasePart?
+    if not foundation then return end
+    local spec = Constants.TIER_PLOT_ART[tier] or Constants.TIER_PLOT_ART[1]
+    foundation.Material = spec.material
+    foundation.Color = spec.color
+    plot:SetAttribute("CurrentTier", tier)
+end
+
+function PlotAssigner.getPlotFor(userId: number): Model?
+    return plotsByUserId[userId]
 end
 
 local function paintPlotName(plot: Model, player: Player)
@@ -90,6 +116,13 @@ local function assign(player: Player)
     clone.Parent = Workspace
     stampOwner(clone, player.UserId)
     paintPlotName(clone, player)
+    plotsByUserId[player.UserId] = clone
+
+    -- Apply tier art at assignment so returning players land on the right
+    -- foundation. Cached data is usually available; fall back to tier 1 if
+    -- it isn't (the next upgrade will repaint).
+    local data = DataStore.getCached(player.UserId)
+    PlotAssigner.applyTierArt(clone, (data and data.upgradeTier) or 1)
 
     print(string.format("[PlotAssigner] %s -> plot index %s",
         player.Name, tostring(anchor:GetAttribute("PlotIndex"))))
@@ -106,6 +139,7 @@ local function release(player: Player)
     -- Remove the plot model
     local plot = Workspace:FindFirstChild("Plot_" .. userId)
     if plot then plot:Destroy() end
+    plotsByUserId[userId] = nil
 end
 
 -- Bootstrap: run after WorldBuilder has had a chance to populate
@@ -117,3 +151,5 @@ task.spawn(function()
     for _, p in ipairs(Players:GetPlayers()) do assign(p) end
     print("[PlotAssigner] online")
 end)
+
+return PlotAssigner

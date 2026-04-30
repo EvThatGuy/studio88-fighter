@@ -23,6 +23,8 @@ export type RemoteMap = {
     PurchaseUpgrade: RemoteEvent,
     BalanceUpdated: RemoteEvent,    -- server -> client push on every tick
     LeaderboardUpdated: RemoteEvent,-- server -> client push every refresh
+    TierUpgraded: RemoteEvent,      -- server -> client; payload {newTier, mult}
+    DailyBonusGranted: RemoteEvent, -- server -> client; payload {streak, reward}
 }
 
 return {}

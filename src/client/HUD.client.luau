@@ -142,4 +142,106 @@ task.spawn(function()
     end
 end)
 
+-- ----- Toast layer (daily-bonus banner + tier-up flash) -----
+
+local TweenService = game:GetService("TweenService")
+local AMBER = Color3.fromRGB(255, 176, 0)
+
+local function showToast(headline: string, sub: string, accent: Color3, holdSec: number?)
+    -- Center-screen banner that fades in, holds, fades out. Stacks if called
+    -- in quick succession (each toast is independent and self-cleans).
+    local toast = Instance.new("Frame")
+    toast.Size = UDim2.new(0, 420, 0, 100)
+    toast.Position = UDim2.new(0.5, -210, 0, -120)
+    toast.BackgroundColor3 = BG
+    toast.BackgroundTransparency = 0.05
+    toast.BorderSizePixel = 0
+    toast.Parent = screen
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = accent
+    stroke.Thickness = 2
+    stroke.Parent = toast
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = toast
+
+    local head = Instance.new("TextLabel")
+    head.Size = UDim2.new(1, -16, 0.55, 0)
+    head.Position = UDim2.new(0, 8, 0, 8)
+    head.BackgroundTransparency = 1
+    head.Text = headline
+    head.TextColor3 = accent
+    head.Font = Enum.Font.GothamBold
+    head.TextScaled = true
+    head.TextXAlignment = Enum.TextXAlignment.Left
+    head.Parent = toast
+
+    local sublbl = Instance.new("TextLabel")
+    sublbl.Size = UDim2.new(1, -16, 0.45, -8)
+    sublbl.Position = UDim2.new(0, 8, 0.55, 0)
+    sublbl.BackgroundTransparency = 1
+    sublbl.Text = sub
+    sublbl.TextColor3 = TEXT
+    sublbl.Font = Enum.Font.Code
+    sublbl.TextScaled = true
+    sublbl.TextXAlignment = Enum.TextXAlignment.Left
+    sublbl.Parent = toast
+
+    local enter = TweenService:Create(toast, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0.5, -210, 0, 32),
+    })
+    enter:Play()
+
+    task.delay(holdSec or 4, function()
+        local exit = TweenService:Create(toast, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Position = UDim2.new(0.5, -210, 0, -120),
+            BackgroundTransparency = 1,
+        })
+        exit:Play()
+        exit.Completed:Wait()
+        toast:Destroy()
+    end)
+end
+
+local function flashScreen(color: Color3, duration: number)
+    -- Full-screen color flash for tier-up, fades from 0.5 transparency to
+    -- fully transparent. Doesn't block input (CanvasGroup with no callbacks).
+    local flash = Instance.new("Frame")
+    flash.Size = UDim2.new(1, 0, 1, 0)
+    flash.Position = UDim2.new(0, 0, 0, 0)
+    flash.BackgroundColor3 = color
+    flash.BackgroundTransparency = 0.5
+    flash.BorderSizePixel = 0
+    flash.ZIndex = 0
+    flash.Parent = screen
+
+    local fade = TweenService:Create(flash, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 1,
+    })
+    fade:Play()
+    fade.Completed:Wait()
+    flash:Destroy()
+end
+
+remotes.DailyBonusGranted.OnClientEvent:Connect(function(streak: number, reward: number)
+    showToast(
+        string.format("DAY %d STREAK", streak),
+        string.format("+%s coins -- come back tomorrow", fmt(reward)),
+        AMBER,
+        5
+    )
+end)
+
+remotes.TierUpgraded.OnClientEvent:Connect(function(newTier: number, mult: number)
+    tierLabel.Text = "Tier " .. newTier
+    showToast(
+        string.format("TIER %d UNLOCKED", newTier),
+        string.format("Income x%s", tostring(mult)),
+        PINK,
+        4
+    )
+    flashScreen(PINK, 0.6)
+end)
+
 print("[HUD] mounted")

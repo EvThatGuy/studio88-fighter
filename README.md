@@ -130,16 +130,25 @@ rojo build -o studio88-tycoon.rbxlx
 That XML place file can be double-clicked to open in Studio. Useful for
 non-coder playtesters.
 
+## v1 polish layer (already shipped)
+
+- **Per-tier plot art** — `Constants.TIER_PLOT_ART` defines a
+  Material/Color pair for each tier. `PlotAssigner.applyTierArt` paints the
+  foundation, fired at plot assignment (returning players) and on every
+  successful upgrade in `UpgradeStation`. Tier 1 = raw concrete, Tier 6 =
+  neon pink capstone.
+- **Tier-up FX** — `TierUpgraded` RemoteEvent fires to the client on
+  successful purchase. HUD shows a center-screen "TIER N UNLOCKED" toast
+  and a 0.6s pink screen flash.
+- **Daily login HUD popup** — `DailyBonusGranted` RemoteEvent fires on
+  streak-eligible login. HUD shows an amber "DAY N STREAK +X coins" toast
+  for 5s.
+
 ## What's NOT in v1 yet
 
 - 3 Game Passes (Starter Pack / VIP / Premium) — `Constants.GAME_PASSES.*`
   IDs are placeholders; the multiplier code already reads them, you just
   need to create the passes in Creator Hub and paste the asset IDs.
-- Plot art tier (currently all 6 plots look identical). The Roblox
-  playbook calls for early plots looking poor, mid ok, late wealthy.
-  That's per-tier swap of the foundation Material/Color in `WorldBuilder`.
-- Daily login bonus banner — fires correctly but only logs to console;
-  needs a HUD popup.
 - Custom GUI for the upgrade button preview (currently a BillboardGui
   text label).
-- Particle FX on tier-up. Sound design.
+- Particle FX on the dropper / collector / coins. Sound design.

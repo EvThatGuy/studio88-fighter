@@ -63,6 +63,9 @@ local function grantBonusIfDue(player: Player)
         pcall(function()
             remotes.BalanceUpdated:FireClient(player, data.coins, data.lifetimeCoins)
         end)
+        pcall(function()
+            remotes.DailyBonusGranted:FireClient(player, data.streak, reward)
+        end)
     end
 
     data.lastLoginUnix = now
