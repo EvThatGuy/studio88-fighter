@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
 
 local remotes = Remotes.get()
 
@@ -40,6 +41,15 @@ local function onCollect(collector: BasePart, hit: BasePart)
     local fx = collector:FindFirstChild("CollectFX") :: ParticleEmitter?
     if fx then
         pcall(function() fx:Emit(8) end)
+    end
+
+    -- Refresh the plot's stats board with the new lifetime total. This is
+    -- per-collect so it spams a bit; UpdateStatsBoard is a string-set on a
+    -- TextLabel, cheap. If a future profiling pass shows it's hot we can
+    -- throttle to once per second.
+    local plot = PlotAssigner.getPlotFor(ownerUserId)
+    if plot then
+        PlotAssigner.updateStatsBoard(plot, data.upgradeTier, data.lifetimeCoins)
     end
 
     local player = Players:GetPlayerByUserId(ownerUserId)

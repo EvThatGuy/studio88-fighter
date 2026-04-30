@@ -149,6 +149,16 @@ non-coder playtesters.
   and upgrade button (amber drift + 30-particle burst on tier-up via
   `UpgradeStation`). Uses the built-in `rbxasset://textures/particles/sparkles_main.dds`
   so no external asset dependency.
+- **Per-plot stats board** — Each plot has a `StatsBoard` SurfaceGui (20x8
+  studs, mounted at the back of the lot at y=12) showing TIER, +N/sec
+  income, and lifetime coins. `PlotAssigner.updateStatsBoard` is called at
+  plot assignment, on every collect (cheap TextLabel string-set), and at
+  tier upgrade. Visible from across the spawn ring so you can see who's
+  winning at a glance.
+- **Purchase rejection feedback** — `PurchaseRejected` RemoteEvent fires
+  from `UpgradeStation` on every reject path (`no_data`, `max_tier`,
+  `insufficient_coins` with the missing-coin delta). HUD shows a 3s amber
+  toast with reason-specific copy and plays `Constants.SOUND_IDS.purchase_fail`.
 
 ## Sound design (scaffolded, IDs blank)
 

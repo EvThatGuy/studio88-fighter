@@ -64,6 +64,29 @@ function PlotAssigner.applyTierArt(plot: Model, tier: number)
     plot:SetAttribute("CurrentTier", tier)
 end
 
+local function fmtCoins(n: number): string
+    if n < 1000 then return tostring(n) end
+    if n < 1000000 then return string.format("%.1fK", n / 1000) end
+    return string.format("%.2fM", n / 1000000)
+end
+
+function PlotAssigner.updateStatsBoard(plot: Model, tier: number, lifetime: number)
+    local board = plot:FindFirstChild("StatsBoard") :: BasePart?
+    if not board then return end
+    local sg = board:FindFirstChildWhichIsA("SurfaceGui")
+    if not sg then return end
+    local frame = sg:FindFirstChildWhichIsA("Frame")
+    if not frame then return end
+    local tierLbl = frame:FindFirstChild("Tier") :: TextLabel?
+    local incomeLbl = frame:FindFirstChild("Income") :: TextLabel?
+    local lifetimeLbl = frame:FindFirstChild("Lifetime") :: TextLabel?
+    local tierSpec = Constants.UPGRADE_TIERS[tier] or Constants.UPGRADE_TIERS[1]
+    local perSec = (Constants.BASE_INCOME_PER_TICK * tierSpec.incomeMult) / Constants.TICK_SECONDS
+    if tierLbl then tierLbl.Text = "TIER " .. tier end
+    if incomeLbl then incomeLbl.Text = string.format("+%s / sec", fmtCoins(math.floor(perSec))) end
+    if lifetimeLbl then lifetimeLbl.Text = "lifetime: " .. fmtCoins(lifetime) end
+end
+
 function PlotAssigner.getPlotFor(userId: number): Model?
     return plotsByUserId[userId]
 end
@@ -122,7 +145,10 @@ local function assign(player: Player)
     -- foundation. Cached data is usually available; fall back to tier 1 if
     -- it isn't (the next upgrade will repaint).
     local data = DataStore.getCached(player.UserId)
-    PlotAssigner.applyTierArt(clone, (data and data.upgradeTier) or 1)
+    local tier = (data and data.upgradeTier) or 1
+    local lifetime = (data and data.lifetimeCoins) or 0
+    PlotAssigner.applyTierArt(clone, tier)
+    PlotAssigner.updateStatsBoard(clone, tier, lifetime)
 
     print(string.format("[PlotAssigner] %s -> plot index %s",
         player.Name, tostring(anchor:GetAttribute("PlotIndex"))))

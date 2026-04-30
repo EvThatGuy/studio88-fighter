@@ -293,6 +293,61 @@ local function buildPlotTemplate()
     prompt.MaxActivationDistance = 8
     prompt.Parent = btn
 
+    -- Per-plot stats board: tier + income/sec, big and visible across the lot
+    local board = part("StatsBoard", plot, {
+        Size = Vector3.new(20, 8, 1),
+        Position = Vector3.new(0, 12, -22),
+        Anchored = true,
+        Material = Enum.Material.SmoothPlastic,
+        Color = SURFACE,
+        Locked = true,
+    })
+    local boardSg = Instance.new("SurfaceGui")
+    boardSg.Adornee = board
+    boardSg.CanvasSize = Vector2.new(800, 320)
+    boardSg.Face = Enum.NormalId.Front
+    boardSg.AlwaysOnTop = false
+    boardSg.Parent = board
+    local boardFrame = Instance.new("Frame")
+    boardFrame.Size = UDim2.new(1, 0, 1, 0)
+    boardFrame.BackgroundColor3 = SURFACE
+    boardFrame.BackgroundTransparency = 0.05
+    boardFrame.BorderSizePixel = 0
+    boardFrame.Parent = boardSg
+    local boardTier = Instance.new("TextLabel")
+    boardTier.Name = "Tier"
+    boardTier.Size = UDim2.new(1, -32, 0, 110)
+    boardTier.Position = UDim2.new(0, 16, 0, 16)
+    boardTier.BackgroundTransparency = 1
+    boardTier.Text = "TIER 1"
+    boardTier.TextColor3 = PINK
+    boardTier.Font = Enum.Font.GothamBold
+    boardTier.TextScaled = true
+    boardTier.TextXAlignment = Enum.TextXAlignment.Left
+    boardTier.Parent = boardFrame
+    local boardIncome = Instance.new("TextLabel")
+    boardIncome.Name = "Income"
+    boardIncome.Size = UDim2.new(1, -32, 0, 60)
+    boardIncome.Position = UDim2.new(0, 16, 0, 130)
+    boardIncome.BackgroundTransparency = 1
+    boardIncome.Text = "+1 / sec"
+    boardIncome.TextColor3 = CYAN
+    boardIncome.Font = Enum.Font.Code
+    boardIncome.TextScaled = true
+    boardIncome.TextXAlignment = Enum.TextXAlignment.Left
+    boardIncome.Parent = boardFrame
+    local boardLifetime = Instance.new("TextLabel")
+    boardLifetime.Name = "Lifetime"
+    boardLifetime.Size = UDim2.new(1, -32, 0, 60)
+    boardLifetime.Position = UDim2.new(0, 16, 0, 200)
+    boardLifetime.BackgroundTransparency = 1
+    boardLifetime.Text = "lifetime: 0"
+    boardLifetime.TextColor3 = Color3.fromRGB(180, 180, 180)
+    boardLifetime.Font = Enum.Font.Code
+    boardLifetime.TextScaled = true
+    boardLifetime.TextXAlignment = Enum.TextXAlignment.Left
+    boardLifetime.Parent = boardFrame
+
     -- Floating label above the upgrade button
     local labelRoot = part("UpgradeLabelRoot", plot, {
         Size = Vector3.new(0.1, 0.1, 0.1),

@@ -263,4 +263,20 @@ remotes.TierUpgraded.OnClientEvent:Connect(function(newTier: number, mult: numbe
     playSound(Constants.SOUND_IDS.tier_up, 0.7)
 end)
 
+local REJECTION_COPY: {[string]: {head: string, sub: string}} = {
+    no_data = {head = "NOT READY", sub = "Save data still loading. Try again in a sec."},
+    max_tier = {head = "MAX TIER", sub = "You've maxed every upgrade. Flex on the leaderboard."},
+    insufficient_coins = {head = "NOT ENOUGH COINS", sub = "Need %s more"},
+}
+
+remotes.PurchaseRejected.OnClientEvent:Connect(function(reason: string, needed: number?)
+    local copy = REJECTION_COPY[reason] or {head = "DENIED", sub = reason}
+    local sub = copy.sub
+    if reason == "insufficient_coins" and needed then
+        sub = string.format(copy.sub, fmt(needed))
+    end
+    showToast(copy.head, sub, AMBER, 3)
+    playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
+end)
+
 print("[HUD] mounted")

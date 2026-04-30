@@ -22,15 +22,26 @@ local remotes = Remotes.get()
 -- the same validated logic. (require() returns this table.)
 local UpgradeStation = {}
 
+local function pushRejection(player: Player, reason: string, needed: number?)
+    pcall(function()
+        remotes.PurchaseRejected:FireClient(player, reason, needed)
+    end)
+end
+
 function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
     local data = DataStore.getCached(player.UserId)
-    if not data then return false, "no_data" end
+    if not data then
+        pushRejection(player, "no_data")
+        return false, "no_data"
+    end
     local nextTier = data.upgradeTier + 1
     local tierSpec = Constants.UPGRADE_TIERS[nextTier]
     if not tierSpec then
+        pushRejection(player, "max_tier")
         return false, "max_tier"
     end
     if data.coins < tierSpec.cost then
+        pushRejection(player, "insufficient_coins", tierSpec.cost - data.coins)
         return false, "insufficient_coins"
     end
     data.coins -= tierSpec.cost
@@ -43,6 +54,7 @@ function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
     local plot = PlotAssigner.getPlotFor(player.UserId)
     if plot then
         PlotAssigner.applyTierArt(plot, nextTier)
+        PlotAssigner.updateStatsBoard(plot, nextTier, data.lifetimeCoins)
         -- Burst the upgrade button particle emitter for a celebratory pop
         local btn = plot:FindFirstChild("UpgradeButton") :: BasePart?
         if btn then
