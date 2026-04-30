@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
+local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
 
 local remotes = Remotes.get()
 
@@ -51,6 +52,8 @@ local function onCollect(collector: BasePart, hit: BasePart)
     if plot then
         PlotAssigner.updateStatsBoard(plot, data.upgradeTier, data.lifetimeCoins)
     end
+
+    Leaderstats.refresh(ownerUserId)
 
     local player = Players:GetPlayerByUserId(ownerUserId)
     if player then

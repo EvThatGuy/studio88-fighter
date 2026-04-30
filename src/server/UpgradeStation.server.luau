@@ -15,6 +15,7 @@ local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
+local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
 
 local remotes = Remotes.get()
 
@@ -64,6 +65,7 @@ function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
             end
         end
     end
+    Leaderstats.refresh(player.UserId)
     pcall(function()
         remotes.TierUpgraded:FireClient(player, nextTier, tierSpec.incomeMult)
     end)

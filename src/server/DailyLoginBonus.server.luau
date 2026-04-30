@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
 
 local remotes = Remotes.get()
 
@@ -58,6 +59,7 @@ local function grantBonusIfDue(player: Player)
     if reward > 0 then
         data.coins += reward
         data.lifetimeCoins += reward
+        Leaderstats.refresh(player.UserId)
         print(string.format("[DailyLoginBonus] %s +%d coins (streak %d)",
             player.Name, reward, data.streak))
         pcall(function()
