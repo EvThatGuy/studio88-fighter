@@ -43,6 +43,14 @@ function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
     local plot = PlotAssigner.getPlotFor(player.UserId)
     if plot then
         PlotAssigner.applyTierArt(plot, nextTier)
+        -- Burst the upgrade button particle emitter for a celebratory pop
+        local btn = plot:FindFirstChild("UpgradeButton") :: BasePart?
+        if btn then
+            local fx = btn:FindFirstChild("UpgradeFX") :: ParticleEmitter?
+            if fx then
+                pcall(function() fx:Emit(30) end)
+            end
+        end
     end
     pcall(function()
         remotes.TierUpgraded:FireClient(player, nextTier, tierSpec.incomeMult)

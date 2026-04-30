@@ -39,6 +39,32 @@ local function part(name: string, parent: Instance, props: {[string]: any}): Par
     return p
 end
 
+-- Built-in Roblox sparkle texture; ships with every client install. Falls
+-- back invisible if asset is unavailable, so failure mode is "no FX" not crash.
+local SPARKLE_TEXTURE = "rbxasset://textures/particles/sparkles_main.dds"
+
+local function makeParticle(parent: BasePart, props: {[string]: any}): ParticleEmitter
+    local pe = Instance.new("ParticleEmitter")
+    pe.Texture = SPARKLE_TEXTURE
+    pe.LightEmission = 1
+    pe.Speed = NumberRange.new(0)
+    pe.Lifetime = NumberRange.new(0.6, 1.2)
+    pe.Rate = 4
+    pe.Rotation = NumberRange.new(0, 360)
+    pe.RotSpeed = NumberRange.new(-90, 90)
+    pe.Size = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.3),
+        NumberSequenceKeypoint.new(1, 0.8),
+    })
+    pe.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.2),
+        NumberSequenceKeypoint.new(1, 1),
+    })
+    setProps(pe, props)
+    pe.Parent = parent
+    return pe
+end
+
 -- --- Baseplate -------------------------------------------------------------
 
 local function buildBaseplate(parent: Instance)
@@ -183,6 +209,14 @@ local function buildPlotTemplate()
         Locked = true,
     })
     CollectionService:AddTag(dropper, "Studio88Dropper")
+    -- Cyan sparkle drift telling the eye "this thing is producing"
+    makeParticle(dropper, {
+        Color = ColorSequence.new(CYAN, PINK),
+        Rate = 6,
+        Speed = NumberRange.new(0.5, 1.5),
+        SpreadAngle = Vector2.new(20, 20),
+        Acceleration = Vector3.new(0, 2, 0),
+    })
 
     -- Spawn point for emitted coins (small marker invisible)
     local emitter = part("Emitter", plot, {
@@ -205,6 +239,15 @@ local function buildPlotTemplate()
         Locked = true,
     })
     CollectionService:AddTag(collector, "Studio88Collector")
+    -- Ambient pink glimmer; Collector.server.luau bursts this on each collect
+    local collectorFX = makeParticle(collector, {
+        Color = ColorSequence.new(PINK),
+        Rate = 2,
+        Speed = NumberRange.new(0, 1),
+        SpreadAngle = Vector2.new(30, 30),
+        Acceleration = Vector3.new(0, 4, 0),
+    })
+    collectorFX.Name = "CollectFX"
 
     -- Conveyor surface from dropper to collector (tilted slightly)
     local conveyor = part("Conveyor", plot, {
@@ -233,6 +276,14 @@ local function buildPlotTemplate()
         Locked = true,
     })
     CollectionService:AddTag(btn, "Studio88UpgradeButton")
+    -- Slow amber drift saying "come buy me"; UpgradeStation bursts on success
+    local btnFX = makeParticle(btn, {
+        Color = ColorSequence.new(AMBER),
+        Rate = 3,
+        Speed = NumberRange.new(0.5, 1.5),
+        Acceleration = Vector3.new(0, 3, 0),
+    })
+    btnFX.Name = "UpgradeFX"
 
     local prompt = Instance.new("ProximityPrompt")
     prompt.Name = "UpgradePrompt"

@@ -143,6 +143,12 @@ non-coder playtesters.
 - **Daily login HUD popup** — `DailyBonusGranted` RemoteEvent fires on
   streak-eligible login. HUD shows an amber "DAY N STREAK +X coins" toast
   for 5s.
+- **World particle FX** — `WorldBuilder.makeParticle` mounts a
+  `ParticleEmitter` on the dropper (cyan→pink drift), collector (pink
+  ambient + 8-particle burst on each collect via `Collector.server.luau`),
+  and upgrade button (amber drift + 30-particle burst on tier-up via
+  `UpgradeStation`). Uses the built-in `rbxasset://textures/particles/sparkles_main.dds`
+  so no external asset dependency.
 
 ## What's NOT in v1 yet
 
@@ -151,4 +157,5 @@ non-coder playtesters.
   need to create the passes in Creator Hub and paste the asset IDs.
 - Custom GUI for the upgrade button preview (currently a BillboardGui
   text label).
-- Particle FX on the dropper / collector / coins. Sound design.
+- Sound design (free Roblox-library SoundIds wired through a Constants
+  table; need David to pick coin / chime / jingle assets).

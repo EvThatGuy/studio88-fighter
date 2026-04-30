@@ -36,6 +36,12 @@ local function onCollect(collector: BasePart, hit: BasePart)
     data.lifetimeCoins += value
     hit:Destroy()
 
+    -- Burst the collector's particle emitter so the eye sees the credit land
+    local fx = collector:FindFirstChild("CollectFX") :: ParticleEmitter?
+    if fx then
+        pcall(function() fx:Emit(8) end)
+    end
+
     local player = Players:GetPlayerByUserId(ownerUserId)
     if player then
         pcall(function()
