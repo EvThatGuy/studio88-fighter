@@ -5,6 +5,8 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local SoundService = game:GetService("SoundService")
+local TweenService = game:GetService("TweenService")
 
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Constants = require(Modules:WaitForChild("Constants"))
@@ -109,8 +111,69 @@ local function setBalance(coins: number, lifetime: number, tier: number?)
     if tier then tierLabel.Text = "Tier " .. tier end
 end
 
+-- First-time hint: on first BalanceUpdated of the session we know the
+-- player has reached their plot and a coin was credited. Until then, show
+-- a soft hint at the bottom of the screen telling them what to do.
+local hintFrame: Frame? = nil
+local function dismissHint()
+    if not hintFrame then return end
+    local f = hintFrame
+    hintFrame = nil
+    pcall(function()
+        TweenService:Create(f, TweenInfo.new(0.4), {
+            Position = UDim2.new(0.5, -180, 1, 80),
+            BackgroundTransparency = 1,
+        }):Play()
+    end)
+    task.delay(0.5, function() if f then f:Destroy() end end)
+end
+
+local function showHint()
+    if hintFrame then return end
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(0, 360, 0, 56)
+    f.Position = UDim2.new(0.5, -180, 1, 80)
+    f.BackgroundColor3 = BG
+    f.BackgroundTransparency = 0.1
+    f.BorderSizePixel = 0
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = CYAN
+    stroke.Thickness = 1
+    stroke.Parent = f
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = f
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -16, 1, -8)
+    lbl.Position = UDim2.new(0, 8, 0, 4)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = "walk to your plot -- it earns automatically"
+    lbl.TextColor3 = CYAN
+    lbl.Font = Enum.Font.Code
+    lbl.TextScaled = true
+    lbl.Parent = f
+    f.Parent = screen
+    hintFrame = f
+
+    -- Slide up from below the screen
+    pcall(function()
+        TweenService:Create(f, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Position = UDim2.new(0.5, -180, 1, -88),
+        }):Play()
+    end)
+
+    -- Auto-dismiss after 30s if they never reach the plot, so it doesn't
+    -- linger forever.
+    task.delay(30, dismissHint)
+end
+
+-- Show the hint after a short grace period so it doesn't compete with
+-- character spawn animations.
+task.delay(2, showHint)
+
 remotes.BalanceUpdated.OnClientEvent:Connect(function(coins, lifetime)
     setBalance(coins, lifetime)
+    dismissHint()
 end)
 
 remotes.LeaderboardUpdated.OnClientEvent:Connect(function(rows)
@@ -144,8 +207,6 @@ end)
 
 -- ----- Toast layer (daily-bonus banner + tier-up flash) -----
 
-local TweenService = game:GetService("TweenService")
-local SoundService = game:GetService("SoundService")
 local AMBER = Color3.fromRGB(255, 176, 0)
 
 -- Sound layer. SoundIds live in Constants.SOUND_IDS as either a stable
