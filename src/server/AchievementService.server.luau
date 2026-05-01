@@ -104,6 +104,18 @@ local function awardBadgeAsync(userId: number, badgeId: number)
     end)
 end
 
+-- Achievements that emit activity-feed events. These are the dopamine-spike
+-- ones that other players want to see. Routine first-thousand etc are kept
+-- private. Keyed by id for O(1) lookup.
+local FEED_WORTHY_ACHIEVEMENTS: {[string]: boolean} = {
+    billionaire = true,
+    rebirth_legend = true,    -- 50 rebirths
+    pet_collector = true,     -- own one of every pet
+    weekly_warrior = true,    -- 30-day login streak
+    max_tier = true,          -- penthouse suite
+    prestige_master = true,   -- 10 rebirths
+}
+
 local function unlock(player: Player, data: Types.PlayerData, achievement: AchievementDef)
     if not data.achievementsUnlocked then data.achievementsUnlocked = {} end
     if data.achievementsUnlocked[achievement.id] then return end
@@ -132,6 +144,13 @@ local function unlock(player: Player, data: Types.PlayerData, achievement: Achie
             rewardTokens = achievement.rewardTokens,
         })
     end)
+    if FEED_WORTHY_ACHIEVEMENTS[achievement.id] then
+        pcall(function()
+            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+            ActivityFeedService.post(player, "achievement_legendary",
+                "earned the " .. achievement.name .. " trophy")
+        end)
+    end
     print(string.format("[AchievementService] %s unlocked '%s' (+%d coins, +%d tokens)",
         player.Name, achievement.id, achievement.rewardCoins, achievement.rewardTokens))
 end

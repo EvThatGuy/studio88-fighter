@@ -90,6 +90,8 @@ export type RemoteMap = {
     EquipAura: RemoteEvent,           -- client -> server; payload {auraId or nil to unequip}
     AuraReplicate: RemoteEvent,       -- server -> ALL clients; payload {userId, auraId or nil} so every client renders trail
     AuraRejected: RemoteEvent,        -- server -> client; payload {auraId, reason}
+    GetActivityFeed: RemoteFunction,  -- client -> server; returns {entries=[{kind, userName, detail, unix, agoSec}]}
+    ActivityFeedUpdated: RemoteEvent, -- server -> client; payload {entries} (push when feed changes server-side)
 }
 
 return {}

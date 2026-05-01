@@ -225,6 +225,14 @@ function PetService.attemptHatch(player: Player, eggId: any): (boolean, string?)
     end)
     print(string.format("[PetService] %s hatched '%s' (%s) from %s",
         player.Name, def.name, def.rarity, eggId))
+    -- Activity feed: only legendary hatches are interesting enough to
+    -- broadcast cross-server. Common hatches would spam.
+    if def.rarity == "legendary" then
+        pcall(function()
+            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+            ActivityFeedService.post(player, "hatch_legendary", "hatched " .. def.name)
+        end)
+    end
     -- Achievement hook: pets_owned + pets_collection_complete + lifetime
     -- coins (if achievements credit coins back). Lazy require to dodge a
     -- circular require chain at script-init time.
@@ -363,6 +371,14 @@ function PetService.attemptFuse(player: Player, rarity: any): (boolean, string?)
     end)
     print(string.format("[PetService] %s fused 3x %s -> '%s' (%s)",
         player.Name, rarity, def.name, def.rarity))
+    -- Activity feed: legendary fusion results are exciting; lower-rarity
+    -- fuses are routine.
+    if def.rarity == "legendary" then
+        pcall(function()
+            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+            ActivityFeedService.post(player, "hatch_legendary", "fused into " .. def.name)
+        end)
+    end
     -- Achievement scan -- this changes #data.pets and could change collection
     -- completion, so re-evaluate.
     pcall(function()

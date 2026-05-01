@@ -2565,4 +2565,122 @@ remotes.AuraRejected.OnClientEvent:Connect(function(_auraId: string, reason: str
     showToast("AURA FAILED", copy, AMBER, 3)
 end)
 
+-- =============================================================================
+-- Live Activity Feed (FOMO ticker, top-left)
+-- =============================================================================
+
+local FEED_KIND_COLOR: {[string]: Color3} = {
+    hatch_legendary = Color3.fromRGB(255, 207, 64),    -- gold
+    rebirth_milestone = Color3.fromRGB(255, 130, 200), -- pink
+    aura_unlock = Color3.fromRGB(200, 130, 255),       -- purple
+    achievement_legendary = Color3.fromRGB(110, 220, 220), -- cyan
+}
+
+local feedFrame = Instance.new("Frame")
+feedFrame.Name = "ActivityFeed"
+feedFrame.Size = UDim2.new(0, 320, 0, 240)
+feedFrame.Position = UDim2.new(0, 12, 0, 80)
+feedFrame.BackgroundColor3 = BG
+feedFrame.BackgroundTransparency = 0.25
+feedFrame.BorderSizePixel = 0
+feedFrame.Visible = true
+feedFrame.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(60, 56, 80); s.Thickness = 1; s.Parent = feedFrame
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = feedFrame
+end
+local feedHead = makeLabel("Head", feedFrame, "LIVE FEED", UDim2.new(1, -16, 0, 14), UDim2.new(0, 8, 0, 6))
+feedHead.TextColor3 = TEXT
+feedHead.Font = Enum.Font.GothamBold
+feedHead.TextSize = 12
+feedHead.TextTransparency = 0.3
+
+local feedList = Instance.new("Frame")
+feedList.Name = "List"
+feedList.Size = UDim2.new(1, -16, 1, -28)
+feedList.Position = UDim2.new(0, 8, 0, 24)
+feedList.BackgroundTransparency = 1
+feedList.Parent = feedFrame
+local feedLayout = Instance.new("UIListLayout")
+feedLayout.SortOrder = Enum.SortOrder.LayoutOrder
+feedLayout.Padding = UDim.new(0, 4)
+feedLayout.Parent = feedList
+
+local function fmtAgo(unix: number): string
+    local sec = os.time() - unix
+    if sec < 60 then return tostring(math.max(0, sec)) .. "s" end
+    if sec < 3600 then return tostring(math.floor(sec / 60)) .. "m" end
+    return tostring(math.floor(sec / 3600)) .. "h"
+end
+
+local function rebuildFeed(entries: {any})
+    for _, c in ipairs(feedList:GetChildren()) do
+        if c:IsA("Frame") or c:IsA("TextLabel") then c:Destroy() end
+    end
+    if not entries or #entries == 0 then
+        local empty = makeLabel("Empty", feedList, "(quiet for now)", UDim2.new(1, 0, 0, 14), UDim2.new(0, 0, 0, 0))
+        empty.TextColor3 = TEXT
+        empty.Font = Enum.Font.Code
+        empty.TextSize = 11
+        empty.TextTransparency = 0.6
+        empty.TextXAlignment = Enum.TextXAlignment.Left
+        return
+    end
+    for i, e in ipairs(entries) do
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, 0, 0, 22)
+        row.BackgroundTransparency = 1
+        row.LayoutOrder = i
+        row.Parent = feedList
+        local color = FEED_KIND_COLOR[e.kind] or TEXT
+        -- name
+        local who = makeLabel("Who", row, e.userName, UDim2.new(0, 88, 1, 0), UDim2.new(0, 0, 0, 0))
+        who.TextColor3 = color
+        who.Font = Enum.Font.GothamBold
+        who.TextSize = 11
+        who.TextXAlignment = Enum.TextXAlignment.Left
+        who.TextTruncate = Enum.TextTruncate.AtEnd
+        -- detail
+        local what = makeLabel("What", row, e.detail, UDim2.new(1, -148, 1, 0), UDim2.new(0, 92, 0, 0))
+        what.TextColor3 = TEXT
+        what.Font = Enum.Font.Code
+        what.TextSize = 11
+        what.TextXAlignment = Enum.TextXAlignment.Left
+        what.TextTruncate = Enum.TextTruncate.AtEnd
+        -- ago
+        local ago = makeLabel("Ago", row, fmtAgo(e.unix), UDim2.new(0, 40, 1, 0), UDim2.new(1, -44, 0, 0))
+        ago.TextColor3 = TEXT
+        ago.Font = Enum.Font.Code
+        ago.TextSize = 10
+        ago.TextTransparency = 0.5
+        ago.TextXAlignment = Enum.TextXAlignment.Right
+    end
+end
+
+local feedCache: {any} = {}
+
+remotes.ActivityFeedUpdated.OnClientEvent:Connect(function(entries: {any})
+    feedCache = entries or {}
+    rebuildFeed(feedCache)
+end)
+
+task.spawn(function()
+    task.wait(2)
+    local ok, snap = pcall(function() return remotes.GetActivityFeed:InvokeServer() end)
+    if ok and snap and snap.entries then
+        feedCache = snap.entries
+        rebuildFeed(feedCache)
+    else
+        rebuildFeed({})
+    end
+end)
+
+-- Refresh ago-strings every 15s without refetching
+task.spawn(function()
+    while true do
+        task.wait(15)
+        if #feedCache > 0 then rebuildFeed(feedCache) end
+    end
+end)
+
 print("[HUD] mounted")

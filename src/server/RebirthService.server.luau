@@ -92,6 +92,22 @@ function RebirthService.attemptRebirth(player: Player): (boolean, string?)
         local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
         AchievementService.evaluate(player.UserId)
     end)
+    -- Activity feed: only milestones (1, 5, 10, 25, 50, 100). A noisy
+    -- "rebirth #2" event would clutter the ticker for everyone.
+    do
+        local milestones = Constants.ACTIVITY_FEED.REBIRTH_MILESTONES
+        local hit = false
+        for _, m in ipairs(milestones) do
+            if data.rebirths == m then hit = true; break end
+        end
+        if hit then
+            pcall(function()
+                local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+                ActivityFeedService.post(player, "rebirth_milestone",
+                    "hit rebirth #" .. tostring(data.rebirths))
+            end)
+        end
+    end
     print(string.format(
         "[RebirthService] %s rebirthed (#%d, perma-mult x%.2f)",
         player.Name, data.rebirths, newMult

@@ -452,6 +452,25 @@ Constants.ACHIEVEMENTS = {
      trigger = "rebirth_shop_owned", threshold = 3,            rewardCoins = 0,      rewardTokens = 2, badgeId = 0},
 }
 
+-- Live Activity Feed. A cross-server-synced ticker of recent "wow"
+-- moments (legendary hatches, rebirth milestones, aura unlocks, code
+-- redemptions). MemoryStoreService SortedMap keyed by unix-timestamp so
+-- recency comes for free. Ticker shows latest 8 entries on the HUD.
+--
+-- Each event has:
+--   kind     "hatch_legendary" | "rebirth_milestone" | "aura_unlock" | "achievement_legendary"
+--   userName display name (FilterStringAsync'd before broadcast)
+--   detail   short string ("hatched Cosmic Drake", "rebirth #25", "Apex aura", etc)
+--   unix     server time the event fired
+Constants.ACTIVITY_FEED = {
+    SORTED_MAP_KEY = "Studio88ActivityFeed_v1",
+    ENTRY_TTL_SEC = 600,        -- 10 min; SortedMap auto-expires
+    MAX_ENTRIES_VISIBLE = 8,
+    POLL_INTERVAL_SEC = 15,     -- server polls Memory every 15s; client polls server every 30s
+    -- Rebirth milestones that emit feed events. Anything else gets filtered.
+    REBIRTH_MILESTONES = {1, 5, 10, 25, 50, 100},
+}
+
 -- Cosmetic Auras. Equip a single aura that attaches a Trail to the player's
 -- character. Visible to all other players in the server -- creates social
 -- proof ("that player has the legendary aura, I want it") and TikTok-bait

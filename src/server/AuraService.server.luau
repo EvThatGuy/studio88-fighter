@@ -145,6 +145,14 @@ function AuraService.attemptEquip(player: Player, auraId: any): (boolean, string
     data.equippedAura = auraId
     broadcastEquip(userId, auraId)
     print(string.format("[AuraService] %s equipped aura '%s'", player.Name, auraId))
+    -- Activity feed: only legendary auras are flex-worthy enough to
+    -- broadcast. Common/rare/epic equips are private.
+    if aura.rarity == "legendary" then
+        pcall(function()
+            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+            ActivityFeedService.post(player, "aura_unlock", "equipped " .. aura.name .. " aura")
+        end)
+    end
     return true, nil
 end
 
