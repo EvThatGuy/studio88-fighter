@@ -1677,10 +1677,68 @@ local function rarityColor(rarity: string): Color3
     return Color3.fromRGB(rgb[1], rgb[2], rgb[3])
 end
 
+local function rebuildPityCard(parent: ScrollingFrame, state: any)
+    -- Pinned pity card at top of eggs tab. Visualizes how close the player
+    -- is to a guaranteed-legendary hatch. The retention loop centerpiece.
+    if not state.pity or not state.pityThreshold or state.pityThreshold <= 0 then return end
+    local card = Instance.new("Frame")
+    card.Size = UDim2.new(1, -8, 0, 64)
+    card.BackgroundColor3 = Color3.fromRGB(28, 24, 44)
+    card.BorderSizePixel = 0
+    card.LayoutOrder = -1000
+    card.ZIndex = 52
+    card.Parent = parent
+    do
+        local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(255, 207, 64); s.Thickness = 1; s.Parent = card
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+    end
+    local title = makeLabel("Title", card, "LEGENDARY PITY",
+        UDim2.new(1, -16, 0, 16), UDim2.new(0, 12, 0, 8))
+    title.TextColor3 = Color3.fromRGB(255, 207, 64)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 13
+    title.ZIndex = 53
+    local left = math.max(0, state.pityThreshold - state.pity)
+    local sub = makeLabel("Sub", card,
+        string.format("guaranteed legendary in %d hatch%s", left, left == 1 and "" or "es"),
+        UDim2.new(1, -16, 0, 14), UDim2.new(0, 12, 0, 26))
+    sub.TextColor3 = TEXT
+    sub.Font = Enum.Font.Code
+    sub.TextSize = 11
+    sub.TextTransparency = 0.3
+    sub.ZIndex = 53
+    -- Bar
+    local barBg = Instance.new("Frame")
+    barBg.Size = UDim2.new(1, -24, 0, 8)
+    barBg.Position = UDim2.new(0, 12, 0, 46)
+    barBg.BackgroundColor3 = Color3.fromRGB(40, 36, 56)
+    barBg.BorderSizePixel = 0
+    barBg.ZIndex = 53
+    barBg.Parent = card
+    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = barBg end
+    local pct = math.clamp(state.pity / state.pityThreshold, 0, 1)
+    local barFill = Instance.new("Frame")
+    barFill.Size = UDim2.new(pct, 0, 1, 0)
+    barFill.BackgroundColor3 = Color3.fromRGB(255, 207, 64)
+    barFill.BorderSizePixel = 0
+    barFill.ZIndex = 54
+    barFill.Parent = barBg
+    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = barFill end
+    local count = makeLabel("Count", card,
+        string.format("%d / %d", state.pity, state.pityThreshold),
+        UDim2.new(0, 80, 0, 14), UDim2.new(1, -92, 0, 8))
+    count.TextColor3 = Color3.fromRGB(255, 207, 64)
+    count.Font = Enum.Font.GothamBold
+    count.TextSize = 11
+    count.TextXAlignment = Enum.TextXAlignment.Right
+    count.ZIndex = 53
+end
+
 local function rebuildEggList(eggsList: ScrollingFrame, state: any)
     for _, c in ipairs(eggsList:GetChildren()) do
         if c:IsA("Frame") then c:Destroy() end
     end
+    rebuildPityCard(eggsList, state)
     for order, e in ipairs(state.eggs) do
         local card = Instance.new("Frame")
         card.Size = UDim2.new(1, -8, 0, 90)

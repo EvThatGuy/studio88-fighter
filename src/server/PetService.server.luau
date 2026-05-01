@@ -246,6 +246,8 @@ function PetService.snapshot(userId: number)
         eggs = eggs,
         collectionComplete = complete,
         coinsAvailable = data.coins,
+        pity = data.hatchesSinceLastLegendary or 0,
+        pityThreshold = Constants.PET_PITY_THRESHOLD,
     }
 end
 
@@ -281,8 +283,22 @@ function PetService.attemptHatch(player: Player, eggId: any): (boolean, string?)
         pushHatchReject(player, eggId, "insufficient_coins", egg.cost - data.coins)
         return false, "insufficient_coins"
     end
-    -- Roll
+    -- Roll. Apply pity force-promotion: if this player is at the threshold
+    -- without a legendary, force a legendary roll regardless of egg tier.
     local def = rollPet(egg.biasTier)
+    local pity = data.hatchesSinceLastLegendary or 0
+    if def.rarity ~= "legendary" and pity >= (Constants.PET_PITY_THRESHOLD - 1) then
+        local legendaryPool = petsByRarity["legendary"] or {}
+        if #legendaryPool > 0 then
+            def = legendaryPool[math.random(1, #legendaryPool)]
+        end
+    end
+    -- Update pity: reset on any legendary, increment otherwise
+    if def.rarity == "legendary" then
+        data.hatchesSinceLastLegendary = 0
+    else
+        data.hatchesSinceLastLegendary = pity + 1
+    end
     -- Commit: deduct coins, append pet, fire client.
     data.coins -= egg.cost
     if not data.pets then data.pets = {} end
@@ -516,6 +532,20 @@ function PetService.grantPetFromEgg(player: Player, eggId: string): (Types.Owned
         return nil, nil, "inventory_full"
     end
     local def = rollPet(egg.biasTier)
+    -- Free grants also respect + advance pity (otherwise streak grants
+    -- would skew the counter without paying it back).
+    local pity = data.hatchesSinceLastLegendary or 0
+    if def.rarity ~= "legendary" and pity >= (Constants.PET_PITY_THRESHOLD - 1) then
+        local legendaryPool = petsByRarity["legendary"] or {}
+        if #legendaryPool > 0 then
+            def = legendaryPool[math.random(1, #legendaryPool)]
+        end
+    end
+    if def.rarity == "legendary" then
+        data.hatchesSinceLastLegendary = 0
+    else
+        data.hatchesSinceLastLegendary = pity + 1
+    end
     if not data.pets then data.pets = {} end
     local owned: Types.OwnedPet = {
         uid = nextUid(data),

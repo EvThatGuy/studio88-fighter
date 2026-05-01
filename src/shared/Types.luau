@@ -39,6 +39,7 @@ export type PlayerData = {
     referralCount: number,          -- how many people redeemed THIS player's code
     pendingReferralBonusCoins: number, -- queued bonus from referrals while offline; granted on next session start
     petBoostExpiresUnix: number,    -- unix when the active pet-boost expires; <= os.time() means inactive
+    hatchesSinceLastLegendary: number, -- pity counter; force-legendary at PET_PITY_THRESHOLD, reset on any legendary
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 

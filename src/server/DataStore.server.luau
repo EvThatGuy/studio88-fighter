@@ -55,6 +55,7 @@ local function defaultPlayerData(): Types.PlayerData
         referralCount = 0,
         pendingReferralBonusCoins = 0,
         petBoostExpiresUnix = 0,
+        hatchesSinceLastLegendary = 0,
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -157,6 +158,14 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
     ["v11"] = function(data: any): Types.PlayerData
         data.petBoostExpiresUnix = data.petBoostExpiresUnix or 0
         data.schemaVersion = "v12"
+        return data
+    end,
+    -- v12 -> v13: pet pity. Counter starts at 0 for legacy players, who
+    -- effectively get a fresh pity window (good thing -- their next 50
+    -- hatches all have a guaranteed legendary at the end). Intentional.
+    ["v12"] = function(data: any): Types.PlayerData
+        data.hatchesSinceLastLegendary = data.hatchesSinceLastLegendary or 0
+        data.schemaVersion = "v13"
         return data
     end,
 }

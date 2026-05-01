@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v12"
+Constants.DATASTORE_VERSION = "v13"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -588,6 +588,17 @@ Constants.AURAS = {
 Constants.HOURLY_TRIBUTE_INTERVAL_SEC = 3600
 Constants.HOURLY_TRIBUTE_STACK_CAP = 4
 Constants.HOURLY_TRIBUTE_BASE_REWARD = 500 -- multiplied by current tier incomeMult
+
+-- Pet pity counter. Standard gacha mechanic: after PET_PITY_THRESHOLD
+-- hatches WITHOUT a legendary roll, the next hatch is GUARANTEED to be
+-- legendary (force-promotion). Counter resets on each legendary (whether
+-- rolled or pity-forced). Hatched-via-fusion does NOT count toward pity
+-- (fusion is its own deterministic system; counting it would let players
+-- pity-farm by chain-fusing trash to commons to standards).
+--
+-- The published counter is what makes this a retention loop -- players
+-- see "47 / 50, guaranteed legendary in 3 hatches" and chase the chain.
+Constants.PET_PITY_THRESHOLD = 50
 
 -- Pet fusion. Sacrifice N pets of the same rarity to mint 1 random pet of
 -- the next rarity up. Solves the dead-dupe-inventory problem and gives
