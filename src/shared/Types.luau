@@ -106,6 +106,7 @@ export type RemoteMap = {
     BuyPetBoost: RemoteEvent,         -- client -> server; no payload (server pulls cost-for-current-tier)
     PetBoostStateChanged: RemoteEvent,-- server -> client; payload {active, remainingSec, multiplier}
     PetBoostRejected: RemoteEvent,    -- server -> client; payload {reason, needed?}
+    SquadBonusChanged: RemoteEvent,   -- server -> ALL clients; payload {active, count, threshold, multiplier}
 }
 
 return {}

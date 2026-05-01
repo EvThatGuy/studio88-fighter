@@ -589,6 +589,16 @@ Constants.HOURLY_TRIBUTE_INTERVAL_SEC = 3600
 Constants.HOURLY_TRIBUTE_STACK_CAP = 4
 Constants.HOURLY_TRIBUTE_BASE_REWARD = 500 -- multiplied by current tier incomeMult
 
+-- Squad Bonus. When the server has SQUAD_THRESHOLD or more concurrent
+-- players, EVERYONE in that server gets a flat income multiplier. Gives
+-- players a reason to stay in busier servers (Roblox session-length
+-- signal) and compounds directly with Referrals (invite friends ->
+-- friends join your server -> bonus activates for both of you).
+Constants.SQUAD_BONUS = {
+    THRESHOLD = 3,
+    MULTIPLIER = 1.25,
+}
+
 -- Pet pity counter. Standard gacha mechanic: after PET_PITY_THRESHOLD
 -- hatches WITHOUT a legendary roll, the next hatch is GUARANTEED to be
 -- legendary (force-promotion). Counter resets on each legendary (whether

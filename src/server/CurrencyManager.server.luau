@@ -16,6 +16,7 @@ local EventService = require(script.Parent:WaitForChild("EventService.server"))
 local TutorialService = require(script.Parent:WaitForChild("TutorialService.server"))
 local PetService = require(script.Parent:WaitForChild("PetService.server"))
 local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+local SquadBonusService = require(script.Parent:WaitForChild("SquadBonusService.server"))
 
 local remotes = Remotes.get()
 
@@ -82,6 +83,9 @@ local function multiplierFor(userId: number, data): number
     -- Pets: equipped boost + collection completion bonus. 1.0 if none equipped
     -- and collection incomplete. Stacks meta-multiplicatively with everything.
     mult *= PetService.getPetMultiplier(userId)
+    -- Squad Bonus: 1.0 below threshold, otherwise SQUAD_BONUS.MULTIPLIER
+    -- for everyone in the server. Compounds with the rest.
+    mult *= SquadBonusService.getMultiplier()
     return mult
 end
 

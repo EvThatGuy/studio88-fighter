@@ -2274,6 +2274,42 @@ task.spawn(function()
     refreshPetBoost()
 end)
 
+-- Squad Bonus ribbon (top-center, only visible when active)
+local squadRibbon = Instance.new("Frame")
+squadRibbon.Name = "SquadRibbon"
+squadRibbon.Size = UDim2.new(0, 320, 0, 28)
+squadRibbon.Position = UDim2.new(0.5, -160, 0, 12)
+squadRibbon.BackgroundColor3 = Color3.fromRGB(255, 130, 200)
+squadRibbon.BackgroundTransparency = 0.1
+squadRibbon.BorderSizePixel = 0
+squadRibbon.Visible = false
+squadRibbon.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = BG; s.Thickness = 1; s.Parent = squadRibbon
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 14); c.Parent = squadRibbon
+end
+local squadLbl = makeLabel("Lbl", squadRibbon, "SQUAD BONUS +25% (3/3)", UDim2.new(1, -16, 1, -8), UDim2.new(0, 8, 0, 4))
+squadLbl.TextColor3 = BG
+squadLbl.Font = Enum.Font.GothamBold
+squadLbl.TextSize = 13
+squadLbl.TextXAlignment = Enum.TextXAlignment.Center
+
+local squadActive = false
+remotes.SquadBonusChanged.OnClientEvent:Connect(function(payload: any)
+    if not payload then return end
+    squadRibbon.Visible = payload.active == true
+    local mult = payload.multiplier or 1
+    local pct = math.floor((mult - 1) * 100 + 0.5)
+    squadLbl.Text = string.format("SQUAD BONUS +%d%%   (%d players)", pct, payload.count or 0)
+    if payload.active and not squadActive then
+        flashScreen(Color3.fromRGB(255, 130, 200), 0.3)
+        showToast("SQUAD BONUS ACTIVE",
+            string.format("+%d%% income while %d+ players are here", pct, payload.threshold or 3),
+            Color3.fromRGB(255, 130, 200), 4)
+    end
+    squadActive = payload.active == true
+end)
+
 remotes.StreakEggGranted.OnClientEvent:Connect(function(streakDay: number, _eggId: string, pet: any, petName: string)
     local rarityColor = Constants.PET_RARITY_COLORS[pet.rarity] or {200,200,200}
     local color = Color3.fromRGB(rarityColor[1], rarityColor[2], rarityColor[3])
