@@ -71,6 +71,10 @@ local function grantBonusIfDue(player: Player)
     end
 
     data.lastLoginUnix = now
+    pcall(function()
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        AchievementService.evaluate(player.UserId)
+    end)
 end
 
 -- Wait for DataStore to populate cache before granting -- DataStore.server's

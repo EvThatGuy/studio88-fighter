@@ -74,6 +74,10 @@ function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
     DailyQuestService.bumpProgress(player.UserId,
         Constants.QUEST_KIND.TIER_UPS_TODAY, 1)
     TutorialService.advance(player.UserId, "04_first_upgrade")
+    pcall(function()
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        AchievementService.evaluate(player.UserId)
+    end)
     print(string.format("[UpgradeStation] %s -> tier %d (cost %d paid)",
         player.Name, nextTier, tierSpec.cost))
     return true, nil

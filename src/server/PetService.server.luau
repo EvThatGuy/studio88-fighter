@@ -225,6 +225,13 @@ function PetService.attemptHatch(player: Player, eggId: any): (boolean, string?)
     end)
     print(string.format("[PetService] %s hatched '%s' (%s) from %s",
         player.Name, def.name, def.rarity, eggId))
+    -- Achievement hook: pets_owned + pets_collection_complete + lifetime
+    -- coins (if achievements credit coins back). Lazy require to dodge a
+    -- circular require chain at script-init time.
+    pcall(function()
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        AchievementService.evaluate(userId)
+    end)
     return true, nil
 end
 

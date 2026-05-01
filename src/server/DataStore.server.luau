@@ -46,6 +46,8 @@ local function defaultPlayerData(): Types.PlayerData
         redeemedCodes = {},
         dailyQuests = emptyDailyQuests(),
         tutorialStep = 0,
+        achievementsUnlocked = {},
+        questsClaimedTotal = 0,
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -98,6 +100,19 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
         data.pets = data.pets or {}
         data.equippedPetIds = data.equippedPetIds or {}
         data.schemaVersion = "v7"
+        return data
+    end,
+    -- v7 -> v8: achievements. Existing players start with empty unlocks
+    -- so AchievementService backfills retroactive milestones (millionaire,
+    -- max-tier, first-rebirth, etc) on next login -- a free batch of
+    -- coin/token rewards for legacy players, which is intentional. The
+    -- monotonic questsClaimedTotal counter starts at 0 since we never
+    -- recorded historical claims; players will hit "Quest Grinder" within
+    -- ~10 days of normal play. Acceptable cost for keeping migration cheap.
+    ["v7"] = function(data: any): Types.PlayerData
+        data.achievementsUnlocked = data.achievementsUnlocked or {}
+        data.questsClaimedTotal = data.questsClaimedTotal or 0
+        data.schemaVersion = "v8"
         return data
     end,
 }

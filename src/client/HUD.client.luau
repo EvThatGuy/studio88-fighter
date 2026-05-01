@@ -1902,4 +1902,231 @@ remotes.PetEquipChanged.OnClientEvent:Connect(function(_equippedPetIds: {string}
     refreshPets()
 end)
 
+-- =============================================================================
+-- Achievements
+-- =============================================================================
+
+local GOLD = Color3.fromRGB(255, 207, 64)
+local achModal: Frame? = nil
+local achList: ScrollingFrame? = nil
+
+local achBtn = Instance.new("TextButton")
+achBtn.Name = "AchievementsButton"
+achBtn.Size = UDim2.new(0, 140, 0, 44)
+achBtn.Position = UDim2.new(1, -156, 1, -284)
+achBtn.BackgroundColor3 = BG
+achBtn.BackgroundTransparency = 0.15
+achBtn.BorderSizePixel = 0
+achBtn.AutoButtonColor = false
+achBtn.Text = ""
+achBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = GOLD; s.Thickness = 1; s.Parent = achBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = achBtn
+end
+local achLabel = makeLabel("Label", achBtn, "* TROPHIES", UDim2.new(1, -16, 1, -8), UDim2.new(0, 8, 0, 4))
+achLabel.TextColor3 = GOLD
+achLabel.Font = Enum.Font.Code
+achLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+-- Small "n / total" badge anchored to the button so players see progress
+-- without opening the modal.
+local achBadge = Instance.new("TextLabel")
+achBadge.Name = "Badge"
+achBadge.Size = UDim2.new(0, 56, 0, 18)
+achBadge.Position = UDim2.new(1, -28, 0, -8)
+achBadge.AnchorPoint = Vector2.new(0.5, 0)
+achBadge.BackgroundColor3 = GOLD
+achBadge.BackgroundTransparency = 0.05
+achBadge.BorderSizePixel = 0
+achBadge.Text = "0 / 0"
+achBadge.TextColor3 = BG
+achBadge.Font = Enum.Font.GothamBold
+achBadge.TextSize = 12
+achBadge.Visible = false
+achBadge.Parent = achBtn
+do
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = achBadge
+end
+
+local function buildAchievementsModal(): (Frame, ScrollingFrame)
+    local m = Instance.new("Frame")
+    m.Name = "AchievementsModal"
+    m.Size = UDim2.new(0, 540, 0, 580)
+    m.Position = UDim2.new(0.5, -270, 0.5, -290)
+    m.BackgroundColor3 = BG
+    m.BackgroundTransparency = 0.05
+    m.BorderSizePixel = 0
+    m.ZIndex = 50
+    m.Visible = false
+    m.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = GOLD; s.Thickness = 2; s.Parent = m
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = m
+    end
+    local head = makeLabel("Head", m, "TROPHIES", UDim2.new(1, -32, 0, 24), UDim2.new(0, 16, 0, 12))
+    head.TextColor3 = GOLD
+    head.Font = Enum.Font.GothamBold
+    head.ZIndex = 51
+    local sub = makeLabel("Sub", m, "milestones earn coins, tokens, and Roblox push notifications", UDim2.new(1, -32, 0, 16), UDim2.new(0, 16, 0, 38))
+    sub.TextColor3 = TEXT
+    sub.Font = Enum.Font.Code
+    sub.TextTransparency = 0.3
+    sub.ZIndex = 51
+
+    local x = Instance.new("TextButton")
+    x.Size = UDim2.new(0, 24, 0, 24)
+    x.Position = UDim2.new(1, -32, 0, 8)
+    x.BackgroundTransparency = 1
+    x.Text = "X"
+    x.TextColor3 = TEXT
+    x.Font = Enum.Font.GothamBold
+    x.TextSize = 18
+    x.ZIndex = 51
+    x.Parent = m
+    x.MouseButton1Click:Connect(function() m.Visible = false end)
+
+    local list = Instance.new("ScrollingFrame")
+    list.Name = "AchList"
+    list.Size = UDim2.new(1, -32, 1, -76)
+    list.Position = UDim2.new(0, 16, 0, 64)
+    list.BackgroundTransparency = 1
+    list.ScrollBarThickness = 4
+    list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    list.CanvasSize = UDim2.new(0,0,0,0)
+    list.ZIndex = 51
+    list.Parent = m
+    local L = Instance.new("UIListLayout"); L.SortOrder = Enum.SortOrder.LayoutOrder; L.Padding = UDim.new(0, 8); L.Parent = list
+
+    return m, list
+end
+
+local function rebuildAchievementsList(list: ScrollingFrame, snap: any)
+    for _, c in ipairs(list:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+    if not snap or not snap.entries then return end
+    -- Render unlocked first (gold border + checkmark), then locked sorted
+    -- by progress percentage descending so closest-to-unlock floats up.
+    local entries = snap.entries
+    local sorted = {}
+    for i, e in ipairs(entries) do sorted[i] = e end
+    table.sort(sorted, function(a, b)
+        if a.unlocked ~= b.unlocked then return a.unlocked end
+        local aPct = (a.target > 0) and (a.progress / a.target) or 0
+        local bPct = (b.target > 0) and (b.progress / b.target) or 0
+        return aPct > bPct
+    end)
+    for i, e in ipairs(sorted) do
+        local card = Instance.new("Frame")
+        card.Name = e.id
+        card.Size = UDim2.new(1, -8, 0, 64)
+        card.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+        card.BorderSizePixel = 0
+        card.ZIndex = 52
+        card.LayoutOrder = i
+        card.Parent = list
+        do
+            local s = Instance.new("UIStroke"); s.Color = e.unlocked and GOLD or Color3.fromRGB(60, 56, 80); s.Thickness = 1; s.Parent = card
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+        end
+        local title = makeLabel("Title", card, (e.unlocked and "[X] " or "[ ] ") .. e.name, UDim2.new(1, -200, 0, 18), UDim2.new(0, 12, 0, 8))
+        title.TextColor3 = e.unlocked and GOLD or TEXT
+        title.Font = Enum.Font.GothamBold
+        title.ZIndex = 53
+        local desc = makeLabel("Desc", card, e.desc, UDim2.new(1, -200, 0, 14), UDim2.new(0, 12, 0, 28))
+        desc.TextColor3 = TEXT
+        desc.Font = Enum.Font.Code
+        desc.TextTransparency = 0.4
+        desc.ZIndex = 53
+        -- Reward chip
+        local rewardText = ""
+        if e.rewardCoins > 0 then rewardText = "+" .. fmt(e.rewardCoins) .. "c" end
+        if e.rewardTokens > 0 then
+            if rewardText ~= "" then rewardText = rewardText .. " " end
+            rewardText = rewardText .. "+" .. e.rewardTokens .. "T"
+        end
+        local reward = makeLabel("Reward", card, rewardText, UDim2.new(0, 120, 0, 18), UDim2.new(1, -132, 0, 8))
+        reward.TextColor3 = GOLD
+        reward.Font = Enum.Font.GothamBold
+        reward.TextXAlignment = Enum.TextXAlignment.Right
+        reward.ZIndex = 53
+        -- Progress bar (only for non-boolean triggers; skip for collection-complete)
+        if not e.unlocked and e.target and e.target > 1 then
+            local barBg = Instance.new("Frame")
+            barBg.Size = UDim2.new(1, -24, 0, 6)
+            barBg.Position = UDim2.new(0, 12, 0, 50)
+            barBg.BackgroundColor3 = Color3.fromRGB(40, 36, 56)
+            barBg.BorderSizePixel = 0
+            barBg.ZIndex = 53
+            barBg.Parent = card
+            do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 3); c.Parent = barBg end
+            local pct = math.clamp(e.progress / e.target, 0, 1)
+            local barFill = Instance.new("Frame")
+            barFill.Size = UDim2.new(pct, 0, 1, 0)
+            barFill.BackgroundColor3 = GOLD
+            barFill.BorderSizePixel = 0
+            barFill.ZIndex = 54
+            barFill.Parent = barBg
+            do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 3); c.Parent = barFill end
+            local pctLbl = makeLabel("Pct", card, fmt(e.progress) .. " / " .. fmt(e.target), UDim2.new(1, -24, 0, 12), UDim2.new(0, 12, 0, 36))
+            pctLbl.TextColor3 = TEXT
+            pctLbl.Font = Enum.Font.Code
+            pctLbl.TextTransparency = 0.3
+            pctLbl.TextSize = 11
+            pctLbl.TextXAlignment = Enum.TextXAlignment.Right
+            pctLbl.ZIndex = 53
+        elseif e.unlocked then
+            local stamp = makeLabel("Stamp", card, "UNLOCKED", UDim2.new(0, 100, 0, 12), UDim2.new(0, 12, 0, 46))
+            stamp.TextColor3 = GOLD
+            stamp.Font = Enum.Font.GothamBold
+            stamp.TextSize = 11
+            stamp.ZIndex = 53
+        end
+    end
+end
+
+local function refreshAchievements()
+    task.spawn(function()
+        local ok, snap = pcall(function() return remotes.GetAchievements:InvokeServer() end)
+        if ok and snap then
+            achBadge.Text = string.format("%d / %d", snap.unlockedCount, snap.totalCount)
+            achBadge.Visible = snap.totalCount > 0
+            if achList then rebuildAchievementsList(achList, snap) end
+        end
+    end)
+end
+
+achBtn.MouseButton1Click:Connect(function()
+    if not achModal then
+        achModal, achList = buildAchievementsModal()
+    end
+    achModal.Visible = true
+    refreshAchievements()
+end)
+
+-- Initial badge sync once remotes are warm
+task.delay(2, refreshAchievements)
+
+remotes.AchievementUnlocked.OnClientEvent:Connect(function(payload: any)
+    local rewardLine = ""
+    if payload.rewardCoins and payload.rewardCoins > 0 then
+        rewardLine = "+" .. fmt(payload.rewardCoins) .. " coins"
+    end
+    if payload.rewardTokens and payload.rewardTokens > 0 then
+        if rewardLine ~= "" then rewardLine = rewardLine .. ", " end
+        rewardLine = rewardLine .. "+" .. payload.rewardTokens .. " token" .. (payload.rewardTokens > 1 and "s" or "")
+    end
+    if rewardLine == "" then rewardLine = payload.desc or "milestone reached" end
+    showToast(
+        "TROPHY: " .. string.upper(payload.name or "UNLOCKED"),
+        rewardLine,
+        GOLD,
+        5
+    )
+    flashScreen(GOLD, 0.6)
+    playSound(Constants.SOUND_IDS.tier_up, 0.7)
+    refreshAchievements()
+end)
+
 print("[HUD] mounted")

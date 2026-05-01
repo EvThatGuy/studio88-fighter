@@ -89,6 +89,10 @@ function RebirthShopService.attemptPurchase(player: Player, itemId: any): (boole
     pcall(function()
         remotes.RebirthShopPurchased:FireClient(player, itemId, data.rebirthTokens)
     end)
+    pcall(function()
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        AchievementService.evaluate(player.UserId)
+    end)
     print(string.format("[RebirthShopService] %s bought '%s' for %d tokens (remaining %d)",
         player.Name, itemId, def.cost, data.rebirthTokens))
     return true, nil

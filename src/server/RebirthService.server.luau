@@ -88,6 +88,10 @@ function RebirthService.attemptRebirth(player: Player): (boolean, string?)
     end)
     DailyQuestService.bumpProgress(player.UserId,
         Constants.QUEST_KIND.REBIRTH_TODAY, 1)
+    pcall(function()
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        AchievementService.evaluate(player.UserId)
+    end)
     print(string.format(
         "[RebirthService] %s rebirthed (#%d, perma-mult x%.2f)",
         player.Name, data.rebirths, newMult

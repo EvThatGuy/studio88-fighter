@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v7"
+Constants.DATASTORE_VERSION = "v8"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -374,6 +374,90 @@ Constants.FTUE_STEPS = {
 -- coins on screen for a Premium player -- effectively instant feedback
 -- without per-frame iteration cost.
 Constants.AFK_AUTOCOLLECT_INTERVAL_SEC = 2
+
+-- Achievements. Unlock signals are evaluated against current PlayerData
+-- after any system mutates it (currency tick, hatch, rebirth, code, etc).
+-- Each unlock fires AchievementUnlocked to the client (toast + Roblox push
+-- notification via BadgeService:AwardBadge if badgeId > 0). Coin or token
+-- rewards are credited atomically with the unlock write.
+--
+-- 2026 RFY signal: BadgeService awards trigger Roblox-native push
+-- notifications on the player's device, which is the most reliable
+-- 24h-return-rate driver Roblox exposes to creators. badgeId = 0 means
+-- "no badge wired yet" -- David creates the badge in Creator Hub then
+-- pastes the assetId here. Service no-ops the AwardBadge call when 0.
+--
+-- trigger one of:
+--   "lifetime_coins"            data.lifetimeCoins >= threshold
+--   "rebirths"                  data.rebirths >= threshold
+--   "tier"                      data.upgradeTier >= threshold
+--   "pets_owned"                #data.pets >= threshold
+--   "pets_collection_complete"  every Constants.PETS id present in inventory
+--   "streak"                    data.streak >= threshold
+--   "quests_claimed_total"      data.questsClaimedTotal >= threshold
+--   "codes_redeemed_count"      count(keys(data.redeemedCodes)) >= threshold
+--   "rebirth_shop_owned"        count(keys(data.purchasedRebirthUpgrades)) >= threshold
+Constants.ACHIEVEMENT_TRIGGERS = {
+    LIFETIME_COINS = "lifetime_coins",
+    REBIRTHS = "rebirths",
+    TIER = "tier",
+    PETS_OWNED = "pets_owned",
+    PETS_COLLECTION_COMPLETE = "pets_collection_complete",
+    STREAK = "streak",
+    QUESTS_CLAIMED_TOTAL = "quests_claimed_total",
+    CODES_REDEEMED_COUNT = "codes_redeemed_count",
+    REBIRTH_SHOP_OWNED = "rebirth_shop_owned",
+}
+
+Constants.ACHIEVEMENTS = {
+    -- Currency milestones
+    {id = "first_dollar",      name = "First Dollar",       desc = "Earn your first coin",
+     trigger = "lifetime_coins", threshold = 1,                rewardCoins = 100,    rewardTokens = 0, badgeId = 0},
+    {id = "thousandaire",      name = "Thousandaire",       desc = "Earn 1,000 coins lifetime",
+     trigger = "lifetime_coins", threshold = 1000,             rewardCoins = 500,    rewardTokens = 0, badgeId = 0},
+    {id = "millionaire",       name = "Millionaire",        desc = "Earn 1M coins lifetime",
+     trigger = "lifetime_coins", threshold = 1000000,          rewardCoins = 5000,   rewardTokens = 0, badgeId = 0},
+    {id = "billionaire",       name = "Billionaire",        desc = "Earn 1B coins lifetime",
+     trigger = "lifetime_coins", threshold = 1000000000,       rewardCoins = 50000,  rewardTokens = 1, badgeId = 0},
+    -- Tier milestones
+    {id = "tier_climber",      name = "Tier Climber",       desc = "Reach Tier 3",
+     trigger = "tier",           threshold = 3,                rewardCoins = 500,    rewardTokens = 0, badgeId = 0},
+    {id = "max_tier",          name = "Penthouse Suite",    desc = "Reach the capstone tier",
+     trigger = "tier",           threshold = 6,                rewardCoins = 5000,   rewardTokens = 0, badgeId = 0},
+    -- Rebirth milestones
+    {id = "first_rebirth",     name = "First Rebirth",      desc = "Prestige once",
+     trigger = "rebirths",       threshold = 1,                rewardCoins = 0,      rewardTokens = 1, badgeId = 0},
+    {id = "prestige_master",   name = "Prestige Master",    desc = "Rebirth 10 times",
+     trigger = "rebirths",       threshold = 10,               rewardCoins = 0,      rewardTokens = 5, badgeId = 0},
+    {id = "rebirth_legend",    name = "Rebirth Legend",     desc = "Rebirth 50 times",
+     trigger = "rebirths",       threshold = 50,               rewardCoins = 0,      rewardTokens = 25, badgeId = 0},
+    -- Pets
+    {id = "first_hatch",       name = "First Friend",       desc = "Hatch your first pet",
+     trigger = "pets_owned",     threshold = 1,                rewardCoins = 200,    rewardTokens = 0, badgeId = 0},
+    {id = "pet_enthusiast",    name = "Pet Enthusiast",     desc = "Hatch 10 pets",
+     trigger = "pets_owned",     threshold = 10,               rewardCoins = 2000,   rewardTokens = 0, badgeId = 0},
+    {id = "pet_collector",     name = "Pet Collector",      desc = "Own one of every pet",
+     trigger = "pets_collection_complete", threshold = 1,      rewardCoins = 0,      rewardTokens = 1, badgeId = 0},
+    -- Daily engagement (the 24h-return drivers)
+    {id = "daily_devotee",     name = "Daily Devotee",      desc = "7-day login streak",
+     trigger = "streak",         threshold = 7,                rewardCoins = 2500,   rewardTokens = 0, badgeId = 0},
+    {id = "weekly_warrior",    name = "Monthly Maxer",      desc = "30-day login streak",
+     trigger = "streak",         threshold = 30,               rewardCoins = 25000,  rewardTokens = 1, badgeId = 0},
+    {id = "quest_grinder",     name = "Quest Grinder",      desc = "Claim 10 daily quests",
+     trigger = "quests_claimed_total", threshold = 10,         rewardCoins = 1500,   rewardTokens = 0, badgeId = 0},
+    -- Long-tail
+    {id = "code_collector",    name = "Code Collector",     desc = "Redeem 3 codes",
+     trigger = "codes_redeemed_count", threshold = 3,          rewardCoins = 1000,   rewardTokens = 0, badgeId = 0},
+    {id = "shopaholic",        name = "Shopaholic",         desc = "Buy 3 rebirth shop items",
+     trigger = "rebirth_shop_owned", threshold = 3,            rewardCoins = 0,      rewardTokens = 2, badgeId = 0},
+}
+
+-- How often a single user's achievement scan is allowed to run, regardless
+-- of how many systems hook into it. Currency tick fires every 1s and
+-- AchievementService is called from there, so without throttling we'd
+-- evaluate 17 predicates every second per player. 5s is invisible to the
+-- player and slashes work 80%.
+Constants.ACHIEVEMENT_SCAN_THROTTLE_SEC = 5
 
 -- Per-tier plot art. Foundation Material + Color paints visible progression
 -- so a tier-5 plot looks unmistakably wealthier than a tier-1 plot at a glance.

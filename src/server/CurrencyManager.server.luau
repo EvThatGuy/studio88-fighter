@@ -15,6 +15,7 @@ local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.
 local EventService = require(script.Parent:WaitForChild("EventService.server"))
 local TutorialService = require(script.Parent:WaitForChild("TutorialService.server"))
 local PetService = require(script.Parent:WaitForChild("PetService.server"))
+local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
 
 local remotes = Remotes.get()
 
@@ -109,6 +110,10 @@ local function tick()
                         and data.upgradeTier >= #Constants.UPGRADE_TIERS then
                         TutorialService.advance(player.UserId, "05_eligible_for_rebirth")
                     end
+                    -- Throttled achievement scan; only the lifetime-coins
+                    -- predicates depend on tick deltas. 5s throttle invisible
+                    -- to the player and skips ~80% of redundant evaluation.
+                    AchievementService.evaluateThrottled(player.UserId)
                 end
             end
         end

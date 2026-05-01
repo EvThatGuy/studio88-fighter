@@ -30,6 +30,8 @@ export type PlayerData = {
     redeemedCodes: {[string]: boolean}, -- {[UPPERCASE_CODE] = true} for one-shot enforcement
     dailyQuests: DailyQuestState,   -- today's quest progress + claim state
     tutorialStep: number,           -- highest FTUE step completed (0..#FTUE_STEPS); 0 = brand new
+    achievementsUnlocked: {[string]: number}, -- {[achievementId] = unlockedUnix}
+    questsClaimedTotal: number,     -- monotonic across all days (for "Quest Grinder" achievement)
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 
@@ -74,6 +76,8 @@ export type RemoteMap = {
     EquipPet: RemoteEvent,            -- client -> server; payload {uid}
     UnequipPet: RemoteEvent,          -- client -> server; payload {uid}
     PetEquipChanged: RemoteEvent,     -- server -> client; payload {equippedPetIds}
+    GetAchievements: RemoteFunction,  -- client -> server; returns {entries=[{id,name,desc,unlocked,unlockedUnix?,progress,target,rewardCoins,rewardTokens}], unlockedCount, totalCount}
+    AchievementUnlocked: RemoteEvent, -- server -> client; payload {id, name, rewardCoins, rewardTokens}
 }
 
 return {}

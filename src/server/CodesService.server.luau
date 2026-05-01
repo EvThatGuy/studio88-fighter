@@ -141,6 +141,10 @@ function CodesService.attemptRedeem(player: Player, rawCode: any): (boolean, str
     end)
     DailyQuestService.bumpProgress(player.UserId,
         Constants.QUEST_KIND.REDEEM_CODE_TODAY, 1)
+    pcall(function()
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        AchievementService.evaluate(player.UserId)
+    end)
     print(string.format("[CodesService] %s redeemed '%s' for %d coins",
         player.Name, code, reward))
     return true, nil

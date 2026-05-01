@@ -184,6 +184,7 @@ function DailyQuestService.attemptClaim(player: Player, questId: any): (boolean,
     data.coins += def.reward
     data.lifetimeCoins += def.reward
     data.dailyQuests.claimed[questId] = true
+    data.questsClaimedTotal = (data.questsClaimedTotal or 0) + 1
     Leaderstats.refresh(userId)
     pcall(function()
         remotes.BalanceUpdated:FireClient(player, data.coins, data.lifetimeCoins)
@@ -196,6 +197,10 @@ function DailyQuestService.attemptClaim(player: Player, questId: any): (boolean,
             custom_field_1 = def.id,
             custom_field_2 = def.kind,
         })
+    end)
+    pcall(function()
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        AchievementService.evaluate(player.UserId)
     end)
     print(string.format("[DailyQuestService] %s claimed '%s' for %d coins",
         player.Name, questId, def.reward))
