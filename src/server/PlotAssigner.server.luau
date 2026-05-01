@@ -181,6 +181,26 @@ local function assign(player: Player)
 
     print(string.format("[PlotAssigner] %s -> plot index %s",
         player.Name, tostring(anchor:GetAttribute("PlotIndex"))))
+
+    -- Teleport the player onto their plot so they land in front of the
+    -- machines instead of stuck on the spawn platform with nothing to do.
+    -- Wait for the character to exist (they might join before the avatar
+    -- spawns) then PivotTo above the foundation.
+    task.spawn(function()
+        local foundation = clone:FindFirstChild("Foundation") :: BasePart?
+        if not foundation then return end
+        local landing = foundation.Position + Vector3.new(0, 6, 0)
+        local function teleport(char: Model)
+            local hrp = char:FindFirstChild("HumanoidRootPart") :: BasePart?
+            if hrp then char:PivotTo(CFrame.new(landing)) end
+        end
+        if player.Character then teleport(player.Character) end
+        player.CharacterAdded:Connect(function(char)
+            -- Tiny wait so the avatar finishes loading before we move it.
+            task.wait(0.5)
+            teleport(char)
+        end)
+    end)
 end
 
 local function release(player: Player)

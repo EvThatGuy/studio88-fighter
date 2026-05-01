@@ -10,6 +10,12 @@ local Tokens = require(game:GetService("ReplicatedStorage").Modules.UI.Tokens)
 local Balance = require(script.Parent.Balance)
 local ButtonStack = require(script.Parent.ButtonStack)
 local PetsModal = require(script.Parent.PetsModal)
+local SpinModal = require(script.Parent.SpinModal)
+local TributeModal = require(script.Parent.TributeModal)
+local AchievementsModal = require(script.Parent.AchievementsModal)
+local QuestsModal = require(script.Parent.QuestsModal)
+local AurasModal = require(script.Parent.AurasModal)
+local TitlesModal = require(script.Parent.TitlesModal)
 
 local e = React.createElement
 
@@ -41,6 +47,12 @@ local function App()
         }),
 
         PetsModal = if openModalId == "pets" then e(PetsModal, { onClose = close }) else nil,
+        SpinModal = if openModalId == "spin" then e(SpinModal, { onClose = close }) else nil,
+        TributeModal = if openModalId == "tribute" then e(TributeModal, { onClose = close }) else nil,
+        AchievementsModal = if openModalId == "achievements" then e(AchievementsModal, { onClose = close }) else nil,
+        QuestsModal = if openModalId == "quests" then e(QuestsModal, { onClose = close }) else nil,
+        AurasModal = if openModalId == "auras" then e(AurasModal, { onClose = close }) else nil,
+        TitlesModal = if openModalId == "titles" then e(TitlesModal, { onClose = close }) else nil,
     })
 end
 
