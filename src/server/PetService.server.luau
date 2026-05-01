@@ -274,6 +274,10 @@ function PetService.attemptEquip(player: Player, uid: any): (boolean, string?)
     end
     table.insert(data.equippedPetIds, uid)
     pushEquipChanged(player, data.equippedPetIds)
+    pcall(function()
+        local PetStandService = require(script.Parent:WaitForChild("PetStandService.server"))
+        PetStandService.refreshFor(userId)
+    end)
     return true, nil
 end
 
@@ -286,6 +290,10 @@ function PetService.attemptUnequip(player: Player, uid: any): (boolean, string?)
         if eid == uid then
             table.remove(data.equippedPetIds, i)
             pushEquipChanged(player, data.equippedPetIds)
+            pcall(function()
+                local PetStandService = require(script.Parent:WaitForChild("PetStandService.server"))
+                PetStandService.refreshFor(userId)
+            end)
             return true, nil
         end
     end
@@ -384,6 +392,10 @@ function PetService.attemptFuse(player: Player, rarity: any): (boolean, string?)
     pcall(function()
         local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
         AchievementService.evaluate(userId)
+    end)
+    pcall(function()
+        local PetStandService = require(script.Parent:WaitForChild("PetStandService.server"))
+        PetStandService.refreshFor(userId)
     end)
     return true, nil
 end
