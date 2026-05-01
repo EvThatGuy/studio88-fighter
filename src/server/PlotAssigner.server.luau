@@ -54,6 +54,8 @@ local function stampOwner(plot: Model, userId: number)
     end
 end
 
+local OBELISK_NAME = "ProsperityObelisk"
+
 function PlotAssigner.applyTierArt(plot: Model, tier: number)
     -- Paint the foundation Material + Color to match the tier.
     -- Idempotent: caller can spam this, last write wins.
@@ -63,6 +65,28 @@ function PlotAssigner.applyTierArt(plot: Model, tier: number)
     foundation.Material = spec.material
     foundation.Color = spec.color
     plot:SetAttribute("CurrentTier", tier)
+    -- Build / replace the prosperity obelisk: a vertical glowing pillar
+    -- positioned on the foundation that grows + brightens per tier. Visible
+    -- from far across the map; the visual carrot for tier-up.
+    local obSpec = Constants.TIER_OBELISK[tier] or Constants.TIER_OBELISK[1]
+    if obSpec then
+        local existing = plot:FindFirstChild(OBELISK_NAME)
+        if existing then existing:Destroy() end
+        local obelisk = Instance.new("Part")
+        obelisk.Name = OBELISK_NAME
+        obelisk.Size = Vector3.new(obSpec.width, obSpec.height, obSpec.width)
+        -- Sit on top of foundation: foundation top + half obelisk height
+        obelisk.Position = foundation.Position
+            + Vector3.new(0, foundation.Size.Y / 2 + obSpec.height / 2, 0)
+        obelisk.Anchored = true
+        obelisk.CanCollide = false
+        obelisk.CanQuery = false
+        obelisk.CanTouch = false
+        obelisk.Material = Enum.Material.Neon
+        obelisk.Color = obSpec.color
+        obelisk.Transparency = 0.05
+        obelisk.Parent = plot
+    end
 end
 
 local function fmtCoins(n: number): string

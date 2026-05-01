@@ -716,6 +716,21 @@ Constants.PET_RARITY_PROMOTION = {
 -- player and slashes work 80%.
 Constants.ACHIEVEMENT_SCAN_THROTTLE_SEC = 5
 
+-- Per-tier obelisk. A vertical glowing pillar above each plot foundation
+-- that grows + brightens per tier. Visible from far across the map; the
+-- "money skyscraper" you build through tier-ups. Compounds with the
+-- foundation paint job (TIER_PLOT_ART) so high-tier plots are
+-- unmistakable at TikTok-screenshot distance.
+-- Indexed identically to UPGRADE_TIERS. Each entry: {height, width, color}.
+Constants.TIER_OBELISK = {
+    [1] = {height =  6, width = 1.5, color = Color3.fromRGB( 80,  80, 100)},  -- tiny gray rod
+    [2] = {height = 10, width = 2.0, color = Color3.fromRGB(120, 120, 200)},  -- short blue
+    [3] = {height = 16, width = 2.5, color = Color3.fromRGB(180, 100, 220)},  -- mid purple
+    [4] = {height = 22, width = 3.0, color = Color3.fromRGB(220,  80, 200)},  -- tall pink
+    [5] = {height = 28, width = 3.5, color = Color3.fromRGB(255, 180,  60)},  -- amber gold
+    [6] = {height = 36, width = 4.0, color = Color3.fromRGB(255, 255, 255)},  -- white capstone
+}
+
 -- Per-tier plot art. Foundation Material + Color paints visible progression
 -- so a tier-5 plot looks unmistakably wealthier than a tier-1 plot at a glance.
 -- Indexed identically to UPGRADE_TIERS.
