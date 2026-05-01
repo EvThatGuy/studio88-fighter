@@ -2295,6 +2295,77 @@ squadLbl.TextSize = 13
 squadLbl.TextXAlignment = Enum.TextXAlignment.Center
 
 local squadActive = false
+-- =============================================================================
+-- Floating +N delta near the balance counter
+-- =============================================================================
+-- Coalesces deltas inside FLOATER_COALESCE_SEC so a 1Hz tick doesn't
+-- spam 60 floaters per minute. Only positive deltas float (debits like
+-- pet boost / egg hatch are silent -- their own modal already has UX).
+
+local FLOATER_COALESCE_SEC = 0.6
+local lastKnownCoins: number? = nil
+local lastFloaterAt = 0
+local pendingDelta = 0
+
+local function spawnCoinFloater(amount: number)
+    if amount <= 0 then return end
+    local f = Instance.new("TextLabel")
+    f.Name = "CoinFloater"
+    f.Size = UDim2.new(0, 160, 0, 28)
+    -- Anchor near the balance value (top-left panel ~ 240,80)
+    f.Position = UDim2.new(0, 252, 0, 60)
+    f.BackgroundTransparency = 1
+    f.Text = "+" .. fmt(amount)
+    f.TextColor3 = Color3.fromRGB(120, 220, 120)
+    f.Font = Enum.Font.GothamBold
+    f.TextSize = 22
+    f.TextStrokeTransparency = 0.4
+    f.TextXAlignment = Enum.TextXAlignment.Left
+    f.ZIndex = 60
+    f.Parent = screen
+    -- Tween up + fade out via simple loop (no TweenService import needed)
+    task.spawn(function()
+        local startY = f.Position.Y.Offset
+        for i = 0, 30 do
+            f.Position = UDim2.new(0, 252, 0, startY - i)
+            f.TextTransparency = i / 30
+            f.TextStrokeTransparency = 0.4 + (i / 50)
+            task.wait(0.03)
+        end
+        f:Destroy()
+    end)
+end
+
+local function maybeFlushFloater()
+    local now = os.clock()
+    if pendingDelta <= 0 then return end
+    if (now - lastFloaterAt) < FLOATER_COALESCE_SEC then return end
+    spawnCoinFloater(pendingDelta)
+    pendingDelta = 0
+    lastFloaterAt = now
+end
+
+-- Wrap the existing BalanceUpdated path so we observe deltas
+remotes.BalanceUpdated.OnClientEvent:Connect(function(coins: number, _lifetime: number)
+    if lastKnownCoins ~= nil then
+        local delta = coins - lastKnownCoins
+        if delta > 0 then
+            pendingDelta += delta
+            maybeFlushFloater()
+        end
+    end
+    lastKnownCoins = coins
+end)
+
+-- Drain pending coalesced deltas every tick so the floater isn't held
+-- forever if no further BalanceUpdated arrives
+task.spawn(function()
+    while true do
+        task.wait(FLOATER_COALESCE_SEC)
+        maybeFlushFloater()
+    end
+end)
+
 remotes.SquadBonusChanged.OnClientEvent:Connect(function(payload: any)
     if not payload then return end
     squadRibbon.Visible = payload.active == true
