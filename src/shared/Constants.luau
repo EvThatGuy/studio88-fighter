@@ -47,6 +47,38 @@ Constants.GAME_PASSES = {
     PREMIUM = 0,         -- 3x permanent + AFK auto-collect
 }
 
+-- Display metadata for the in-game Passes shop modal. Keys MUST match the
+-- keys in GAME_PASSES above. Suggested R$ prices are the *target* — set
+-- the real price when creating the Pass in Creator Hub. Suggested mapping
+-- per @starmexxx Apr 26 playbook.
+Constants.GAME_PASS_DISPLAY = {
+    STARTER_PACK = {
+        title = "STARTER PACK",
+        accent = "amber",
+        priceRobux = 75,
+        copy = "2x income for 30 minutes",
+        sub = "best for new players catching up to friends",
+    },
+    VIP = {
+        title = "VIP",
+        accent = "pink",
+        priceRobux = 250,
+        copy = "1.5x income forever",
+        sub = "stacks with all other multipliers",
+    },
+    PREMIUM = {
+        title = "PREMIUM",
+        accent = "cyan",
+        priceRobux = 600,
+        copy = "3x income forever + AFK auto-collect",
+        sub = "earn while logged out -- the no-brainer for daily players",
+    },
+}
+
+-- Display order in the Passes modal. Cheapest first so the eye scans cost
+-- before commitment.
+Constants.GAME_PASS_ORDER = { "STARTER_PACK", "VIP", "PREMIUM" }
+
 Constants.GAME_PASS_MULT = {
     STARTER_PACK_DURATION_SEC = 30 * 60,
     STARTER_PACK_MULT = 2.0,

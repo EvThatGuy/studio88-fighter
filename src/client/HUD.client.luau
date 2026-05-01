@@ -28,6 +28,7 @@ screen.Parent = playerGui
 local BG = Color3.fromRGB(8, 7, 13)
 local PINK = Color3.fromRGB(255, 46, 136)
 local CYAN = Color3.fromRGB(0, 240, 255)
+local AMBER = Color3.fromRGB(255, 176, 0)
 local TEXT = Color3.fromRGB(248, 248, 242)
 
 local function makeFrame(name: string, size: UDim2, pos: UDim2): Frame
@@ -106,6 +107,28 @@ local rebirthSub = makeLabel("Sub", rebirthBtn, "reach max tier first", UDim2.ne
 rebirthSub.TextColor3 = TEXT
 rebirthSub.Font = Enum.Font.Gotham
 rebirthSub.TextTransparency = 0.4
+
+-- Passes button (bottom-right, above codes button). Opens the in-game
+-- shop modal listing Starter Pack / VIP / Premium with their copy +
+-- price + an OWNED badge once purchased.
+local passesBtn = Instance.new("TextButton")
+passesBtn.Name = "PassesButton"
+passesBtn.Size = UDim2.new(0, 140, 0, 44)
+passesBtn.Position = UDim2.new(1, -156, 1, -116)
+passesBtn.BackgroundColor3 = BG
+passesBtn.BackgroundTransparency = 0.15
+passesBtn.BorderSizePixel = 0
+passesBtn.AutoButtonColor = false
+passesBtn.Text = ""
+passesBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = AMBER; s.Thickness = 1; s.Parent = passesBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = passesBtn
+end
+local passesLabel = makeLabel("Label", passesBtn, "$ PASSES", UDim2.new(1, -16, 1, -8), UDim2.new(0, 8, 0, 4))
+passesLabel.TextColor3 = AMBER
+passesLabel.Font = Enum.Font.Code
+passesLabel.TextXAlignment = Enum.TextXAlignment.Center
 
 -- Codes button (bottom-right). Always visible; clicking opens the input
 -- modal. Codes are advertised via @ModernGrindTech tweets / Discord pins.
@@ -388,8 +411,6 @@ end)
 
 -- ----- Toast layer (daily-bonus banner + tier-up flash) -----
 
-local AMBER = Color3.fromRGB(255, 176, 0)
-
 -- Sound layer. SoundIds live in Constants.SOUND_IDS as either a stable
 -- "rbxassetid://N" string or "" (empty). Empty short-circuits, so the
 -- world is silent until David picks library assets and updates the table.
@@ -542,6 +563,223 @@ remotes.RebirthRejected.OnClientEvent:Connect(function(reason: string, needed: n
     showToast("CAN'T REBIRTH YET", sub, AMBER, 3)
     playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
 end)
+
+-- ----- Passes modal -----
+-- Built lazily on first open so we can fetch ownership server-side first.
+
+local MarketplaceService = game:GetService("MarketplaceService")
+
+local passesModal: Frame? = nil
+local passOwnership: {[string]: boolean} = {}
+
+local ACCENT_BY_NAME: {[string]: Color3} = {
+    amber = AMBER,
+    pink = PINK,
+    cyan = CYAN,
+}
+
+local function buildPassesModal()
+    local m = Instance.new("Frame")
+    m.Name = "PassesModal"
+    m.Size = UDim2.new(0, 460, 0, 480)
+    m.Position = UDim2.new(0.5, -230, 0.5, -240)
+    m.BackgroundColor3 = BG
+    m.BackgroundTransparency = 0.05
+    m.BorderSizePixel = 0
+    m.ZIndex = 50
+    m.Visible = false
+    m.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = AMBER; s.Thickness = 2; s.Parent = m
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = m
+    end
+    local head = makeLabel("Head", m, "PASSES", UDim2.new(1, -32, 0, 24), UDim2.new(0, 16, 0, 12))
+    head.TextColor3 = AMBER
+    head.Font = Enum.Font.GothamBold
+    head.ZIndex = 51
+
+    local sub = makeLabel("Sub", m, "permanent multipliers + perks", UDim2.new(1, -32, 0, 16), UDim2.new(0, 16, 0, 38))
+    sub.TextColor3 = TEXT
+    sub.Font = Enum.Font.Code
+    sub.TextTransparency = 0.3
+    sub.ZIndex = 51
+
+    -- X close
+    local x = Instance.new("TextButton")
+    x.Size = UDim2.new(0, 24, 0, 24)
+    x.Position = UDim2.new(1, -32, 0, 8)
+    x.BackgroundTransparency = 1
+    x.Text = "X"
+    x.TextColor3 = TEXT
+    x.Font = Enum.Font.GothamBold
+    x.TextSize = 18
+    x.ZIndex = 51
+    x.Parent = m
+    x.MouseButton1Click:Connect(function() m.Visible = false end)
+
+    -- 3 cards stacked. List layout for clean spacing.
+    local list = Instance.new("Frame")
+    list.Name = "Cards"
+    list.Size = UDim2.new(1, -32, 1, -88)
+    list.Position = UDim2.new(0, 16, 0, 72)
+    list.BackgroundTransparency = 1
+    list.ZIndex = 51
+    list.Parent = m
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 8)
+    layout.Parent = list
+
+    for order, key in ipairs(Constants.GAME_PASS_ORDER) do
+        local meta = Constants.GAME_PASS_DISPLAY[key]
+        local passId = Constants.GAME_PASSES[key]
+        if not meta then continue end
+        local accent = ACCENT_BY_NAME[meta.accent] or PINK
+
+        local card = Instance.new("Frame")
+        card.Name = "Card_" .. key
+        card.Size = UDim2.new(1, 0, 0, 116)
+        card.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+        card.BorderSizePixel = 0
+        card.ZIndex = 52
+        card.LayoutOrder = order
+        card.Parent = list
+        do
+            local s = Instance.new("UIStroke"); s.Color = accent; s.Thickness = 1; s.Parent = card
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+        end
+
+        local title = makeLabel("Title", card, meta.title, UDim2.new(1, -160, 0, 22), UDim2.new(0, 12, 0, 10))
+        title.TextColor3 = accent
+        title.Font = Enum.Font.GothamBold
+        title.ZIndex = 53
+
+        local copy = makeLabel("Copy", card, meta.copy, UDim2.new(1, -160, 0, 18), UDim2.new(0, 12, 0, 36))
+        copy.TextColor3 = TEXT
+        copy.Font = Enum.Font.Code
+        copy.ZIndex = 53
+
+        local subc = makeLabel("Sub", card, meta.sub, UDim2.new(1, -160, 0, 36), UDim2.new(0, 12, 0, 60))
+        subc.TextColor3 = TEXT
+        subc.TextTransparency = 0.4
+        subc.Font = Enum.Font.Gotham
+        subc.TextWrapped = true
+        subc.TextScaled = false
+        subc.TextSize = 12
+        subc.ZIndex = 53
+
+        local btn = Instance.new("TextButton")
+        btn.Name = "Buy"
+        btn.Size = UDim2.new(0, 130, 0, 50)
+        btn.Position = UDim2.new(1, -142, 0.5, -25)
+        btn.BackgroundColor3 = accent
+        btn.BorderSizePixel = 0
+        btn.Text = string.format("R$ %d", meta.priceRobux)
+        btn.TextColor3 = BG
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 18
+        btn.ZIndex = 53
+        btn.Parent = card
+        do
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn
+        end
+
+        local function refreshState()
+            if passOwnership[key] then
+                btn.Text = "OWNED"
+                btn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+                btn.TextColor3 = TEXT
+                btn.AutoButtonColor = false
+                btn.Active = false
+            elseif passId == 0 then
+                btn.Text = "SOON"
+                btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+                btn.TextColor3 = TEXT
+                btn.AutoButtonColor = false
+                btn.Active = false
+            else
+                btn.Text = string.format("R$ %d", meta.priceRobux)
+                btn.BackgroundColor3 = accent
+                btn.TextColor3 = BG
+                btn.AutoButtonColor = true
+                btn.Active = true
+            end
+        end
+        refreshState()
+        card:SetAttribute("Key", key)
+
+        btn.MouseButton1Click:Connect(function()
+            if passOwnership[key] or passId == 0 then return end
+            pcall(function()
+                MarketplaceService:PromptGamePassPurchase(player, passId)
+            end)
+        end)
+    end
+
+    return m
+end
+
+local function refreshOwnership()
+    task.spawn(function()
+        local ok, result = pcall(function()
+            return remotes.GetPassOwnership:InvokeServer()
+        end)
+        if not ok or typeof(result) ~= "table" then return end
+        passOwnership = result
+        if not passesModal then return end
+        for _, card in ipairs(passesModal:FindFirstChild("Cards"):GetChildren()) do
+            if card:IsA("Frame") then
+                local key = card:GetAttribute("Key") :: string?
+                if not key then continue end
+                local btn = card:FindFirstChild("Buy") :: TextButton?
+                local meta = Constants.GAME_PASS_DISPLAY[key]
+                local passId = Constants.GAME_PASSES[key]
+                if not btn or not meta then continue end
+                if passOwnership[key] then
+                    btn.Text = "OWNED"
+                    btn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+                    btn.TextColor3 = TEXT
+                    btn.AutoButtonColor = false
+                    btn.Active = false
+                elseif passId == 0 then
+                    btn.Text = "SOON"
+                    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+                    btn.TextColor3 = TEXT
+                    btn.AutoButtonColor = false
+                    btn.Active = false
+                else
+                    btn.Text = string.format("R$ %d", meta.priceRobux)
+                    btn.BackgroundColor3 = ACCENT_BY_NAME[meta.accent] or PINK
+                    btn.TextColor3 = BG
+                    btn.AutoButtonColor = true
+                    btn.Active = true
+                end
+            end
+        end
+    end)
+end
+
+local function openPassesModal()
+    if not passesModal then passesModal = buildPassesModal() end
+    passesModal.Visible = true
+    refreshOwnership()
+end
+
+passesBtn.MouseButton1Click:Connect(openPassesModal)
+
+remotes.PassPurchased.OnClientEvent:Connect(function(passKey: string, passId: number)
+    passOwnership[passKey] = true
+    if passesModal and passesModal.Visible then refreshOwnership() end
+    local meta = Constants.GAME_PASS_DISPLAY[passKey]
+    local title = (meta and meta.title) or passKey
+    local copy = (meta and meta.copy) or "purchase complete"
+    showToast(string.format("%s ACTIVATED", title), copy, ACCENT_BY_NAME[meta and meta.accent or "pink"] or PINK, 5)
+    flashScreen(ACCENT_BY_NAME[meta and meta.accent or "pink"] or PINK, 0.6)
+    playSound(Constants.SOUND_IDS.tier_up, 0.7)
+end)
+
+-- Initial fetch so first open is instant.
+refreshOwnership()
 
 -- ----- Codes modal wiring -----
 

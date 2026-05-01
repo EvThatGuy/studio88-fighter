@@ -27,6 +27,8 @@ local REMOTE_NAMES = {
     {name = "RequestRedeemCode", class = "RemoteEvent"},
     {name = "CodeRedeemed", class = "RemoteEvent"},
     {name = "CodeRejected", class = "RemoteEvent"},
+    {name = "GetPassOwnership", class = "RemoteFunction"},
+    {name = "PassPurchased", class = "RemoteEvent"},
 }
 
 local function ensureFolder(): Folder

@@ -34,6 +34,8 @@ export type RemoteMap = {
     RequestRedeemCode: RemoteEvent, -- client -> server; payload {code: string}
     CodeRedeemed: RemoteEvent,      -- server -> client; payload {code, reward}
     CodeRejected: RemoteEvent,      -- server -> client; payload {code, reason}
+    GetPassOwnership: RemoteFunction, -- client -> server; returns {[passKey]: boolean}
+    PassPurchased: RemoteEvent,     -- server -> client; payload {passKey, passId}
 }
 
 return {}
