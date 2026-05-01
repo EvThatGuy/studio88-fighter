@@ -108,6 +108,44 @@ rebirthSub.TextColor3 = TEXT
 rebirthSub.Font = Enum.Font.Gotham
 rebirthSub.TextTransparency = 0.4
 
+-- Quests button (bottom-right, top of stack). Opens the daily quests modal.
+-- Shows a small "n / 3" badge of how many of today's quests are claimable
+-- so players see opportunity even before opening.
+local questsBtn = Instance.new("TextButton")
+questsBtn.Name = "QuestsButton"
+questsBtn.Size = UDim2.new(0, 140, 0, 44)
+questsBtn.Position = UDim2.new(1, -156, 1, -172)
+questsBtn.BackgroundColor3 = BG
+questsBtn.BackgroundTransparency = 0.15
+questsBtn.BorderSizePixel = 0
+questsBtn.AutoButtonColor = false
+questsBtn.Text = ""
+questsBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = CYAN; s.Thickness = 1; s.Parent = questsBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = questsBtn
+end
+local questsLabel = makeLabel("Label", questsBtn, "* QUESTS", UDim2.new(1, -16, 1, -8), UDim2.new(0, 8, 0, 4))
+questsLabel.TextColor3 = CYAN
+questsLabel.Font = Enum.Font.Code
+questsLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local questsBadge = Instance.new("TextLabel")
+questsBadge.Name = "Badge"
+questsBadge.Size = UDim2.new(0, 24, 0, 24)
+questsBadge.Position = UDim2.new(1, -28, 0, -8)
+questsBadge.BackgroundColor3 = AMBER
+questsBadge.BorderSizePixel = 0
+questsBadge.Text = ""
+questsBadge.TextColor3 = BG
+questsBadge.Font = Enum.Font.GothamBold
+questsBadge.TextSize = 14
+questsBadge.Visible = false
+questsBadge.Parent = questsBtn
+do
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(1, 0); c.Parent = questsBadge
+end
+
 -- Passes button (bottom-right, above codes button). Opens the in-game
 -- shop modal listing Starter Pack / VIP / Premium with their copy +
 -- price + an OWNED badge once purchased.
@@ -860,5 +898,313 @@ remotes.PurchaseRejected.OnClientEvent:Connect(function(reason: string, needed: 
     showToast(copy.head, sub, AMBER, 3)
     playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
 end)
+
+-- ----- Quests modal -----
+-- Built lazily on first open; refreshes from server when opened or when a
+-- QuestProgressed / QuestClaimed event fires.
+
+local questsModal: Frame? = nil
+local questCardsByQuestId: {[string]: Frame} = {}
+local questsState: {dateKey: string, quests: {any}}? = nil
+
+local function fmtProgress(progress: number, target: number): string
+    return string.format("%s / %s", fmt(progress), fmt(target))
+end
+
+local function buildQuestsModal()
+    local m = Instance.new("Frame")
+    m.Name = "QuestsModal"
+    m.Size = UDim2.new(0, 460, 0, 460)
+    m.Position = UDim2.new(0.5, -230, 0.5, -230)
+    m.BackgroundColor3 = BG
+    m.BackgroundTransparency = 0.05
+    m.BorderSizePixel = 0
+    m.ZIndex = 50
+    m.Visible = false
+    m.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = CYAN; s.Thickness = 2; s.Parent = m
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = m
+    end
+    local head = makeLabel("Head", m, "DAILY QUESTS", UDim2.new(1, -32, 0, 24), UDim2.new(0, 16, 0, 12))
+    head.TextColor3 = CYAN
+    head.Font = Enum.Font.GothamBold
+    head.ZIndex = 51
+
+    local sub = makeLabel("Sub", m, "resets at midnight UTC -- come back tomorrow", UDim2.new(1, -32, 0, 16), UDim2.new(0, 16, 0, 38))
+    sub.TextColor3 = TEXT
+    sub.Font = Enum.Font.Code
+    sub.TextTransparency = 0.3
+    sub.ZIndex = 51
+
+    local x = Instance.new("TextButton")
+    x.Size = UDim2.new(0, 24, 0, 24)
+    x.Position = UDim2.new(1, -32, 0, 8)
+    x.BackgroundTransparency = 1
+    x.Text = "X"
+    x.TextColor3 = TEXT
+    x.Font = Enum.Font.GothamBold
+    x.TextSize = 18
+    x.ZIndex = 51
+    x.Parent = m
+    x.MouseButton1Click:Connect(function() m.Visible = false end)
+
+    local list = Instance.new("Frame")
+    list.Name = "Cards"
+    list.Size = UDim2.new(1, -32, 1, -88)
+    list.Position = UDim2.new(0, 16, 0, 72)
+    list.BackgroundTransparency = 1
+    list.ZIndex = 51
+    list.Parent = m
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 8)
+    layout.Parent = list
+
+    return m
+end
+
+local function buildQuestCard(parent: Instance, q: any, order: number): Frame
+    local card = Instance.new("Frame")
+    card.Name = "Quest_" .. q.id
+    card.Size = UDim2.new(1, 0, 0, 116)
+    card.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+    card.BorderSizePixel = 0
+    card.ZIndex = 52
+    card.LayoutOrder = order
+    card.Parent = parent
+    do
+        local s = Instance.new("UIStroke"); s.Color = CYAN; s.Thickness = 1; s.Parent = card
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+    end
+
+    local title = makeLabel("Title", card, q.label, UDim2.new(1, -160, 0, 22), UDim2.new(0, 12, 0, 10))
+    title.TextColor3 = TEXT
+    title.Font = Enum.Font.GothamBold
+    title.ZIndex = 53
+
+    local progressText = makeLabel("Progress", card, fmtProgress(q.progress, q.target), UDim2.new(1, -160, 0, 18), UDim2.new(0, 12, 0, 36))
+    progressText.TextColor3 = CYAN
+    progressText.Font = Enum.Font.Code
+    progressText.ZIndex = 53
+
+    -- Progress bar
+    local barBg = Instance.new("Frame")
+    barBg.Name = "BarBg"
+    barBg.Size = UDim2.new(1, -160, 0, 8)
+    barBg.Position = UDim2.new(0, 12, 0, 60)
+    barBg.BackgroundColor3 = Color3.fromRGB(30, 28, 44)
+    barBg.BorderSizePixel = 0
+    barBg.ZIndex = 53
+    barBg.Parent = card
+    do
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(1, 0); c.Parent = barBg
+    end
+    local barFill = Instance.new("Frame")
+    barFill.Name = "BarFill"
+    barFill.Size = UDim2.new(math.min(1, q.progress / q.target), 0, 1, 0)
+    barFill.BackgroundColor3 = q.complete and AMBER or CYAN
+    barFill.BorderSizePixel = 0
+    barFill.ZIndex = 54
+    barFill.Parent = barBg
+    do
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(1, 0); c.Parent = barFill
+    end
+
+    local reward = makeLabel("Reward", card, string.format("+%s coins", fmt(q.reward)), UDim2.new(1, -160, 0, 18), UDim2.new(0, 12, 0, 78))
+    reward.TextColor3 = AMBER
+    reward.Font = Enum.Font.Code
+    reward.ZIndex = 53
+
+    local btn = Instance.new("TextButton")
+    btn.Name = "Claim"
+    btn.Size = UDim2.new(0, 130, 0, 50)
+    btn.Position = UDim2.new(1, -142, 0.5, -25)
+    btn.BorderSizePixel = 0
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 16
+    btn.ZIndex = 53
+    btn.Parent = card
+    do
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn
+    end
+    if q.claimed then
+        btn.Text = "CLAIMED"
+        btn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        btn.TextColor3 = TEXT
+        btn.AutoButtonColor = false
+        btn.Active = false
+    elseif q.complete then
+        btn.Text = "CLAIM"
+        btn.BackgroundColor3 = AMBER
+        btn.TextColor3 = BG
+        btn.AutoButtonColor = true
+        btn.Active = true
+    else
+        btn.Text = "IN PROGRESS"
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        btn.TextColor3 = TEXT
+        btn.AutoButtonColor = false
+        btn.Active = false
+    end
+    btn.MouseButton1Click:Connect(function()
+        if not q.complete or q.claimed then return end
+        pcall(function()
+            remotes.ClaimQuest:FireServer(q.id)
+        end)
+    end)
+
+    card:SetAttribute("QuestId", q.id)
+    return card
+end
+
+local function applyQuestStateToCard(card: Frame, q: any)
+    local progressText = card:FindFirstChild("Progress") :: TextLabel?
+    if progressText then progressText.Text = fmtProgress(q.progress, q.target) end
+    local barBg = card:FindFirstChild("BarBg")
+    local barFill = barBg and barBg:FindFirstChild("BarFill") :: Frame?
+    if barFill then
+        barFill.Size = UDim2.new(math.min(1, q.progress / q.target), 0, 1, 0)
+        barFill.BackgroundColor3 = (q.claimed or q.complete) and AMBER or CYAN
+    end
+    local btn = card:FindFirstChild("Claim") :: TextButton?
+    if btn then
+        if q.claimed then
+            btn.Text = "CLAIMED"
+            btn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+            btn.TextColor3 = TEXT
+            btn.AutoButtonColor = false
+            btn.Active = false
+        elseif q.complete then
+            btn.Text = "CLAIM"
+            btn.BackgroundColor3 = AMBER
+            btn.TextColor3 = BG
+            btn.AutoButtonColor = true
+            btn.Active = true
+        else
+            btn.Text = "IN PROGRESS"
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+            btn.TextColor3 = TEXT
+            btn.AutoButtonColor = false
+            btn.Active = false
+        end
+    end
+end
+
+local function refreshBadge()
+    if not questsState then
+        questsBadge.Visible = false
+        return
+    end
+    local count = 0
+    for _, q in ipairs(questsState.quests) do
+        if q.complete and not q.claimed then count += 1 end
+    end
+    if count > 0 then
+        questsBadge.Visible = true
+        questsBadge.Text = tostring(count)
+    else
+        questsBadge.Visible = false
+    end
+end
+
+local function renderQuests(state: any)
+    questsState = state
+    if not questsModal then return end
+    local list = questsModal:FindFirstChild("Cards")
+    if not list then return end
+    -- Rebuild card map idempotently. Reuse existing cards if their QuestId
+    -- matches; otherwise destroy + recreate.
+    local seenIds: {[string]: boolean} = {}
+    for order, q in ipairs(state.quests) do
+        seenIds[q.id] = true
+        local card = questCardsByQuestId[q.id]
+        if card and card.Parent ~= list then card = nil end
+        if not card then
+            card = buildQuestCard(list, q, order)
+            questCardsByQuestId[q.id] = card
+        else
+            applyQuestStateToCard(card, q)
+        end
+    end
+    -- Drop stale cards (from yesterday's quests)
+    for id, card in pairs(questCardsByQuestId) do
+        if not seenIds[id] then
+            card:Destroy()
+            questCardsByQuestId[id] = nil
+        end
+    end
+    refreshBadge()
+end
+
+local function refreshQuests()
+    task.spawn(function()
+        local ok, result = pcall(function()
+            return remotes.GetDailyQuests:InvokeServer()
+        end)
+        if ok and result and result.quests then
+            renderQuests(result)
+        end
+    end)
+end
+
+local function openQuestsModal()
+    if not questsModal then questsModal = buildQuestsModal() end
+    questsModal.Visible = true
+    refreshQuests()
+end
+
+questsBtn.MouseButton1Click:Connect(openQuestsModal)
+
+remotes.QuestProgressed.OnClientEvent:Connect(function(questId: string, progress: number, target: number)
+    if not questsState then return end
+    for _, q in ipairs(questsState.quests) do
+        if q.id == questId then
+            q.progress = progress
+            q.complete = progress >= target
+            local card = questCardsByQuestId[questId]
+            if card then applyQuestStateToCard(card, q) end
+            break
+        end
+    end
+    refreshBadge()
+end)
+
+remotes.QuestClaimed.OnClientEvent:Connect(function(questId: string, reward: number)
+    if questsState then
+        for _, q in ipairs(questsState.quests) do
+            if q.id == questId then
+                q.claimed = true
+                local card = questCardsByQuestId[questId]
+                if card then applyQuestStateToCard(card, q) end
+                break
+            end
+        end
+    end
+    refreshBadge()
+    showToast(
+        string.format("+%s COINS", fmt(reward)),
+        "daily quest claimed",
+        AMBER,
+        4
+    )
+    flashScreen(AMBER, 0.5)
+    playSound(Constants.SOUND_IDS.daily_bonus, 0.6)
+end)
+
+local QUEST_REJECTION_COPY: {[string]: string} = {
+    no_data = "Save data still loading.",
+    bad_request = "Invalid quest.",
+    not_today = "That quest isn't active today.",
+    already_claimed = "Already claimed.",
+    not_complete = "Finish the quest first.",
+}
+
+remotes.QuestRejected.OnClientEvent:Connect(function(questId: string, reason: string)
+    showToast("CAN'T CLAIM", QUEST_REJECTION_COPY[reason] or reason, AMBER, 3)
+end)
+
+-- Initial fetch so the badge counter is accurate on join.
+refreshQuests()
 
 print("[HUD] mounted")

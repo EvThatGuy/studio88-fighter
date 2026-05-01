@@ -26,6 +26,10 @@ local cache: {[number]: Types.PlayerData} = {}
 local SAVE_RETRY_BUDGET = 4
 local SAVE_BACKOFF_BASE = 1.5
 
+local function emptyDailyQuests(): Types.DailyQuestState
+    return { dateKey = "", progress = {}, claimed = {} }
+end
+
 local function defaultPlayerData(): Types.PlayerData
     return {
         coins = 0,
@@ -36,6 +40,7 @@ local function defaultPlayerData(): Types.PlayerData
         starterPackPurchasedUnix = nil,
         rebirths = 0,
         redeemedCodes = {},
+        dailyQuests = emptyDailyQuests(),
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -44,10 +49,10 @@ end
 -- that returns data with schemaVersion bumped to "vN+1", and bump
 -- Constants.DATASTORE_VERSION + DATASTORE_NAME.
 --
--- v1 -> v2: rebirth system added.
--- v2 -> v3: codes system added. redeemedCodes is the per-player one-shot
--- redemption ledger; without it old docs would happily redeem the same
--- code over and over.
+-- v1 -> v2: rebirth system.
+-- v2 -> v3: codes system + redeemedCodes ledger.
+-- v3 -> v4: daily quests. dailyQuests starts empty; DailyQuestService rolls
+--           it forward to today's dateKey on first load post-migration.
 local migrations: {[string]: (any) -> Types.PlayerData} = {
     ["v1"] = function(data: any): Types.PlayerData
         data.rebirths = data.rebirths or 0
@@ -57,6 +62,11 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
     ["v2"] = function(data: any): Types.PlayerData
         data.redeemedCodes = data.redeemedCodes or {}
         data.schemaVersion = "v3"
+        return data
+    end,
+    ["v3"] = function(data: any): Types.PlayerData
+        data.dailyQuests = data.dailyQuests or { dateKey = "", progress = {}, claimed = {} }
+        data.schemaVersion = "v4"
         return data
     end,
 }

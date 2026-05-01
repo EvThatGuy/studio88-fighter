@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
 
 local remotes = Remotes.get()
 
@@ -79,6 +80,11 @@ local function tick()
                     pcall(function()
                         remotes.BalanceUpdated:FireClient(player, data.coins, data.lifetimeCoins)
                     end)
+                    -- Daily quest hook: every coin earned counts toward
+                    -- earn-N-coins-today quests. Tick rate is 1s so a
+                    -- single bump per tick is fine.
+                    DailyQuestService.bumpProgress(player.UserId,
+                        Constants.QUEST_KIND.EARN_COINS_TODAY, gain)
                 end
             end
         end

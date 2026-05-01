@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v3"
+Constants.DATASTORE_VERSION = "v4"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -158,6 +158,65 @@ Constants.CODES = {
 
 -- Per-player input rate limit on RequestRedeemCode (anti-spam).
 Constants.CODE_REDEEM_COOLDOWN_SEC = 3
+
+-- Daily quests. The single highest-leverage feature for D1 / sessions-per-day
+-- per the 2026 Roblox algorithm (RFY now rewards 24h return rate over CCU,
+-- per the Dec 2025 Recommended-For-You DevForum announcement). Rotation is
+-- date-deterministic so every server in this universe shows the same 3
+-- quests on the same day -- gives David one "today's quests" Discord post
+-- per day and gives players a shared reason to log in.
+--
+-- Pool format: each entry has id (stable string key for DataStore), kind
+-- (one of the QuestKind enum below), target (number to reach), reward
+-- (coins on claim), label (player-facing text using {target} placeholder).
+--
+-- Selection: 3 quests per day, deterministic from the Unix-day index. We
+-- pick one easy / one medium / one hard so every player has a 5-min ask
+-- and a 30-min ask in the same day.
+--
+-- Adding new quests: append to the appropriate tier table; the rotation
+-- auto-includes them from the next UTC midnight.
+Constants.QUEST_KIND = {
+    EARN_COINS_TODAY = "earn_coins_today",
+    COLLECT_DROPS_TODAY = "collect_drops_today",
+    TIER_UPS_TODAY = "tier_ups_today",
+    REDEEM_CODE_TODAY = "redeem_code_today",
+    REBIRTH_TODAY = "rebirth_today",
+    PLAY_MINUTES_TODAY = "play_minutes_today",
+}
+
+Constants.DAILY_QUEST_POOL_EASY = {
+    {id = "earn_500",     kind = Constants.QUEST_KIND.EARN_COINS_TODAY,    target = 500,   reward = 250,  label = "Earn {target} coins"},
+    {id = "collect_25",   kind = Constants.QUEST_KIND.COLLECT_DROPS_TODAY, target = 25,    reward = 200,  label = "Collect {target} coin drops"},
+    {id = "play_5min",    kind = Constants.QUEST_KIND.PLAY_MINUTES_TODAY,  target = 5,     reward = 300,  label = "Play for {target} minutes"},
+    {id = "redeem_code",  kind = Constants.QUEST_KIND.REDEEM_CODE_TODAY,   target = 1,     reward = 500,  label = "Redeem any code (try LAUNCH)"},
+}
+
+Constants.DAILY_QUEST_POOL_MEDIUM = {
+    {id = "earn_5000",    kind = Constants.QUEST_KIND.EARN_COINS_TODAY,    target = 5000,  reward = 1500, label = "Earn {target} coins"},
+    {id = "tier_up_2",    kind = Constants.QUEST_KIND.TIER_UPS_TODAY,      target = 2,     reward = 1500, label = "Upgrade tier {target} times"},
+    {id = "collect_200",  kind = Constants.QUEST_KIND.COLLECT_DROPS_TODAY, target = 200,   reward = 1200, label = "Collect {target} coin drops"},
+    {id = "play_15min",   kind = Constants.QUEST_KIND.PLAY_MINUTES_TODAY,  target = 15,    reward = 1500, label = "Play for {target} minutes"},
+}
+
+Constants.DAILY_QUEST_POOL_HARD = {
+    {id = "earn_50000",   kind = Constants.QUEST_KIND.EARN_COINS_TODAY,    target = 50000, reward = 8000, label = "Earn {target} coins"},
+    {id = "tier_up_4",    kind = Constants.QUEST_KIND.TIER_UPS_TODAY,      target = 4,     reward = 7500, label = "Upgrade tier {target} times"},
+    {id = "rebirth_1",    kind = Constants.QUEST_KIND.REBIRTH_TODAY,       target = 1,     reward = 10000,label = "Rebirth at least once today"},
+    {id = "play_45min",   kind = Constants.QUEST_KIND.PLAY_MINUTES_TODAY,  target = 45,    reward = 8000, label = "Play for {target} minutes"},
+}
+
+-- Custom analytics event names. Centralized so we have ONE place to bump
+-- versions / rename funnel steps without grepping the codebase. Pulled
+-- via AnalyticsService:LogCustomEvent in 2026 instead of legacy CustomEvent.
+Constants.ANALYTICS_EVENTS = {
+    QUEST_CLAIMED = "QuestClaimed",
+    QUEST_PROGRESSED = "QuestProgressed",
+    REBIRTH_GRANTED = "RebirthGranted",
+    CODE_REDEEMED = "CodeRedeemed",
+    PASS_PURCHASED = "PassPurchased",
+    TIER_UP = "TierUp",
+}
 
 -- Per-tier plot art. Foundation Material + Color paints visible progression
 -- so a tier-5 plot looks unmistakably wealthier than a tier-1 plot at a glance.

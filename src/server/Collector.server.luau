@@ -8,10 +8,12 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
 local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
+local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
 
 local remotes = Remotes.get()
 
@@ -61,6 +63,12 @@ local function onCollect(collector: BasePart, hit: BasePart)
             remotes.BalanceUpdated:FireClient(player, data.coins, data.lifetimeCoins)
         end)
     end
+
+    -- Daily quest hook: each collected drop counts as 1 toward
+    -- collect-N-drops-today. Conveyor coins arrive at ~1/sec at tier 1,
+    -- so a 25-drop easy quest finishes inside ~30 seconds at the door.
+    DailyQuestService.bumpProgress(ownerUserId,
+        Constants.QUEST_KIND.COLLECT_DROPS_TODAY, 1)
 end
 
 local function bind(collector: BasePart)

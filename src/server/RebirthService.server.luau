@@ -21,6 +21,7 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
 local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
+local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
 
 local remotes = Remotes.get()
 
@@ -83,6 +84,8 @@ function RebirthService.attemptRebirth(player: Player): (boolean, string?)
     pcall(function()
         remotes.RebirthGranted:FireClient(player, data.rebirths, newMult)
     end)
+    DailyQuestService.bumpProgress(player.UserId,
+        Constants.QUEST_KIND.REBIRTH_TODAY, 1)
     print(string.format(
         "[RebirthService] %s rebirthed (#%d, perma-mult x%.2f)",
         player.Name, data.rebirths, newMult

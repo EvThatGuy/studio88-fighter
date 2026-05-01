@@ -22,6 +22,7 @@ local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
+local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
 
 local remotes = Remotes.get()
 
@@ -138,6 +139,8 @@ function CodesService.attemptRedeem(player: Player, rawCode: any): (boolean, str
     pcall(function()
         remotes.CodeRedeemed:FireClient(player, code, reward)
     end)
+    DailyQuestService.bumpProgress(player.UserId,
+        Constants.QUEST_KIND.REDEEM_CODE_TODAY, 1)
     print(string.format("[CodesService] %s redeemed '%s' for %d coins",
         player.Name, code, reward))
     return true, nil
