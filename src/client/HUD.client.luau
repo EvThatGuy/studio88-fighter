@@ -377,6 +377,16 @@ local function refreshFriendCode()
             friendStat.Text = string.format("share with friends -- new player gets +%s, you get +%s each",
                 fmt(snap.referredBonus), fmt(snap.referrerBonus))
         end
+        -- Live friend-online indicator: who in THIS server is referral-linked
+        if snap.friendsInServer and #snap.friendsInServer > 0 then
+            local names = table.concat(snap.friendsInServer, ", ")
+            friendStat.Text = string.format("WITH %d FRIEND%s ONLINE: %s",
+                #snap.friendsInServer,
+                #snap.friendsInServer == 1 and "" or "S",
+                names:sub(1, 60))
+            friendStat.TextColor3 = Color3.fromRGB(120, 220, 120)
+            friendStat.TextTransparency = 0.05
+        end
     end)
 end
 

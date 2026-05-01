@@ -152,10 +152,41 @@ end
 
 -- ---- Snapshot for HUD ---------------------------------------------------
 
+-- Detect mutual referral presence: which players in this server are
+-- linked to the asker via the referral graph (asker referred them OR they
+-- referred asker OR they were referred by the same code as asker).
+function ReferralService.friendsInServer(userId: number): {string}
+    local askerData = DataStore.getCached(userId)
+    if not askerData then return {} end
+    local out: {string} = {}
+    for _, other in ipairs(Players:GetPlayers()) do
+        if other.UserId ~= userId then
+            local odata = DataStore.getCached(other.UserId)
+            if odata then
+                local linked = false
+                -- Asker referred them: their referredBy == asker.friendCode
+                if askerData.friendCode and askerData.friendCode ~= ""
+                   and odata.referredBy == askerData.friendCode then
+                    linked = true
+                end
+                -- They referred asker: asker.referredBy == their friendCode
+                if askerData.referredBy and odata.friendCode == askerData.referredBy then
+                    linked = true
+                end
+                if linked then
+                    table.insert(out, other.Name)
+                end
+            end
+        end
+    end
+    return out
+end
+
 function ReferralService.snapshot(userId: number)
     local data = DataStore.getCached(userId)
     if not data then
         return { friendCode = "", referralCount = 0, referredBy = nil, pendingBonusCoins = 0,
+            friendsInServer = {},
             referrerBonus = Constants.REFERRAL_REFERRER_BONUS,
             referredBonus = Constants.REFERRAL_REFERRED_BONUS }
     end
@@ -164,6 +195,7 @@ function ReferralService.snapshot(userId: number)
         referralCount = data.referralCount or 0,
         referredBy = data.referredBy,
         pendingBonusCoins = data.pendingReferralBonusCoins or 0,
+        friendsInServer = ReferralService.friendsInServer(userId),
         referrerBonus = Constants.REFERRAL_REFERRER_BONUS,
         referredBonus = Constants.REFERRAL_REFERRED_BONUS,
     }
