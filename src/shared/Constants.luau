@@ -452,6 +452,21 @@ Constants.ACHIEVEMENTS = {
      trigger = "rebirth_shop_owned", threshold = 3,            rewardCoins = 0,      rewardTokens = 2, badgeId = 0},
 }
 
+-- Pet fusion. Sacrifice N pets of the same rarity to mint 1 random pet of
+-- the next rarity up. Solves the dead-dupe-inventory problem and gives
+-- gacha-VRR a continuous engagement loop instead of a one-shot collection.
+-- Legendary cannot be fused up (it's the cap). Equipped pets cannot be
+-- consumed -- player must explicitly unequip first, prevents accidental
+-- destruction of their best stat carrier.
+Constants.PET_FUSE_COST = 3
+Constants.PET_RARITY_PROMOTION = {
+    common = "uncommon",
+    uncommon = "rare",
+    rare = "epic",
+    epic = "legendary",
+    -- legendary intentionally absent (cap)
+}
+
 -- How often a single user's achievement scan is allowed to run, regardless
 -- of how many systems hook into it. Currency tick fires every 1s and
 -- AchievementService is called from there, so without throttling we'd

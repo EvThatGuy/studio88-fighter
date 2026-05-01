@@ -1675,6 +1675,70 @@ local function rebuildInventory(invList: ScrollingFrame, state: any)
     local equippedSet: {[string]: boolean} = {}
     for _, uid in ipairs(state.equippedPetIds) do equippedSet[uid] = true end
 
+    -- Fusion: count non-equipped per rarity and offer a "fuse 3 -> 1 next"
+    -- button per rarity that has enough + has a promotion target. Pinned
+    -- at the top of the list (LayoutOrder negative).
+    local fuseCount: {[string]: number} = {}
+    for _, p in ipairs(sorted) do
+        if not equippedSet[p.uid] then
+            fuseCount[p.rarity] = (fuseCount[p.rarity] or 0) + 1
+        end
+    end
+    local fuseRarityOrder = {"common", "uncommon", "rare", "epic"}
+    local PROMO = Constants.PET_RARITY_PROMOTION or {}
+    local fuseSlot = 0
+    for _, rarity in ipairs(fuseRarityOrder) do
+        local nextRarity = PROMO[rarity]
+        local count = fuseCount[rarity] or 0
+        if nextRarity and count >= Constants.PET_FUSE_COST then
+            fuseSlot += 1
+            local rcolor = Constants.PET_RARITY_COLORS[rarity] or {200,200,200}
+            local nrcolor = Constants.PET_RARITY_COLORS[nextRarity] or {200,200,200}
+            local card = Instance.new("Frame")
+            card.Size = UDim2.new(1, -8, 0, 50)
+            card.BackgroundColor3 = Color3.fromRGB(28, 24, 44)
+            card.BorderSizePixel = 0
+            card.LayoutOrder = -1000 + fuseSlot -- pin to top
+            card.ZIndex = 52
+            card.Parent = invList
+            do
+                local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+                local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(nrcolor[1], nrcolor[2], nrcolor[3]); s.Thickness = 1; s.Parent = card
+            end
+            local label = makeLabel("Fuse", card,
+                string.format("FUSE %d %s -> 1 %s", Constants.PET_FUSE_COST, string.upper(rarity), string.upper(nextRarity)),
+                UDim2.new(1, -160, 1, -8), UDim2.new(0, 10, 0, 4))
+            label.TextColor3 = Color3.fromRGB(rcolor[1], rcolor[2], rcolor[3])
+            label.Font = Enum.Font.GothamBold
+            label.TextSize = 13
+            label.ZIndex = 53
+            local sub = makeLabel("Sub", card,
+                string.format("you have %d %s available", count, rarity),
+                UDim2.new(1, -160, 0, 14), UDim2.new(0, 10, 0, 30))
+            sub.TextColor3 = TEXT
+            sub.Font = Enum.Font.Code
+            sub.TextSize = 11
+            sub.TextTransparency = 0.4
+            sub.ZIndex = 53
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(0, 130, 0, 30)
+            btn.Position = UDim2.new(1, -140, 0.5, -15)
+            btn.BackgroundColor3 = Color3.fromRGB(nrcolor[1], nrcolor[2], nrcolor[3])
+            btn.TextColor3 = BG
+            btn.Text = "FUSE"
+            btn.Font = Enum.Font.GothamBold
+            btn.TextSize = 14
+            btn.BorderSizePixel = 0
+            btn.ZIndex = 53
+            btn.Parent = card
+            do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn end
+            local rarityCapture = rarity
+            btn.MouseButton1Click:Connect(function()
+                pcall(function() remotes.FusePets:FireServer(rarityCapture) end)
+            end)
+        end
+    end
+
     for order, p in ipairs(sorted) do
         local card = Instance.new("Frame")
         card.Size = UDim2.new(1, -8, 0, 60)
@@ -1900,6 +1964,23 @@ end)
 
 remotes.PetEquipChanged.OnClientEvent:Connect(function(_equippedPetIds: {string})
     refreshPets()
+end)
+
+local PET_FUSE_REJECT_COPY: {[string]: string} = {
+    no_data = "Save data still loading.",
+    bad_request = "Invalid fusion request.",
+    cannot_promote = "Legendary pets can't be fused further.",
+    not_enough = "Need %d more pets of this rarity (3 minimum, none equipped).",
+    promotion_pool_empty = "No promoted pets defined yet.",
+}
+
+remotes.PetFuseRejected.OnClientEvent:Connect(function(rarity: string, reason: string, needed: number?)
+    local template = PET_FUSE_REJECT_COPY[reason] or reason
+    if reason == "not_enough" and needed then
+        template = string.format(template, needed)
+    end
+    showToast("FUSE FAILED", template, AMBER, 3)
+    playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
 end)
 
 -- =============================================================================

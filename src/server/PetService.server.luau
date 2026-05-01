@@ -284,6 +284,94 @@ function PetService.attemptUnequip(player: Player, uid: any): (boolean, string?)
     return false, "not_equipped"
 end
 
+-- ---- Fusion --------------------------------------------------------------
+-- Sacrifice PET_FUSE_COST same-rarity pets to mint 1 of the next rarity.
+-- Equipped pets cannot be consumed (player would otherwise tap-fuse and
+-- accidentally destroy their best stat carrier). We pick the OLDEST
+-- non-equipped pets first so newly-hatched ones don't get auto-eaten.
+
+local function pushFuseReject(player: Player, rarity: string, reason: string, needed: number?)
+    pcall(function()
+        remotes.PetFuseRejected:FireClient(player, rarity, reason, needed)
+    end)
+end
+
+local function isEquipped(data: Types.PlayerData, uid: string): boolean
+    for _, eid in ipairs(data.equippedPetIds or {}) do
+        if eid == uid then return true end
+    end
+    return false
+end
+
+function PetService.attemptFuse(player: Player, rarity: any): (boolean, string?)
+    local userId = player.UserId
+    local data = DataStore.getCached(userId)
+    if not data then
+        pushFuseReject(player, tostring(rarity), "no_data")
+        return false, "no_data"
+    end
+    if typeof(rarity) ~= "string" then
+        pushFuseReject(player, "", "bad_request")
+        return false, "bad_request"
+    end
+    local nextRarity = Constants.PET_RARITY_PROMOTION[rarity]
+    if not nextRarity then
+        pushFuseReject(player, rarity, "cannot_promote") -- legendary or unknown rarity
+        return false, "cannot_promote"
+    end
+    -- Collect non-equipped pets of this rarity, sorted by obtainedUnix ASC.
+    local candidates: {Types.OwnedPet} = {}
+    for _, p in ipairs(data.pets or {}) do
+        if p.rarity == rarity and not isEquipped(data, p.uid) then
+            table.insert(candidates, p)
+        end
+    end
+    table.sort(candidates, function(a, b) return a.obtainedUnix < b.obtainedUnix end)
+    local need = Constants.PET_FUSE_COST
+    if #candidates < need then
+        pushFuseReject(player, rarity, "not_enough", need - #candidates)
+        return false, "not_enough"
+    end
+    -- Build a quick uid-set of consumed pets, then rebuild the inventory
+    -- without them in a single pass (one allocation, no #pets shuffle).
+    local consume: {[string]: boolean} = {}
+    for i = 1, need do consume[candidates[i].uid] = true end
+    local kept: {Types.OwnedPet} = {}
+    for _, p in ipairs(data.pets or {}) do
+        if not consume[p.uid] then table.insert(kept, p) end
+    end
+    data.pets = kept
+    -- Roll the new pet from the next-rarity pool. We don't go through
+    -- biased weights here -- fusion is deterministic-rarity, random-petId.
+    local pool = petsByRarity[nextRarity] or {}
+    if #pool == 0 then
+        pushFuseReject(player, rarity, "promotion_pool_empty")
+        return false, "promotion_pool_empty"
+    end
+    local def = pool[math.random(1, #pool)]
+    local owned: Types.OwnedPet = {
+        uid = nextUid(data),
+        petId = def.id,
+        rarity = def.rarity,
+        obtainedUnix = os.time(),
+    }
+    table.insert(data.pets, owned)
+    -- Reuse PetHatched on the client; it already handles toast + flash by
+    -- rarity color and refreshes the inventory list.
+    pcall(function()
+        remotes.PetHatched:FireClient(player, owned, def.name)
+    end)
+    print(string.format("[PetService] %s fused 3x %s -> '%s' (%s)",
+        player.Name, rarity, def.name, def.rarity))
+    -- Achievement scan -- this changes #data.pets and could change collection
+    -- completion, so re-evaluate.
+    pcall(function()
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        AchievementService.evaluate(userId)
+    end)
+    return true, nil
+end
+
 -- ---- Wires ---------------------------------------------------------------
 
 remotes.GetPetState.OnServerInvoke = function(player: Player)
@@ -307,6 +395,14 @@ end)
 
 remotes.UnequipPet.OnServerEvent:Connect(function(player: Player, uid: any)
     PetService.attemptUnequip(player, uid)
+end)
+
+remotes.FusePets.OnServerEvent:Connect(function(player: Player, rarity: any)
+    local ok, reason = PetService.attemptFuse(player, rarity)
+    if not ok then
+        warn(string.format("[PetService] %s fuse '%s' failed: %s",
+            player.Name, tostring(rarity):sub(1, 16), reason or "?"))
+    end
 end)
 
 print(string.format("[PetService] ready (%d pets, %d eggs, max equipped %d, inventory cap %d)",

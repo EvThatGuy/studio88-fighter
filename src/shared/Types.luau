@@ -78,6 +78,8 @@ export type RemoteMap = {
     PetEquipChanged: RemoteEvent,     -- server -> client; payload {equippedPetIds}
     GetAchievements: RemoteFunction,  -- client -> server; returns {entries=[{id,name,desc,unlocked,unlockedUnix?,progress,target,rewardCoins,rewardTokens}], unlockedCount, totalCount}
     AchievementUnlocked: RemoteEvent, -- server -> client; payload {id, name, rewardCoins, rewardTokens}
+    FusePets: RemoteEvent,            -- client -> server; payload {rarity}
+    PetFuseRejected: RemoteEvent,     -- server -> client; payload {rarity, reason, needed?}
 }
 
 return {}
