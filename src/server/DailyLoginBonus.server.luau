@@ -75,6 +75,33 @@ local function grantBonusIfDue(player: Player)
         local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
         AchievementService.evaluate(player.UserId)
     end)
+    -- Streak egg grant: at threshold streak days, the player ALSO gets a
+    -- free hatch from a designated egg on top of the coin bonus. Bypasses
+    -- coin cost via PetService.grantPetFromEgg.
+    local eggId = Constants.STREAK_EGG_GRANTS[data.streak]
+    if eggId then
+        pcall(function()
+            local PetService = require(script.Parent:WaitForChild("PetService.server"))
+            local owned, def, reason = PetService.grantPetFromEgg(player, eggId)
+            if owned and def then
+                pcall(function()
+                    remotes.StreakEggGranted:FireClient(player, data.streak, eggId, owned, def.name)
+                end)
+            elseif reason == "inventory_full" then
+                -- Fallback: don't lose the streak grant silently. Drop a
+                -- coin-equivalent so the player isn't punished for being
+                -- a hoarder.
+                local fallback = 5000
+                data.coins += fallback
+                data.lifetimeCoins += fallback
+                pcall(function()
+                    remotes.BalanceUpdated:FireClient(player, data.coins, data.lifetimeCoins)
+                end)
+                warn(string.format("[DailyLoginBonus] %s streak-egg %s denied (inventory full); +%d coin fallback",
+                    player.Name, eggId, fallback))
+            end
+        end)
+    end
 end
 
 -- Wait for DataStore to populate cache before granting -- DataStore.server's

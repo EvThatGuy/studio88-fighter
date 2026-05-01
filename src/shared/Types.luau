@@ -99,6 +99,7 @@ export type RemoteMap = {
     GetFriendCode: RemoteFunction,    -- client -> server; returns {friendCode, referralCount, referredBy, pendingBonusCoins}
     ReferralBonusGranted: RemoteEvent,-- server -> client; payload {sourceCount, totalBonus} (fires when a referrer's bonus is realized)
     AutoEquipPets: RemoteEvent,       -- client -> server; no payload (server picks optimal best-mult unequipped pets up to PET_MAX_EQUIPPED)
+    StreakEggGranted: RemoteEvent,    -- server -> client; payload {streakDay, eggId, pet=OwnedPet, petName} (issued alongside DailyBonusGranted at threshold streaks)
 }
 
 return {}

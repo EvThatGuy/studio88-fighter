@@ -2084,6 +2084,20 @@ remotes.PetEquipChanged.OnClientEvent:Connect(function(_equippedPetIds: {string}
     refreshPets()
 end)
 
+remotes.StreakEggGranted.OnClientEvent:Connect(function(streakDay: number, _eggId: string, pet: any, petName: string)
+    local rarityColor = Constants.PET_RARITY_COLORS[pet.rarity] or {200,200,200}
+    local color = Color3.fromRGB(rarityColor[1], rarityColor[2], rarityColor[3])
+    showToast(
+        string.format("%d-DAY STREAK GIFT", streakDay),
+        string.format("free %s -- %s rarity", string.upper(petName), string.upper(pet.rarity)),
+        color,
+        6
+    )
+    flashScreen(color, 0.8)
+    playSound(Constants.SOUND_IDS.daily_bonus, 0.7)
+    refreshPets()
+end)
+
 local PET_FUSE_REJECT_COPY: {[string]: string} = {
     no_data = "Save data still loading.",
     bad_request = "Invalid fusion request.",

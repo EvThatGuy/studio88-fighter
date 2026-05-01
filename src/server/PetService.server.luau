@@ -425,6 +425,44 @@ remotes.UnequipPet.OnServerEvent:Connect(function(player: Player, uid: any)
     PetService.attemptUnequip(player, uid)
 end)
 
+-- Cost-bypass hatch path used by free-grant systems (login streak, future
+-- gift codes, etc). Validates only inventory cap; no coin debit, no
+-- "insufficient_coins" check. Returns the rolled OwnedPet on success
+-- so the caller can fire its own bespoke notify event. Inventory-cap
+-- failures still reject so we don't silently drop a granted pet.
+function PetService.grantPetFromEgg(player: Player, eggId: string): (Types.OwnedPet?, any?, string?)
+    local userId = player.UserId
+    local data = DataStore.getCached(userId)
+    if not data then return nil, nil, "no_data" end
+    local egg = eggById[eggId]
+    if not egg then return nil, nil, "unknown_egg" end
+    if (#data.pets or 0) >= Constants.PET_INVENTORY_CAP then
+        return nil, nil, "inventory_full"
+    end
+    local def = rollPet(egg.biasTier)
+    if not data.pets then data.pets = {} end
+    local owned: Types.OwnedPet = {
+        uid = nextUid(data),
+        petId = def.id,
+        rarity = def.rarity,
+        obtainedUnix = os.time(),
+    }
+    table.insert(data.pets, owned)
+    pcall(function()
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        AchievementService.evaluate(userId)
+    end)
+    if def.rarity == "legendary" then
+        pcall(function()
+            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+            ActivityFeedService.post(player, "hatch_legendary", "got " .. def.name .. " from a free grant")
+        end)
+    end
+    print(string.format("[PetService] %s GRANT '%s' (%s) from %s",
+        player.Name, def.name, def.rarity, eggId))
+    return owned, def, nil
+end
+
 -- Server-side auto-equip: clear current loadout, pick the top
 -- PET_MAX_EQUIPPED pets by rarity multiplier (descending), and equip
 -- those. Cheaper UX than tap-each-card and prevents the dupe-then-

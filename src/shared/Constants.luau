@@ -23,6 +23,16 @@ Constants.UPGRADE_TIERS = {
     {cost = 100000, incomeMult = 80},  -- Tier 6 (capstone)
 }
 
+-- Streak egg grants. When the daily login streak hits one of these days,
+-- ALSO grant a free hatch from the specified egg (no coin cost) on top
+-- of the coin bonus. Adds a tangible long-term incentive to maintain
+-- the streak and compounds with the pets gacha.
+Constants.STREAK_EGG_GRANTS = {
+    [7]  = "standard_egg",
+    [14] = "luxury_egg",
+    [30] = "luxury_egg",
+}
+
 -- Daily login streak rewards. Index = day-streak (1..30+). Day 1 = 500 coins.
 -- Beyond 30, cap at the day-30 reward.
 Constants.DAILY_BONUS_BY_STREAK = {
