@@ -121,6 +121,7 @@ export type RemoteMap = {
     VisitPlayer: RemoteEvent,         -- client -> server; payload {targetUserId}
     VisitRejected: RemoteEvent,       -- server -> client; payload {reason, retryInSec?}
     VisitedByPlayer: RemoteEvent,     -- server -> OWNER; payload {visitorName, tipCoins} when someone visits their plot
+    GetPlayerStats: RemoteFunction,   -- client -> server; returns career-summary snapshot for the stats modal
 }
 
 return {}

@@ -578,6 +578,181 @@ remotes.LeaderboardUpdated.OnClientEvent:Connect(function(rows)
     end
 end)
 
+-- =============================================================================
+-- Stats Profile screen
+-- =============================================================================
+
+local STATS_TEAL = Color3.fromRGB(110, 220, 220)
+local statsModal: Frame? = nil
+local statsBody: Frame? = nil
+local sessionStartUnix = os.time()
+
+local statsBtn = Instance.new("TextButton")
+statsBtn.Name = "StatsButton"
+statsBtn.Size = UDim2.new(0, 70, 0, 24)
+-- Tucked into top of balance panel area: (0,16,0,16+82) under the balance value
+statsBtn.Position = UDim2.new(0, 16, 0, 130)
+statsBtn.BackgroundColor3 = BG
+statsBtn.BackgroundTransparency = 0.15
+statsBtn.BorderSizePixel = 0
+statsBtn.AutoButtonColor = false
+statsBtn.Text = "STATS"
+statsBtn.TextColor3 = STATS_TEAL
+statsBtn.Font = Enum.Font.GothamBold
+statsBtn.TextSize = 11
+statsBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = STATS_TEAL; s.Thickness = 1; s.Parent = statsBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = statsBtn
+end
+
+local function buildStatsModal()
+    if statsModal then return end
+    local m = Instance.new("Frame")
+    m.Size = UDim2.new(0, 460, 0, 480)
+    m.Position = UDim2.new(0.5, -230, 0.5, -240)
+    m.BackgroundColor3 = BG
+    m.BackgroundTransparency = 0.05
+    m.BorderSizePixel = 0
+    m.ZIndex = 50
+    m.Visible = false
+    m.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = STATS_TEAL; s.Thickness = 2; s.Parent = m
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = m
+    end
+    local head = makeLabel("Head", m, "CAREER STATS",
+        UDim2.new(1, -32, 0, 24), UDim2.new(0, 16, 0, 12))
+    head.TextColor3 = STATS_TEAL
+    head.Font = Enum.Font.GothamBold
+    head.ZIndex = 51
+    local x = Instance.new("TextButton")
+    x.Size = UDim2.new(0, 24, 0, 24)
+    x.Position = UDim2.new(1, -32, 0, 8)
+    x.BackgroundTransparency = 1
+    x.Text = "X"
+    x.TextColor3 = TEXT
+    x.Font = Enum.Font.GothamBold
+    x.TextSize = 18
+    x.ZIndex = 51
+    x.Parent = m
+    x.MouseButton1Click:Connect(function() m.Visible = false end)
+
+    local body = Instance.new("ScrollingFrame")
+    body.Size = UDim2.new(1, -32, 1, -56)
+    body.Position = UDim2.new(0, 16, 0, 44)
+    body.BackgroundTransparency = 1
+    body.ScrollBarThickness = 4
+    body.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    body.CanvasSize = UDim2.new(0, 0, 0, 0)
+    body.ZIndex = 51
+    body.Parent = m
+    local L = Instance.new("UIListLayout"); L.SortOrder = Enum.SortOrder.LayoutOrder; L.Padding = UDim.new(0, 4); L.Parent = body
+    statsBody = body
+    statsModal = m
+end
+
+local function fmtSessionLength(): string
+    local sec = os.time() - sessionStartUnix
+    local h = math.floor(sec / 3600)
+    local m = math.floor((sec % 3600) / 60)
+    local s = sec - h * 3600 - m * 60
+    if h > 0 then return string.format("%dh %02dm", h, m) end
+    return string.format("%dm %02ds", m, s)
+end
+
+local function statsRow(parent: Frame, order: number, kicker: string, value: string, accent: Color3?)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 22)
+    row.BackgroundTransparency = 1
+    row.LayoutOrder = order
+    row.Parent = parent
+    local k = makeLabel("K", row, kicker, UDim2.new(0.55, 0, 1, 0), UDim2.new(0, 4, 0, 0))
+    k.TextColor3 = TEXT
+    k.Font = Enum.Font.Code
+    k.TextSize = 13
+    k.TextXAlignment = Enum.TextXAlignment.Left
+    k.TextTransparency = 0.3
+    local v = makeLabel("V", row, value, UDim2.new(0.45, -8, 1, 0), UDim2.new(0.55, 4, 0, 0))
+    v.TextColor3 = accent or STATS_TEAL
+    v.Font = Enum.Font.GothamBold
+    v.TextSize = 13
+    v.TextXAlignment = Enum.TextXAlignment.Right
+end
+
+local function statsSection(parent: Frame, order: number, header: string)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, 0, 0, 24)
+    row.BackgroundTransparency = 1
+    row.LayoutOrder = order
+    row.Parent = parent
+    local h = makeLabel("H", row, header, UDim2.new(1, -4, 1, 0), UDim2.new(0, 4, 0, 0))
+    h.TextColor3 = STATS_TEAL
+    h.Font = Enum.Font.GothamBold
+    h.TextSize = 11
+    h.TextXAlignment = Enum.TextXAlignment.Left
+end
+
+local function rebuildStats(snap: any)
+    if not statsBody then return end
+    for _, c in ipairs(statsBody:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+    if not snap or snap.error then return end
+    local i = 0
+    local function next() i += 1; return i end
+    statsSection(statsBody, next(), "WEALTH")
+    statsRow(statsBody, next(), "current coins", fmt(snap.coins))
+    statsRow(statsBody, next(), "lifetime coins", fmt(snap.lifetimeCoins))
+    statsRow(statsBody, next(), "tier", string.format("%d / %d", snap.upgradeTier, snap.maxTier))
+    statsSection(statsBody, next(), "PRESTIGE")
+    statsRow(statsBody, next(), "rebirths", tostring(snap.rebirths))
+    statsRow(statsBody, next(), "rebirth tokens", tostring(snap.rebirthTokens))
+    statsRow(statsBody, next(), "rebirth shop owned", tostring(snap.rebirthShopOwned))
+    statsSection(statsBody, next(), "PETS")
+    statsRow(statsBody, next(), "owned",
+        string.format("%d (collection %d)", snap.petsOwned, snap.petCollectionTotal))
+    statsRow(statsBody, next(), "equipped",
+        string.format("%d / %d", snap.equippedPets, snap.maxEquippedPets))
+    statsRow(statsBody, next(), "pity counter",
+        string.format("%d / %d", snap.hatchesSinceLastLegendary, snap.pityThreshold),
+        Color3.fromRGB(255, 207, 64))
+    statsSection(statsBody, next(), "PROGRESSION")
+    statsRow(statsBody, next(), "achievements",
+        string.format("%d / %d", snap.achievementsUnlocked, snap.achievementsTotal))
+    statsRow(statsBody, next(), "quests claimed total", tostring(snap.questsClaimedTotal))
+    statsRow(statsBody, next(), "codes redeemed", tostring(snap.codesRedeemed))
+    statsRow(statsBody, next(), "login streak", tostring(snap.streak) .. " days")
+    statsSection(statsBody, next(), "SOCIAL")
+    statsRow(statsBody, next(), "friend code",
+        snap.friendCode ~= "" and snap.friendCode or "(generating)",
+        Color3.fromRGB(120, 220, 220))
+    statsRow(statsBody, next(), "referred by", snap.referredBy or "(none)")
+    statsRow(statsBody, next(), "friends you referred",
+        tostring(snap.referralCount),
+        snap.referralCount > 0 and Color3.fromRGB(120, 220, 120) or nil)
+    statsSection(statsBody, next(), "COSMETIC")
+    statsRow(statsBody, next(), "title", snap.equippedTitleName or "(none)")
+    statsRow(statsBody, next(), "aura", snap.equippedAuraName or "(none)")
+    statsSection(statsBody, next(), "SESSION")
+    statsRow(statsBody, next(), "play time this session", fmtSessionLength())
+end
+
+local function refreshStats()
+    task.spawn(function()
+        local ok, snap = pcall(function() return remotes.GetPlayerStats:InvokeServer() end)
+        if ok and snap then rebuildStats(snap) end
+    end)
+end
+
+statsBtn.MouseButton1Click:Connect(function()
+    if not statsModal then buildStatsModal() end
+    if statsModal then
+        statsModal.Visible = true
+        refreshStats()
+    end
+end)
+
 remotes.VisitedByPlayer.OnClientEvent:Connect(function(visitorName: string, tipCoins: number)
     showToast(string.format("%s VISITED YOUR PLOT", string.upper(visitorName)),
         string.format("+%s coin tip", fmt(tipCoins)),
