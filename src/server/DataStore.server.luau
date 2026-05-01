@@ -49,6 +49,7 @@ local function defaultPlayerData(): Types.PlayerData
         achievementsUnlocked = {},
         questsClaimedTotal = 0,
         lastHourlyTributeUnix = 0,
+        equippedAura = nil,
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -124,6 +125,14 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
     ["v8"] = function(data: any): Types.PlayerData
         data.lastHourlyTributeUnix = data.lastHourlyTributeUnix or 0
         data.schemaVersion = "v9"
+        return data
+    end,
+    -- v9 -> v10: cosmetic auras. equippedAura defaults nil; legacy players
+    -- with prior progress will find the auras they qualify for already
+    -- "unlocked" in the AURAS modal (predicate-based, no separate ledger).
+    ["v9"] = function(data: any): Types.PlayerData
+        if data.equippedAura == nil then data.equippedAura = nil end -- explicit no-op for clarity
+        data.schemaVersion = "v10"
         return data
     end,
 }

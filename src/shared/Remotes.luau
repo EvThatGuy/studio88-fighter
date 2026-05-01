@@ -56,6 +56,10 @@ local REMOTE_NAMES = {
     {name = "ClaimHourlyTribute", class = "RemoteEvent"},
     {name = "HourlyTributeClaimed", class = "RemoteEvent"},
     {name = "HourlyTributeRejected", class = "RemoteEvent"},
+    {name = "GetAuras", class = "RemoteFunction"},
+    {name = "EquipAura", class = "RemoteEvent"},
+    {name = "AuraReplicate", class = "RemoteEvent"},
+    {name = "AuraRejected", class = "RemoteEvent"},
 }
 
 local function ensureFolder(): Folder

@@ -2352,4 +2352,217 @@ remotes.AchievementUnlocked.OnClientEvent:Connect(function(payload: any)
     refreshAchievements()
 end)
 
+-- =============================================================================
+-- Auras (cosmetic flex; sister to Pets but visible to other players)
+-- =============================================================================
+
+local AURA_PINK = Color3.fromRGB(255, 130, 200)
+local auraModal: Frame? = nil
+local auraList: ScrollingFrame? = nil
+
+local auraBtn = Instance.new("TextButton")
+auraBtn.Name = "AurasButton"
+auraBtn.Size = UDim2.new(0, 140, 0, 44)
+auraBtn.Position = UDim2.new(1, -156, 1, -396)
+auraBtn.BackgroundColor3 = BG
+auraBtn.BackgroundTransparency = 0.15
+auraBtn.BorderSizePixel = 0
+auraBtn.AutoButtonColor = false
+auraBtn.Text = ""
+auraBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = AURA_PINK; s.Thickness = 1; s.Parent = auraBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = auraBtn
+end
+local auraLabel = makeLabel("Label", auraBtn, "* AURAS", UDim2.new(1, -16, 1, -8), UDim2.new(0, 8, 0, 4))
+auraLabel.TextColor3 = AURA_PINK
+auraLabel.Font = Enum.Font.Code
+auraLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local function buildAurasModal(): (Frame, ScrollingFrame)
+    local m = Instance.new("Frame")
+    m.Name = "AurasModal"
+    m.Size = UDim2.new(0, 540, 0, 580)
+    m.Position = UDim2.new(0.5, -270, 0.5, -290)
+    m.BackgroundColor3 = BG
+    m.BackgroundTransparency = 0.05
+    m.BorderSizePixel = 0
+    m.ZIndex = 50
+    m.Visible = false
+    m.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = AURA_PINK; s.Thickness = 2; s.Parent = m
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = m
+    end
+    local head = makeLabel("Head", m, "AURAS", UDim2.new(1, -32, 0, 24), UDim2.new(0, 16, 0, 12))
+    head.TextColor3 = AURA_PINK
+    head.Font = Enum.Font.GothamBold
+    head.ZIndex = 51
+    local sub = makeLabel("Sub", m, "cosmetic only -- visible to every player in the server", UDim2.new(1, -32, 0, 16), UDim2.new(0, 16, 0, 38))
+    sub.TextColor3 = TEXT
+    sub.Font = Enum.Font.Code
+    sub.TextTransparency = 0.3
+    sub.ZIndex = 51
+
+    local x = Instance.new("TextButton")
+    x.Size = UDim2.new(0, 24, 0, 24)
+    x.Position = UDim2.new(1, -32, 0, 8)
+    x.BackgroundTransparency = 1
+    x.Text = "X"
+    x.TextColor3 = TEXT
+    x.Font = Enum.Font.GothamBold
+    x.TextSize = 18
+    x.ZIndex = 51
+    x.Parent = m
+    x.MouseButton1Click:Connect(function() m.Visible = false end)
+
+    local list = Instance.new("ScrollingFrame")
+    list.Name = "AuraList"
+    list.Size = UDim2.new(1, -32, 1, -76)
+    list.Position = UDim2.new(0, 16, 0, 64)
+    list.BackgroundTransparency = 1
+    list.ScrollBarThickness = 4
+    list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    list.CanvasSize = UDim2.new(0,0,0,0)
+    list.ZIndex = 51
+    list.Parent = m
+    local L = Instance.new("UIListLayout"); L.SortOrder = Enum.SortOrder.LayoutOrder; L.Padding = UDim.new(0, 8); L.Parent = list
+
+    return m, list
+end
+
+local function rebuildAurasList(list: ScrollingFrame, snap: any)
+    for _, c in ipairs(list:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+    if not snap or not snap.entries then return end
+    -- Sort: equipped first, then unlocked, then locked-but-progressed
+    local entries = {}
+    for i, e in ipairs(snap.entries) do entries[i] = e end
+    table.sort(entries, function(a, b)
+        if a.equipped ~= b.equipped then return a.equipped end
+        if a.unlocked ~= b.unlocked then return a.unlocked end
+        local aPct = (a.target > 0) and (a.progress / a.target) or 0
+        local bPct = (b.target > 0) and (b.progress / b.target) or 0
+        return aPct > bPct
+    end)
+    for i, e in ipairs(entries) do
+        local color = Color3.fromRGB(e.color[1], e.color[2], e.color[3])
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, -8, 0, 70)
+        card.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+        card.BorderSizePixel = 0
+        card.LayoutOrder = i
+        card.ZIndex = 52
+        card.Parent = list
+        do
+            local s = Instance.new("UIStroke"); s.Color = e.unlocked and color or Color3.fromRGB(60, 56, 80); s.Thickness = e.equipped and 2 or 1; s.Parent = card
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+        end
+        -- Color swatch
+        local swatch = Instance.new("Frame")
+        swatch.Size = UDim2.new(0, 14, 0, 50)
+        swatch.Position = UDim2.new(0, 10, 0, 10)
+        swatch.BackgroundColor3 = color
+        swatch.BorderSizePixel = 0
+        swatch.ZIndex = 53
+        swatch.Parent = card
+        do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 3); c.Parent = swatch end
+
+        local title = makeLabel("Title", card, e.name .. "  [" .. string.upper(e.rarity) .. "]", UDim2.new(1, -200, 0, 18), UDim2.new(0, 32, 0, 8))
+        title.TextColor3 = e.unlocked and color or TEXT
+        title.Font = Enum.Font.GothamBold
+        title.ZIndex = 53
+        local desc = makeLabel("Desc", card, e.desc, UDim2.new(1, -200, 0, 14), UDim2.new(0, 32, 0, 28))
+        desc.TextColor3 = TEXT
+        desc.Font = Enum.Font.Code
+        desc.TextTransparency = 0.4
+        desc.ZIndex = 53
+
+        -- Status line
+        local statusText
+        if e.unlocked then
+            statusText = "UNLOCKED"
+        elseif e.trigger == "lifetime_coins" then
+            statusText = string.format("%s / %s lifetime coins", fmt(e.progress), fmt(e.target))
+        elseif e.trigger == "rebirths" then
+            statusText = string.format("rebirth %d / %d", e.progress, e.target)
+        elseif e.trigger == "achievements_unlocked" then
+            statusText = string.format("trophies %d / %d", e.progress, e.target)
+        elseif e.trigger == "pets_collection_complete" then
+            statusText = "complete the pet collection"
+        else
+            statusText = string.format("%d / %d", e.progress, e.target)
+        end
+        local status = makeLabel("Status", card, statusText, UDim2.new(1, -200, 0, 12), UDim2.new(0, 32, 0, 48))
+        status.TextColor3 = e.unlocked and color or TEXT
+        status.Font = Enum.Font.Code
+        status.TextSize = 11
+        status.TextTransparency = e.unlocked and 0.1 or 0.4
+        status.ZIndex = 53
+
+        -- Action button
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 130, 0, 36)
+        btn.Position = UDim2.new(1, -140, 0.5, -18)
+        btn.BorderSizePixel = 0
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 14
+        btn.ZIndex = 53
+        btn.Parent = card
+        do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn end
+        if e.equipped then
+            btn.Text = "UNEQUIP"
+            btn.BackgroundColor3 = AMBER
+            btn.TextColor3 = BG
+            btn.MouseButton1Click:Connect(function()
+                pcall(function() remotes.EquipAura:FireServer("") end)
+            end)
+        elseif e.unlocked then
+            btn.Text = "EQUIP"
+            btn.BackgroundColor3 = color
+            btn.TextColor3 = BG
+            local idCapture = e.id
+            btn.MouseButton1Click:Connect(function()
+                pcall(function() remotes.EquipAura:FireServer(idCapture) end)
+            end)
+        else
+            btn.Text = "LOCKED"
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+            btn.TextColor3 = TEXT
+            btn.AutoButtonColor = false
+            btn.Active = false
+        end
+    end
+end
+
+local function refreshAuras()
+    task.spawn(function()
+        local ok, snap = pcall(function() return remotes.GetAuras:InvokeServer() end)
+        if ok and snap and auraList then
+            rebuildAurasList(auraList, snap)
+        end
+    end)
+end
+
+auraBtn.MouseButton1Click:Connect(function()
+    if not auraModal then
+        auraModal, auraList = buildAurasModal()
+    end
+    auraModal.Visible = true
+    refreshAuras()
+end)
+
+local AURA_REJECT_COPY: {[string]: string} = {
+    no_data = "Save data still loading.",
+    bad_request = "Invalid aura.",
+    unknown_aura = "That aura doesn't exist.",
+    locked = "You haven't unlocked that aura yet.",
+}
+
+remotes.AuraRejected.OnClientEvent:Connect(function(_auraId: string, reason: string)
+    local copy = AURA_REJECT_COPY[reason] or reason
+    showToast("AURA FAILED", copy, AMBER, 3)
+end)
+
 print("[HUD] mounted")

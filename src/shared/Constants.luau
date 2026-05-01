@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v9"
+Constants.DATASTORE_VERSION = "v10"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -450,6 +450,63 @@ Constants.ACHIEVEMENTS = {
      trigger = "codes_redeemed_count", threshold = 3,          rewardCoins = 1000,   rewardTokens = 0, badgeId = 0},
     {id = "shopaholic",        name = "Shopaholic",         desc = "Buy 3 rebirth shop items",
      trigger = "rebirth_shop_owned", threshold = 3,            rewardCoins = 0,      rewardTokens = 2, badgeId = 0},
+}
+
+-- Cosmetic Auras. Equip a single aura that attaches a Trail to the player's
+-- character. Visible to all other players in the server -- creates social
+-- proof ("that player has the legendary aura, I want it") and TikTok-bait
+-- screenshots. No income effect; pure flex.
+--
+-- Unlock triggers reuse the achievement predicate vocab:
+--   "lifetime_coins"        data.lifetimeCoins >= unlockValue
+--   "rebirths"              data.rebirths >= unlockValue
+--   "pets_collection_complete"  every PET id present (unlockValue ignored)
+--   "achievements_unlocked" count(data.achievementsUnlocked) >= unlockValue
+--
+-- Trail params (lifetime, widths, transparency) are global -- per-aura
+-- variation is via color only. Keeps the system simple and predictable.
+Constants.AURA_TRAIL = {
+    LIFETIME = 0.6,                -- seconds the trail particles persist
+    WIDTH_START = 1.2,             -- studs at attachment0
+    WIDTH_END = 0.0,               -- studs at attachment1 (fades to point)
+    TRANSPARENCY_START = 0.05,
+    TRANSPARENCY_END = 1.0,
+    ATTACHMENT_OFFSET = Vector3.new(0, 1.5, 0), -- top attachment offset from HRP
+    -- bottom attachment is at -OFFSET (mirrored)
+}
+
+Constants.AURA_TRIGGERS = {
+    LIFETIME_COINS = "lifetime_coins",
+    REBIRTHS = "rebirths",
+    PETS_COLLECTION_COMPLETE = "pets_collection_complete",
+    ACHIEVEMENTS_UNLOCKED = "achievements_unlocked",
+}
+
+Constants.AURAS = {
+    {id = "spark",      name = "Spark",      desc = "your first taste of style",
+     color = {255, 240, 180}, rarity = "common",
+     trigger = "lifetime_coins", unlockValue = 10000},
+    {id = "ember",      name = "Ember",      desc = "warm, hungry, unstoppable",
+     color = {255, 130,  30}, rarity = "common",
+     trigger = "lifetime_coins", unlockValue = 100000},
+    {id = "frost",      name = "Frost",      desc = "the chill of your first prestige",
+     color = {130, 200, 255}, rarity = "rare",
+     trigger = "rebirths", unlockValue = 1},
+    {id = "phoenix",    name = "Phoenix",    desc = "rise five times, burn brighter",
+     color = {255,  60,  90}, rarity = "epic",
+     trigger = "rebirths", unlockValue = 5},
+    {id = "void",       name = "Void",       desc = "ten rebirths in, the universe answers",
+     color = {120,  40, 200}, rarity = "epic",
+     trigger = "rebirths", unlockValue = 10},
+    {id = "galaxy",     name = "Galaxy",     desc = "twenty-five rebirths -- the cosmos is yours",
+     color = {200, 130, 255}, rarity = "legendary",
+     trigger = "rebirths", unlockValue = 25},
+    {id = "eclipse",    name = "Eclipse",    desc = "complete the pet collection",
+     color = {255, 207,  64}, rarity = "legendary",
+     trigger = "pets_collection_complete", unlockValue = 1},
+    {id = "apex",       name = "Apex",       desc = "every trophy on the wall",
+     color = {255, 255, 255}, rarity = "legendary",
+     trigger = "achievements_unlocked", unlockValue = 17},
 }
 
 -- Hourly Tribute. Targets the 2026 RFY signal #2 (sessions/user/day) by

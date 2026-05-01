@@ -33,6 +33,7 @@ export type PlayerData = {
     achievementsUnlocked: {[string]: number}, -- {[achievementId] = unlockedUnix}
     questsClaimedTotal: number,     -- monotonic across all days (for "Quest Grinder" achievement)
     lastHourlyTributeUnix: number,  -- last time the hourly-tribute stacks were claimed; used to compute available
+    equippedAura: string?,          -- {AURAS[].id} or nil; visible to all players via character Trail
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 
@@ -85,6 +86,10 @@ export type RemoteMap = {
     ClaimHourlyTribute: RemoteEvent,  -- client -> server; no payload
     HourlyTributeClaimed: RemoteEvent,-- server -> client; payload {stacks, totalReward}
     HourlyTributeRejected: RemoteEvent,-- server -> client; payload {reason}
+    GetAuras: RemoteFunction,         -- client -> server; returns {entries=[{id,name,desc,color,rarity,unlocked,equipped,progress,target}], equippedAura, unlockedCount, totalCount}
+    EquipAura: RemoteEvent,           -- client -> server; payload {auraId or nil to unequip}
+    AuraReplicate: RemoteEvent,       -- server -> ALL clients; payload {userId, auraId or nil} so every client renders trail
+    AuraRejected: RemoteEvent,        -- server -> client; payload {auraId, reason}
 }
 
 return {}
