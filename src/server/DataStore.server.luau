@@ -48,6 +48,7 @@ local function defaultPlayerData(): Types.PlayerData
         tutorialStep = 0,
         achievementsUnlocked = {},
         questsClaimedTotal = 0,
+        lastHourlyTributeUnix = 0,
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -113,6 +114,16 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
         data.achievementsUnlocked = data.achievementsUnlocked or {}
         data.questsClaimedTotal = data.questsClaimedTotal or 0
         data.schemaVersion = "v8"
+        return data
+    end,
+    -- v8 -> v9: hourly tribute. lastHourlyTributeUnix = 0 means existing
+    -- players come back to a full stack waiting (cap = 4). Intentional:
+    -- legacy players see the new "claim" badge immediately and get a free
+    -- chunk of coins, which is exactly the engagement signal the feature
+    -- is designed to drive.
+    ["v8"] = function(data: any): Types.PlayerData
+        data.lastHourlyTributeUnix = data.lastHourlyTributeUnix or 0
+        data.schemaVersion = "v9"
         return data
     end,
 }

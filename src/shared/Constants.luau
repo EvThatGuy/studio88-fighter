@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v8"
+Constants.DATASTORE_VERSION = "v9"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -451,6 +451,20 @@ Constants.ACHIEVEMENTS = {
     {id = "shopaholic",        name = "Shopaholic",         desc = "Buy 3 rebirth shop items",
      trigger = "rebirth_shop_owned", threshold = 3,            rewardCoins = 0,      rewardTokens = 2, badgeId = 0},
 }
+
+-- Hourly Tribute. Targets the 2026 RFY signal #2 (sessions/user/day) by
+-- giving players a reason to log in multiple times per day, separate from
+-- the once-per-day Daily Login Bonus and the once-per-day Daily Quests.
+--
+-- Mechanic: a stack accrues every HOURLY_TRIBUTE_INTERVAL_SEC seconds up
+-- to HOURLY_TRIBUTE_STACK_CAP. Player taps "claim" -> all stacks credited
+-- as coins, scaled by current tier income mult so reward stays meaningful
+-- as the player progresses. Cap means leaving for 5+ hours pays the same
+-- as leaving for 4 -- the design forces "log in within 4 hours or leave
+-- coins on the table" which moves the sessions/user/day metric.
+Constants.HOURLY_TRIBUTE_INTERVAL_SEC = 3600
+Constants.HOURLY_TRIBUTE_STACK_CAP = 4
+Constants.HOURLY_TRIBUTE_BASE_REWARD = 500 -- multiplied by current tier incomeMult
 
 -- Pet fusion. Sacrifice N pets of the same rarity to mint 1 random pet of
 -- the next rarity up. Solves the dead-dupe-inventory problem and gives

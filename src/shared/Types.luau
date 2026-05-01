@@ -32,6 +32,7 @@ export type PlayerData = {
     tutorialStep: number,           -- highest FTUE step completed (0..#FTUE_STEPS); 0 = brand new
     achievementsUnlocked: {[string]: number}, -- {[achievementId] = unlockedUnix}
     questsClaimedTotal: number,     -- monotonic across all days (for "Quest Grinder" achievement)
+    lastHourlyTributeUnix: number,  -- last time the hourly-tribute stacks were claimed; used to compute available
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 
@@ -80,6 +81,10 @@ export type RemoteMap = {
     AchievementUnlocked: RemoteEvent, -- server -> client; payload {id, name, rewardCoins, rewardTokens}
     FusePets: RemoteEvent,            -- client -> server; payload {rarity}
     PetFuseRejected: RemoteEvent,     -- server -> client; payload {rarity, reason, needed?}
+    GetHourlyTribute: RemoteFunction, -- client -> server; returns {available, capped, nextStackInSec, perStackReward}
+    ClaimHourlyTribute: RemoteEvent,  -- client -> server; no payload
+    HourlyTributeClaimed: RemoteEvent,-- server -> client; payload {stacks, totalReward}
+    HourlyTributeRejected: RemoteEvent,-- server -> client; payload {reason}
 }
 
 return {}

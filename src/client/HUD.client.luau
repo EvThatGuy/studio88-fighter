@@ -2189,6 +2189,148 @@ end)
 -- Initial badge sync once remotes are warm
 task.delay(2, refreshAchievements)
 
+-- =============================================================================
+-- Hourly Tribute (sessions/user/day driver)
+-- =============================================================================
+
+local CYAN_TRIBUTE = Color3.fromRGB(110, 220, 220)
+
+local tributeBtn = Instance.new("TextButton")
+tributeBtn.Name = "TributeButton"
+tributeBtn.Size = UDim2.new(0, 140, 0, 44)
+tributeBtn.Position = UDim2.new(1, -156, 1, -340)
+tributeBtn.BackgroundColor3 = BG
+tributeBtn.BackgroundTransparency = 0.15
+tributeBtn.BorderSizePixel = 0
+tributeBtn.AutoButtonColor = false
+tributeBtn.Text = ""
+tributeBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = CYAN_TRIBUTE; s.Thickness = 1; s.Parent = tributeBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = tributeBtn
+end
+local tributeLabel = makeLabel("Label", tributeBtn, "* TRIBUTE", UDim2.new(1, -16, 0, 18), UDim2.new(0, 8, 0, 4))
+tributeLabel.TextColor3 = CYAN_TRIBUTE
+tributeLabel.Font = Enum.Font.Code
+tributeLabel.TextXAlignment = Enum.TextXAlignment.Center
+local tributeSub = makeLabel("Sub", tributeBtn, "next in --:--", UDim2.new(1, -16, 0, 14), UDim2.new(0, 8, 0, 24))
+tributeSub.TextColor3 = TEXT
+tributeSub.Font = Enum.Font.Code
+tributeSub.TextSize = 11
+tributeSub.TextTransparency = 0.3
+tributeSub.TextXAlignment = Enum.TextXAlignment.Center
+
+local tributeBadge = Instance.new("TextLabel")
+tributeBadge.Name = "Badge"
+tributeBadge.Size = UDim2.new(0, 24, 0, 24)
+tributeBadge.Position = UDim2.new(1, -12, 0, -8)
+tributeBadge.AnchorPoint = Vector2.new(1, 0)
+tributeBadge.BackgroundColor3 = CYAN_TRIBUTE
+tributeBadge.BackgroundTransparency = 0.05
+tributeBadge.BorderSizePixel = 0
+tributeBadge.Text = "0"
+tributeBadge.TextColor3 = BG
+tributeBadge.Font = Enum.Font.GothamBold
+tributeBadge.TextSize = 14
+tributeBadge.Visible = false
+tributeBadge.Parent = tributeBtn
+do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 12); c.Parent = tributeBadge end
+
+local tributeState: any = nil
+
+local function fmtCountdown(sec: number): string
+    sec = math.max(0, math.floor(sec))
+    local m = math.floor(sec / 60)
+    local s = sec - m * 60
+    if m >= 60 then
+        local h = math.floor(m / 60)
+        local mm = m - h * 60
+        return string.format("%dh %02dm", h, mm)
+    end
+    return string.format("%d:%02d", m, s)
+end
+
+local function applyTributeUI(snap: any)
+    if not snap then return end
+    tributeState = snap
+    if snap.available > 0 then
+        tributeBadge.Visible = true
+        tributeBadge.Text = tostring(snap.available)
+        if snap.capped then
+            tributeSub.Text = "FULL -- claim now"
+            tributeSub.TextColor3 = AMBER
+        else
+            tributeSub.Text = string.format("+%s next in %s", fmt(snap.perStackReward), fmtCountdown(snap.nextStackInSec))
+            tributeSub.TextColor3 = TEXT
+        end
+    else
+        tributeBadge.Visible = false
+        tributeSub.TextColor3 = TEXT
+        tributeSub.Text = "next in " .. fmtCountdown(snap.nextStackInSec)
+    end
+end
+
+local function refreshTribute()
+    task.spawn(function()
+        local ok, snap = pcall(function() return remotes.GetHourlyTribute:InvokeServer() end)
+        if ok and snap then applyTributeUI(snap) end
+    end)
+end
+
+tributeBtn.MouseButton1Click:Connect(function()
+    if tributeState and tributeState.available > 0 then
+        pcall(function() remotes.ClaimHourlyTribute:FireServer() end)
+    else
+        showToast("NOT YET",
+            "Tribute will be ready in " .. fmtCountdown((tributeState and tributeState.nextStackInSec) or 0),
+            CYAN_TRIBUTE, 2.5)
+    end
+end)
+
+remotes.HourlyTributeClaimed.OnClientEvent:Connect(function(stacks: number, totalReward: number)
+    showToast(string.format("TRIBUTE CLAIMED x%d", stacks),
+        string.format("+%s coins", fmt(totalReward)),
+        CYAN_TRIBUTE, 4)
+    flashScreen(CYAN_TRIBUTE, 0.5)
+    playSound(Constants.SOUND_IDS.daily_bonus, 0.6)
+    refreshTribute()
+end)
+
+remotes.HourlyTributeRejected.OnClientEvent:Connect(function(reason: string)
+    if reason == "no_stacks" then
+        -- silent, button click already showed countdown
+        return
+    end
+    showToast("TRIBUTE FAILED", reason, AMBER, 2)
+end)
+
+-- Local countdown tick: smooth the visible "next in X:XX" between server polls.
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if tributeState and tributeState.nextStackInSec and tributeState.nextStackInSec > 0 then
+            tributeState.nextStackInSec = tributeState.nextStackInSec - 1
+            if tributeState.nextStackInSec <= 0 then
+                -- Force a server resync; a new stack should be available now
+                refreshTribute()
+            else
+                applyTributeUI(tributeState)
+            end
+        end
+    end
+end)
+
+-- Server poll every 30s as a safety net (clock drift, missed claims while
+-- the modal was closed, capped state changes from another mechanic, etc).
+task.spawn(function()
+    task.wait(2) -- let remotes warm
+    refreshTribute()
+    while true do
+        task.wait(30)
+        refreshTribute()
+    end
+end)
+
 remotes.AchievementUnlocked.OnClientEvent:Connect(function(payload: any)
     local rewardLine = ""
     if payload.rewardCoins and payload.rewardCoins > 0 then
