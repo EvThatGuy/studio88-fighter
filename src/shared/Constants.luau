@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v6"
+Constants.DATASTORE_VERSION = "v7"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -140,6 +140,91 @@ Constants.REBIRTH_SHOP_ITEMS = {
 }
 
 Constants.REBIRTH_SHOP_ORDER = {"spark", "tempo", "crystal", "studio88", "ascension"}
+
+-- Pets system. Per /research-engineer brief #2: highest interest signal
+-- on DevForum 3792525 + the standard hatch-egg gacha loop is the most
+-- common tycoon retention extension. Pets are a status object that
+-- survives rebirth -> drives D7/D30 by giving long-tail players a
+-- collection to fill that doesn't reset on prestige.
+--
+-- 2026 compliance gate (RESEARCH-ENGINEER FLAGGED, mandatory):
+-- PolicyService:GetPolicyInfoForPlayerAsync().ArePaidRandomItemsRestricted
+-- must gate any Robux-cost egg with random outcome (Belgium / NL / EU
+-- under-13). Coin-cost eggs are unrestricted -- our v1 ships coin-only
+-- to skip the policy gate entirely; Robux eggs are a future phase
+-- behind an explicit allowed-region check.
+--
+-- Rarity tiers + drop weights (out of 100). Higher rarity = lower drop
+-- chance + higher income multiplier. Each pet adds its multiplier to a
+-- per-player "petBonus" stack in CurrencyManager.multiplierFor().
+Constants.PET_RARITIES = {
+    common    = { weight = 60, mult = 0.05 }, -- +5%
+    uncommon  = { weight = 25, mult = 0.15 }, -- +15%
+    rare      = { weight = 10, mult = 0.40 }, -- +40%
+    epic      = { weight = 4,  mult = 1.00 }, -- +100%
+    legendary = { weight = 1,  mult = 2.50 }, -- +250%
+}
+
+Constants.PET_RARITY_ORDER = { "common", "uncommon", "rare", "epic", "legendary" }
+Constants.PET_RARITY_COLORS = {
+    common = {200, 200, 200},   -- grey
+    uncommon = {110, 220, 110}, -- green
+    rare = {110, 160, 240},     -- blue
+    epic = {200, 100, 240},     -- purple
+    legendary = {255, 176, 0},  -- amber
+}
+
+-- Pet roster. Each pet has: id (stable key), name (player-facing), rarity.
+-- rarity drives drop chance + income multiplier; collection metadata.
+-- Add pets here freely; they auto-appear in egg pool + inventory UI.
+Constants.PETS = {
+    -- common
+    {id = "studio_doodle", name = "Studio Doodle",   rarity = "common"},
+    {id = "rusty_bot",     name = "Rusty Bot",       rarity = "common"},
+    {id = "neon_moth",     name = "Neon Moth",       rarity = "common"},
+    -- uncommon
+    {id = "clip_phantom",  name = "Clip Phantom",    rarity = "uncommon"},
+    {id = "amber_fox",     name = "Amber Fox",       rarity = "uncommon"},
+    -- rare
+    {id = "render_raven",  name = "Render Raven",    rarity = "rare"},
+    {id = "pink_panther",  name = "Pink Panther",    rarity = "rare"},
+    -- epic
+    {id = "studio_88_owl", name = "Studio 88 Owl",   rarity = "epic"},
+    {id = "vault_wolf",    name = "Vault Wolf",      rarity = "epic"},
+    -- legendary
+    {id = "gta6_dragon",   name = "GTA6 Dragon",     rarity = "legendary"},
+}
+
+-- Egg costs. v1 = coin-only to skip PolicyService gating. Robux egg
+-- ships in a future phase with PolicyService.ArePaidRandomItemsRestricted
+-- check. Higher tiers bias the rarity roll toward better outcomes.
+Constants.PET_EGGS = {
+    {id = "starter_egg",  name = "STARTER EGG",  cost = 500,    biasTier = 1, sub = "early-game pulls"},
+    {id = "standard_egg", name = "STANDARD EGG", cost = 5000,   biasTier = 2, sub = "skips most commons"},
+    {id = "luxury_egg",   name = "LUXURY EGG",   cost = 50000,  biasTier = 3, sub = "rare-or-better skewed"},
+}
+
+-- biasTier shifts the rarity weight table. Each tier adds bonus weight to
+-- higher rarities so a luxury egg is meaningfully better than a starter.
+-- Math: effectiveWeight[r] = baseWeight[r] * (1 + (biasTier-1) * RARITY_BIAS[r])
+Constants.PET_RARITY_BIAS = {
+    common = -0.4,    -- starter: 60w; std: 36w; luxury: 12w
+    uncommon = 0.0,   -- flat
+    rare = 0.5,       -- starter: 10w; std: 15w; luxury: 20w
+    epic = 1.5,       -- starter: 4w; std: 10w; luxury: 16w
+    legendary = 2.0,  -- starter: 1w; std: 3w; luxury: 5w
+}
+
+-- How many pets a player can have EQUIPPED at once (active boost).
+-- Inventory cap is much larger -- pets in the box don't apply boosts
+-- but contribute to collection completion bonus.
+Constants.PET_MAX_EQUIPPED = 3
+Constants.PET_INVENTORY_CAP = 100
+
+-- Collection completion bonus. Once a player has at least 1 of every
+-- pet in PETS, they get a permanent 50% income multiplier ("Collector
+-- Set"). Encourages repeated egg pulls past the equip slots.
+Constants.PET_COLLECTION_COMPLETE_BONUS = 0.5
 
 -- Promo codes. David tweets / DMs / pins a code; players type it for free
 -- coins. This is the cheapest top-of-funnel retention loop available

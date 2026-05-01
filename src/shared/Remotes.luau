@@ -41,6 +41,13 @@ local REMOTE_NAMES = {
     {name = "BuyRebirthShopItem", class = "RemoteEvent"},
     {name = "RebirthShopPurchased", class = "RemoteEvent"},
     {name = "RebirthShopRejected", class = "RemoteEvent"},
+    {name = "GetPetState", class = "RemoteFunction"},
+    {name = "HatchEgg", class = "RemoteEvent"},
+    {name = "PetHatched", class = "RemoteEvent"},
+    {name = "PetHatchRejected", class = "RemoteEvent"},
+    {name = "EquipPet", class = "RemoteEvent"},
+    {name = "UnequipPet", class = "RemoteEvent"},
+    {name = "PetEquipChanged", class = "RemoteEvent"},
 }
 
 local function ensureFolder(): Folder

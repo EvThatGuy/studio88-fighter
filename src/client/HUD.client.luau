@@ -129,6 +129,27 @@ rebirthSub.TextColor3 = TEXT
 rebirthSub.Font = Enum.Font.Gotham
 rebirthSub.TextTransparency = 0.4
 
+-- Pets button (bottom-right, top of stack above Quests). Opens egg-hatch +
+-- inventory modal.
+local petsBtn = Instance.new("TextButton")
+petsBtn.Name = "PetsButton"
+petsBtn.Size = UDim2.new(0, 140, 0, 44)
+petsBtn.Position = UDim2.new(1, -156, 1, -228)
+petsBtn.BackgroundColor3 = BG
+petsBtn.BackgroundTransparency = 0.15
+petsBtn.BorderSizePixel = 0
+petsBtn.AutoButtonColor = false
+petsBtn.Text = ""
+petsBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(110, 220, 110); s.Thickness = 1; s.Parent = petsBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = petsBtn
+end
+local petsLabel = makeLabel("Label", petsBtn, "* PETS", UDim2.new(1, -16, 1, -8), UDim2.new(0, 8, 0, 4))
+petsLabel.TextColor3 = Color3.fromRGB(110, 220, 110)
+petsLabel.Font = Enum.Font.Code
+petsLabel.TextXAlignment = Enum.TextXAlignment.Center
+
 -- Quests button (bottom-right, top of stack). Opens the daily quests modal.
 -- Shows a small "n / 3" badge of how many of today's quests are claimable
 -- so players see opportunity even before opening.
@@ -1555,12 +1576,330 @@ local SHOP_REJECTION_COPY: {[string]: string} = {
 
 remotes.RebirthShopRejected.OnClientEvent:Connect(function(itemId: string, reason: string, needed: number?)
     local template = SHOP_REJECTION_COPY[reason] or reason
-    local sub = template
     if reason == "insufficient_tokens" and needed then
-        sub = string.format(template, needed)
+        template = string.format(template, needed)
     end
-    showToast("CAN'T BUY", sub, AMBER, 3)
+    showToast("CAN'T BUY", template, AMBER, 3)
     playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
+end)
+
+-- ----- Pets modal -----
+-- Tabbed: EGGS (hatch flow) and INVENTORY (equip flow). Lazy-built on
+-- first open. PetHatched / PetEquipChanged drive incremental refresh.
+
+local GREEN = Color3.fromRGB(110, 220, 110)
+local petsModal: Frame? = nil
+local petState: any = nil
+
+local function rarityColor(rarity: string): Color3
+    local rgb = Constants.PET_RARITY_COLORS[rarity] or {200,200,200}
+    return Color3.fromRGB(rgb[1], rgb[2], rgb[3])
+end
+
+local function rebuildEggList(eggsList: ScrollingFrame, state: any)
+    for _, c in ipairs(eggsList:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+    for order, e in ipairs(state.eggs) do
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, -8, 0, 90)
+        card.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+        card.BorderSizePixel = 0
+        card.LayoutOrder = order
+        card.ZIndex = 52
+        card.Parent = eggsList
+        do
+            local s = Instance.new("UIStroke"); s.Color = GREEN; s.Thickness = 1; s.Parent = card
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+        end
+        local title = makeLabel("Title", card, e.name, UDim2.new(1, -140, 0, 22), UDim2.new(0, 12, 0, 10))
+        title.TextColor3 = GREEN
+        title.Font = Enum.Font.GothamBold
+        title.ZIndex = 53
+        local sub = makeLabel("Sub", card, e.sub, UDim2.new(1, -140, 0, 18), UDim2.new(0, 12, 0, 36))
+        sub.TextColor3 = TEXT
+        sub.Font = Enum.Font.Code
+        sub.ZIndex = 53
+        local cost = makeLabel("Cost", card, fmt(e.cost) .. " coins", UDim2.new(1, -140, 0, 18), UDim2.new(0, 12, 0, 60))
+        cost.TextColor3 = AMBER
+        cost.Font = Enum.Font.Code
+        cost.ZIndex = 53
+
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 110, 0, 50)
+        btn.Position = UDim2.new(1, -122, 0.5, -25)
+        btn.BorderSizePixel = 0
+        btn.Text = "HATCH"
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 16
+        btn.ZIndex = 53
+        btn.Parent = card
+        do
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn
+        end
+        if state.coinsAvailable >= e.cost then
+            btn.BackgroundColor3 = GREEN
+            btn.TextColor3 = BG
+            btn.AutoButtonColor = true
+            btn.Active = true
+        else
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+            btn.TextColor3 = TEXT
+            btn.AutoButtonColor = false
+            btn.Active = false
+        end
+        local eggId = e.id
+        btn.MouseButton1Click:Connect(function()
+            if btn.Active then
+                pcall(function() remotes.HatchEgg:FireServer(eggId) end)
+            end
+        end)
+    end
+end
+
+local function rebuildInventory(invList: ScrollingFrame, state: any)
+    for _, c in ipairs(invList:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+    -- Group identical petIds with a stack count, but show one card per uid
+    -- so equip choice is unambiguous. Sort by rarity (legendary first) +
+    -- name as tiebreaker.
+    local sorted = {}
+    for _, p in ipairs(state.pets) do table.insert(sorted, p) end
+    local rarityRank: {[string]: number} = {legendary=1, epic=2, rare=3, uncommon=4, common=5}
+    table.sort(sorted, function(a, b)
+        local ra, rb = rarityRank[a.rarity] or 9, rarityRank[b.rarity] or 9
+        if ra ~= rb then return ra < rb end
+        return a.name < b.name
+    end)
+    local equippedSet: {[string]: boolean} = {}
+    for _, uid in ipairs(state.equippedPetIds) do equippedSet[uid] = true end
+
+    for order, p in ipairs(sorted) do
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, -8, 0, 60)
+        card.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+        card.BorderSizePixel = 0
+        card.LayoutOrder = order
+        card.ZIndex = 52
+        card.Parent = invList
+        do
+            local color = Color3.fromRGB(p.color[1] or 200, p.color[2] or 200, p.color[3] or 200)
+            local s = Instance.new("UIStroke"); s.Color = color; s.Thickness = 1; s.Parent = card
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+        end
+        local title = makeLabel("Title", card, p.name, UDim2.new(1, -160, 0, 18), UDim2.new(0, 10, 0, 6))
+        title.TextColor3 = Color3.fromRGB(p.color[1] or 200, p.color[2] or 200, p.color[3] or 200)
+        title.Font = Enum.Font.GothamBold
+        title.ZIndex = 53
+        local sub = makeLabel("Sub", card, string.format("%s  +%d%% income", string.upper(p.rarity), math.floor(p.mult*100)),
+            UDim2.new(1, -160, 0, 16), UDim2.new(0, 10, 0, 28))
+        sub.TextColor3 = TEXT
+        sub.Font = Enum.Font.Code
+        sub.TextTransparency = 0.2
+        sub.ZIndex = 53
+
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 130, 0, 36)
+        btn.Position = UDim2.new(1, -140, 0.5, -18)
+        btn.BorderSizePixel = 0
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 14
+        btn.ZIndex = 53
+        btn.Parent = card
+        do
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn
+        end
+        local uid = p.uid
+        if equippedSet[uid] then
+            btn.Text = "UNEQUIP"
+            btn.BackgroundColor3 = AMBER
+            btn.TextColor3 = BG
+            btn.MouseButton1Click:Connect(function()
+                pcall(function() remotes.UnequipPet:FireServer(uid) end)
+            end)
+        elseif #state.equippedPetIds >= state.maxEquipped then
+            btn.Text = "EQUIP FULL"
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+            btn.TextColor3 = TEXT
+            btn.AutoButtonColor = false
+            btn.Active = false
+        else
+            btn.Text = "EQUIP"
+            btn.BackgroundColor3 = GREEN
+            btn.TextColor3 = BG
+            btn.MouseButton1Click:Connect(function()
+                pcall(function() remotes.EquipPet:FireServer(uid) end)
+            end)
+        end
+    end
+end
+
+local function buildPetsModal()
+    local m = Instance.new("Frame")
+    m.Name = "PetsModal"
+    m.Size = UDim2.new(0, 520, 0, 560)
+    m.Position = UDim2.new(0.5, -260, 0.5, -280)
+    m.BackgroundColor3 = BG
+    m.BackgroundTransparency = 0.05
+    m.BorderSizePixel = 0
+    m.ZIndex = 50
+    m.Visible = false
+    m.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = GREEN; s.Thickness = 2; s.Parent = m
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = m
+    end
+    local head = makeLabel("Head", m, "PETS", UDim2.new(1, -32, 0, 24), UDim2.new(0, 16, 0, 12))
+    head.TextColor3 = GREEN
+    head.Font = Enum.Font.GothamBold
+    head.ZIndex = 51
+    local sub = makeLabel("Sub", m, "hatch eggs - equip up to 3 - collect them all for +50% perma", UDim2.new(1, -32, 0, 16), UDim2.new(0, 16, 0, 38))
+    sub.TextColor3 = TEXT
+    sub.Font = Enum.Font.Code
+    sub.TextTransparency = 0.3
+    sub.ZIndex = 51
+
+    local x = Instance.new("TextButton")
+    x.Size = UDim2.new(0, 24, 0, 24)
+    x.Position = UDim2.new(1, -32, 0, 8)
+    x.BackgroundTransparency = 1
+    x.Text = "X"
+    x.TextColor3 = TEXT
+    x.Font = Enum.Font.GothamBold
+    x.TextSize = 18
+    x.ZIndex = 51
+    x.Parent = m
+    x.MouseButton1Click:Connect(function() m.Visible = false end)
+
+    -- Tabs
+    local tabBar = Instance.new("Frame")
+    tabBar.Size = UDim2.new(1, -32, 0, 36)
+    tabBar.Position = UDim2.new(0, 16, 0, 64)
+    tabBar.BackgroundTransparency = 1
+    tabBar.ZIndex = 51
+    tabBar.Parent = m
+
+    local function makeTab(text: string, x: number)
+        local t = Instance.new("TextButton")
+        t.Size = UDim2.new(0, 120, 1, 0)
+        t.Position = UDim2.new(0, x, 0, 0)
+        t.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+        t.BorderSizePixel = 0
+        t.Text = text
+        t.TextColor3 = TEXT
+        t.Font = Enum.Font.GothamBold
+        t.TextSize = 14
+        t.ZIndex = 52
+        t.Parent = tabBar
+        do
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = t
+            local s = Instance.new("UIStroke"); s.Color = GREEN; s.Thickness = 1; s.Parent = t
+        end
+        return t
+    end
+
+    local eggsTab = makeTab("EGGS", 0)
+    local invTab = makeTab("INVENTORY", 128)
+
+    local eggsList = Instance.new("ScrollingFrame")
+    eggsList.Name = "EggsList"
+    eggsList.Size = UDim2.new(1, -32, 1, -120)
+    eggsList.Position = UDim2.new(0, 16, 0, 108)
+    eggsList.BackgroundTransparency = 1
+    eggsList.ScrollBarThickness = 4
+    eggsList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    eggsList.CanvasSize = UDim2.new(0,0,0,0)
+    eggsList.ZIndex = 51
+    eggsList.Parent = m
+    local eL = Instance.new("UIListLayout"); eL.SortOrder = Enum.SortOrder.LayoutOrder; eL.Padding = UDim.new(0, 8); eL.Parent = eggsList
+
+    local invList = Instance.new("ScrollingFrame")
+    invList.Name = "InvList"
+    invList.Size = UDim2.new(1, -32, 1, -120)
+    invList.Position = UDim2.new(0, 16, 0, 108)
+    invList.BackgroundTransparency = 1
+    invList.ScrollBarThickness = 4
+    invList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    invList.CanvasSize = UDim2.new(0,0,0,0)
+    invList.ZIndex = 51
+    invList.Visible = false
+    invList.Parent = m
+    local iL = Instance.new("UIListLayout"); iL.SortOrder = Enum.SortOrder.LayoutOrder; iL.Padding = UDim.new(0, 8); iL.Parent = invList
+
+    eggsTab.MouseButton1Click:Connect(function()
+        eggsList.Visible = true; invList.Visible = false
+        eggsTab.BackgroundColor3 = GREEN; eggsTab.TextColor3 = BG
+        invTab.BackgroundColor3 = Color3.fromRGB(20, 18, 32); invTab.TextColor3 = TEXT
+    end)
+    invTab.MouseButton1Click:Connect(function()
+        eggsList.Visible = false; invList.Visible = true
+        invTab.BackgroundColor3 = GREEN; invTab.TextColor3 = BG
+        eggsTab.BackgroundColor3 = Color3.fromRGB(20, 18, 32); eggsTab.TextColor3 = TEXT
+    end)
+    -- Initial style
+    eggsTab.BackgroundColor3 = GREEN
+    eggsTab.TextColor3 = BG
+
+    return m, eggsList, invList
+end
+
+local petsEggsList: ScrollingFrame? = nil
+local petsInvList: ScrollingFrame? = nil
+
+local function refreshPets()
+    task.spawn(function()
+        local ok, result = pcall(function() return remotes.GetPetState:InvokeServer() end)
+        if ok and result then
+            petState = result
+            if petsEggsList then rebuildEggList(petsEggsList, result) end
+            if petsInvList then rebuildInventory(petsInvList, result) end
+        end
+    end)
+end
+
+petsBtn.MouseButton1Click:Connect(function()
+    if not petsModal then
+        petsModal, petsEggsList, petsInvList = buildPetsModal()
+    end
+    petsModal.Visible = true
+    refreshPets()
+end)
+
+remotes.PetHatched.OnClientEvent:Connect(function(pet: any, petName: string)
+    refreshPets()
+    local color = Color3.fromRGB(pet.color and pet.color[1] or 200, pet.color and pet.color[2] or 200, pet.color and pet.color[3] or 200)
+    local rarityColor = Constants.PET_RARITY_COLORS[pet.rarity] or {200,200,200}
+    color = Color3.fromRGB(rarityColor[1], rarityColor[2], rarityColor[3])
+    showToast(
+        string.format("%s HATCHED!", string.upper(petName)),
+        string.format("%s rarity", string.upper(pet.rarity)),
+        color,
+        5
+    )
+    flashScreen(color, 0.7)
+    playSound(Constants.SOUND_IDS.tier_up, 0.7)
+end)
+
+local PET_REJECTION_COPY: {[string]: string} = {
+    no_data = "Save data still loading.",
+    bad_request = "Invalid egg.",
+    unknown_egg = "That egg doesn't exist.",
+    inventory_full = "Pet inventory full -- equip or sell some first.",
+    insufficient_coins = "Need %s more coins to hatch.",
+}
+
+remotes.PetHatchRejected.OnClientEvent:Connect(function(eggId: string, reason: string, needed: number?)
+    local template = PET_REJECTION_COPY[reason] or reason
+    if reason == "insufficient_coins" and needed then
+        template = string.format(template, fmt(needed))
+    end
+    showToast("HATCH FAILED", template, AMBER, 3)
+    playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
+end)
+
+remotes.PetEquipChanged.OnClientEvent:Connect(function(_equippedPetIds: {string})
+    refreshPets()
 end)
 
 print("[HUD] mounted")

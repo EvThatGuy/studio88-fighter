@@ -41,6 +41,8 @@ local function defaultPlayerData(): Types.PlayerData
         rebirths = 0,
         rebirthTokens = 0,
         purchasedRebirthUpgrades = {},
+        pets = {},
+        equippedPetIds = {},
         redeemedCodes = {},
         dailyQuests = emptyDailyQuests(),
         tutorialStep = 0,
@@ -87,6 +89,15 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
         data.rebirthTokens = data.rebirthTokens or 0
         data.purchasedRebirthUpgrades = data.purchasedRebirthUpgrades or {}
         data.schemaVersion = "v6"
+        return data
+    end,
+    -- v6 -> v7: pets. Empty inventory + no equipped pets. Existing
+    -- players have an immediate path to first hatch via the starter egg
+    -- (500 coins) so the migration doesn't feel like a punishment.
+    ["v6"] = function(data: any): Types.PlayerData
+        data.pets = data.pets or {}
+        data.equippedPetIds = data.equippedPetIds or {}
+        data.schemaVersion = "v7"
         return data
     end,
 }

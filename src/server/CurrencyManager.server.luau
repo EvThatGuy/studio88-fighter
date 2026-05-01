@@ -14,6 +14,7 @@ local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
 local EventService = require(script.Parent:WaitForChild("EventService.server"))
 local TutorialService = require(script.Parent:WaitForChild("TutorialService.server"))
+local PetService = require(script.Parent:WaitForChild("PetService.server"))
 
 local remotes = Remotes.get()
 
@@ -77,6 +78,9 @@ local function multiplierFor(userId: number, data): number
     end
     -- Limited-time event multiplier (1.0 if no event active, else 2x/3x/etc)
     mult *= EventService.getMultiplier()
+    -- Pets: equipped boost + collection completion bonus. 1.0 if none equipped
+    -- and collection incomplete. Stacks meta-multiplicatively with everything.
+    mult *= PetService.getPetMultiplier(userId)
     return mult
 end
 

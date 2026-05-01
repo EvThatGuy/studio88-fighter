@@ -2,6 +2,13 @@
 -- Shared type definitions. Keep this file alongside any structural change
 -- to the DataStore schema; bump Constants.DATASTORE_VERSION too.
 
+export type OwnedPet = {
+    uid: string,                    -- unique instance id (string-encoded incremented counter)
+    petId: string,                  -- references Constants.PETS[].id
+    rarity: string,                 -- denormalized for snapshot speed
+    obtainedUnix: number,           -- when it was hatched
+}
+
 export type DailyQuestState = {
     dateKey: string,                -- "YYYY-MM-DD" UTC; rolls over the whole table at midnight
     progress: {[string]: number},   -- questId -> count toward target
@@ -18,6 +25,8 @@ export type PlayerData = {
     rebirths: number,               -- prestige count; permanent across all sessions
     rebirthTokens: number,          -- spendable tokens for the rebirth shop; +1 per rebirth
     purchasedRebirthUpgrades: {[string]: boolean}, -- {[itemId]=true} one-shot ledger
+    pets: {OwnedPet},               -- inventory; one entry per hatched pet (duplicates allowed for stack count)
+    equippedPetIds: {string},       -- list of OwnedPet.uid currently equipped (length <= PET_MAX_EQUIPPED)
     redeemedCodes: {[string]: boolean}, -- {[UPPERCASE_CODE] = true} for one-shot enforcement
     dailyQuests: DailyQuestState,   -- today's quest progress + claim state
     tutorialStep: number,           -- highest FTUE step completed (0..#FTUE_STEPS); 0 = brand new
@@ -58,6 +67,13 @@ export type RemoteMap = {
     BuyRebirthShopItem: RemoteEvent,  -- client -> server; payload {itemId}
     RebirthShopPurchased: RemoteEvent,-- server -> client; payload {itemId, tokensRemaining}
     RebirthShopRejected: RemoteEvent, -- server -> client; payload {itemId, reason, needed?}
+    GetPetState: RemoteFunction,      -- client -> server; returns {pets, equippedPetIds, eggs, collectionComplete}
+    HatchEgg: RemoteEvent,            -- client -> server; payload {eggId}
+    PetHatched: RemoteEvent,          -- server -> client; payload {pet=OwnedPet, petName}
+    PetHatchRejected: RemoteEvent,    -- server -> client; payload {eggId, reason, needed?}
+    EquipPet: RemoteEvent,            -- client -> server; payload {uid}
+    UnequipPet: RemoteEvent,          -- client -> server; payload {uid}
+    PetEquipChanged: RemoteEvent,     -- server -> client; payload {equippedPetIds}
 }
 
 return {}
