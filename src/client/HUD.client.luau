@@ -578,6 +578,14 @@ remotes.LeaderboardUpdated.OnClientEvent:Connect(function(rows)
     end
 end)
 
+remotes.VisitedByPlayer.OnClientEvent:Connect(function(visitorName: string, tipCoins: number)
+    showToast(string.format("%s VISITED YOUR PLOT", string.upper(visitorName)),
+        string.format("+%s coin tip", fmt(tipCoins)),
+        Color3.fromRGB(255, 207, 64), 4)
+    flashScreen(Color3.fromRGB(255, 207, 64), 0.4)
+    playSound(Constants.SOUND_IDS.daily_bonus, 0.5)
+end)
+
 remotes.VisitRejected.OnClientEvent:Connect(function(reason: string, retryInSec: number?)
     if reason == "cooldown" and retryInSec then
         showToast("VISIT COOLDOWN",

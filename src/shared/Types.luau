@@ -120,6 +120,7 @@ export type RemoteMap = {
     GetNotifications: RemoteFunction, -- client -> server; returns {entries=[{kind,label,actionHint,count?}], total}
     VisitPlayer: RemoteEvent,         -- client -> server; payload {targetUserId}
     VisitRejected: RemoteEvent,       -- server -> client; payload {reason, retryInSec?}
+    VisitedByPlayer: RemoteEvent,     -- server -> OWNER; payload {visitorName, tipCoins} when someone visits their plot
 }
 
 return {}

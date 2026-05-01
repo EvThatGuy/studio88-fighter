@@ -671,6 +671,7 @@ Constants.PLAYER_TITLES = {
 -- the whole cosmetic system. Cooldown prevents abuse.
 Constants.VISIT_COOLDOWN_SEC = 30
 Constants.VISIT_HEIGHT_OFFSET = 8 -- studs above the foundation, so you don't clip in
+Constants.VISIT_OWNER_TIP_COINS = 50  -- scaled by owner's tier mult; pos feedback for being visited
 
 -- Squad Bonus. When the server has SQUAD_THRESHOLD or more concurrent
 -- players, EVERYONE in that server gets a flat income multiplier. Gives

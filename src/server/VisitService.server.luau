@@ -13,6 +13,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 
 local remotes = Remotes.get()
 
@@ -75,6 +76,22 @@ function VisitService.attemptVisit(player: Player, targetUserId: any): (boolean,
         + Vector3.new(0, Constants.VISIT_HEIGHT_OFFSET, 0))
     char:PivotTo(landingCFrame)
     lastVisit[player.UserId] = now
+    -- Tip the owner: small coin reward + toast. Scaled by their tier mult
+    -- so a tier-6 player still notices the visit instead of seeing +50c.
+    local ownerData = DataStore.getCached(targetUserId)
+    if ownerData then
+        local tierSpec = Constants.UPGRADE_TIERS[ownerData.upgradeTier]
+        local mult = tierSpec and tierSpec.incomeMult or 1
+        local tip = math.floor(Constants.VISIT_OWNER_TIP_COINS * mult)
+        ownerData.coins += tip
+        ownerData.lifetimeCoins += tip
+        pcall(function()
+            remotes.BalanceUpdated:FireClient(target, ownerData.coins, ownerData.lifetimeCoins)
+        end)
+        pcall(function()
+            remotes.VisitedByPlayer:FireClient(target, player.Name, tip)
+        end)
+    end
     print(string.format("[VisitService] %s -> %s's plot",
         player.Name, target.Name))
     return true, nil

@@ -82,6 +82,7 @@ local REMOTE_NAMES = {
     {name = "GetNotifications", class = "RemoteFunction"},
     {name = "VisitPlayer", class = "RemoteEvent"},
     {name = "VisitRejected", class = "RemoteEvent"},
+    {name = "VisitedByPlayer", class = "RemoteEvent"},
 }
 
 local function ensureFolder(): Folder
