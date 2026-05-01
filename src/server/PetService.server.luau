@@ -425,6 +425,53 @@ remotes.UnequipPet.OnServerEvent:Connect(function(player: Player, uid: any)
     PetService.attemptUnequip(player, uid)
 end)
 
+-- Server-side auto-equip: clear current loadout, pick the top
+-- PET_MAX_EQUIPPED pets by rarity multiplier (descending), and equip
+-- those. Cheaper UX than tap-each-card and prevents the dupe-then-
+-- forget-to-swap trap that comes with fusion.
+function PetService.attemptAutoEquip(player: Player): (boolean, string?)
+    local userId = player.UserId
+    local data = DataStore.getCached(userId)
+    if not data then return false, "no_data" end
+    if not data.pets or #data.pets == 0 then return false, "no_pets" end
+    -- Score every pet by its rarity multiplier (denormalized via PET_RARITIES)
+    type Scored = { uid: string, score: number }
+    local scored: {Scored} = {}
+    for _, p in ipairs(data.pets) do
+        local r = Constants.PET_RARITIES[p.rarity]
+        local score = r and r.mult or 0
+        table.insert(scored, { uid = p.uid, score = score })
+    end
+    table.sort(scored, function(a, b) return a.score > b.score end)
+    -- Build the new equipped list (top N)
+    local newEquipped: {string} = {}
+    for i = 1, math.min(Constants.PET_MAX_EQUIPPED, #scored) do
+        table.insert(newEquipped, scored[i].uid)
+    end
+    -- Detect a no-op so we don't broadcast for nothing
+    local sameAsCurrent = (#newEquipped == #(data.equippedPetIds or {}))
+    if sameAsCurrent then
+        local was: {[string]: boolean} = {}
+        for _, uid in ipairs(data.equippedPetIds) do was[uid] = true end
+        for _, uid in ipairs(newEquipped) do
+            if not was[uid] then sameAsCurrent = false; break end
+        end
+    end
+    if sameAsCurrent then return false, "already_optimal" end
+    data.equippedPetIds = newEquipped
+    pushEquipChanged(player, data.equippedPetIds)
+    pcall(function()
+        local PetStandService = require(script.Parent:WaitForChild("PetStandService.server"))
+        PetStandService.refreshFor(userId)
+    end)
+    print(string.format("[PetService] %s auto-equipped %d pets", player.Name, #newEquipped))
+    return true, nil
+end
+
+remotes.AutoEquipPets.OnServerEvent:Connect(function(player: Player)
+    PetService.attemptAutoEquip(player)
+end)
+
 remotes.FusePets.OnServerEvent:Connect(function(player: Player, rarity: any)
     local ok, reason = PetService.attemptFuse(player, rarity)
     if not ok then

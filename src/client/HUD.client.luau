@@ -1756,6 +1756,43 @@ local function rebuildInventory(invList: ScrollingFrame, state: any)
     local equippedSet: {[string]: boolean} = {}
     for _, uid in ipairs(state.equippedPetIds) do equippedSet[uid] = true end
 
+    -- Auto-equip card: pinned above the fusion cards. One tap, server picks
+    -- the best PET_MAX_EQUIPPED unequipped pets by rarity multiplier.
+    do
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, -8, 0, 44)
+        card.BackgroundColor3 = Color3.fromRGB(28, 24, 44)
+        card.BorderSizePixel = 0
+        card.LayoutOrder = -2000 -- pin above fuse cards
+        card.ZIndex = 52
+        card.Parent = invList
+        do
+            local s = Instance.new("UIStroke"); s.Color = GREEN; s.Thickness = 1; s.Parent = card
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+        end
+        local label = makeLabel("Auto", card, "AUTO-EQUIP best 3 by multiplier",
+            UDim2.new(1, -160, 1, -8), UDim2.new(0, 10, 0, 4))
+        label.TextColor3 = GREEN
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 13
+        label.ZIndex = 53
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 130, 0, 30)
+        btn.Position = UDim2.new(1, -140, 0.5, -15)
+        btn.BackgroundColor3 = GREEN
+        btn.TextColor3 = BG
+        btn.Text = "AUTO"
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 14
+        btn.BorderSizePixel = 0
+        btn.ZIndex = 53
+        btn.Parent = card
+        do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn end
+        btn.MouseButton1Click:Connect(function()
+            pcall(function() remotes.AutoEquipPets:FireServer() end)
+        end)
+    end
+
     -- Fusion: count non-equipped per rarity and offer a "fuse 3 -> 1 next"
     -- button per rarity that has enough + has a promotion target. Pinned
     -- at the top of the list (LayoutOrder negative).

@@ -64,6 +64,7 @@ local REMOTE_NAMES = {
     {name = "ActivityFeedUpdated", class = "RemoteEvent"},
     {name = "GetFriendCode", class = "RemoteFunction"},
     {name = "ReferralBonusGranted", class = "RemoteEvent"},
+    {name = "AutoEquipPets", class = "RemoteEvent"},
 }
 
 local function ensureFolder(): Folder

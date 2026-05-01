@@ -98,6 +98,7 @@ export type RemoteMap = {
     ActivityFeedUpdated: RemoteEvent, -- server -> client; payload {entries} (push when feed changes server-side)
     GetFriendCode: RemoteFunction,    -- client -> server; returns {friendCode, referralCount, referredBy, pendingBonusCoins}
     ReferralBonusGranted: RemoteEvent,-- server -> client; payload {sourceCount, totalBonus} (fires when a referrer's bonus is realized)
+    AutoEquipPets: RemoteEvent,       -- client -> server; no payload (server picks optimal best-mult unequipped pets up to PET_MAX_EQUIPPED)
 }
 
 return {}
