@@ -1207,4 +1207,121 @@ end)
 -- Initial fetch so the badge counter is accurate on join.
 refreshQuests()
 
+-- ----- Live event countdown banner -----
+-- Top-center, only visible when EventStateChanged says active=true. Shows
+-- event name + multiplier + countdown like "WEEKEND 2X - ends in 1d 4h 22m".
+
+local eventBanner: Frame? = nil
+local eventState: {active: boolean, event: any?, endsInSec: number?} = { active = false }
+
+local function fmtCountdown(sec: number): string
+    if sec <= 0 then return "ending..." end
+    local d = math.floor(sec / 86400)
+    sec %= 86400
+    local h = math.floor(sec / 3600)
+    sec %= 3600
+    local m = math.floor(sec / 60)
+    if d > 0 then return string.format("%dd %dh %dm", d, h, m) end
+    if h > 0 then return string.format("%dh %dm", h, m) end
+    if m > 0 then return string.format("%dm %ds", m, sec % 60) end
+    return string.format("%ds", sec)
+end
+
+local function colorFor(name: string?): Color3
+    if name == "amber" then return AMBER end
+    if name == "cyan" then return CYAN end
+    if name == "purple" then return Color3.fromRGB(180, 100, 240) end
+    return PINK
+end
+
+local function buildEventBanner()
+    local b = Instance.new("Frame")
+    b.Name = "EventBanner"
+    b.Size = UDim2.new(0, 380, 0, 56)
+    b.Position = UDim2.new(0.5, -190, 0, 16)
+    b.BackgroundColor3 = BG
+    b.BackgroundTransparency = 0.05
+    b.BorderSizePixel = 0
+    b.ZIndex = 30
+    b.Visible = false
+    b.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = AMBER; s.Thickness = 2; s.Parent = b
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = b
+    end
+    local head = Instance.new("TextLabel")
+    head.Name = "Head"
+    head.Size = UDim2.new(1, -16, 0, 22)
+    head.Position = UDim2.new(0, 8, 0, 6)
+    head.BackgroundTransparency = 1
+    head.TextColor3 = AMBER
+    head.Font = Enum.Font.GothamBold
+    head.TextScaled = true
+    head.TextXAlignment = Enum.TextXAlignment.Left
+    head.Text = ""
+    head.ZIndex = 31
+    head.Parent = b
+
+    local count = Instance.new("TextLabel")
+    count.Name = "Count"
+    count.Size = UDim2.new(1, -16, 0, 20)
+    count.Position = UDim2.new(0, 8, 0, 30)
+    count.BackgroundTransparency = 1
+    count.TextColor3 = TEXT
+    count.Font = Enum.Font.Code
+    count.TextScaled = true
+    count.TextXAlignment = Enum.TextXAlignment.Left
+    count.Text = ""
+    count.ZIndex = 31
+    count.Parent = b
+    return b
+end
+
+local function applyEventBanner()
+    if not eventBanner then eventBanner = buildEventBanner() end
+    if not eventState.active or not eventState.event then
+        eventBanner.Visible = false
+        return
+    end
+    local e = eventState.event
+    eventBanner.Visible = true
+    local accent = colorFor(e.color)
+    local stroke = eventBanner:FindFirstChildOfClass("UIStroke")
+    if stroke then stroke.Color = accent end
+    local head = eventBanner:FindFirstChild("Head") :: TextLabel?
+    local count = eventBanner:FindFirstChild("Count") :: TextLabel?
+    if head then
+        head.Text = string.format("%s  x%.1f", e.name, e.multiplier)
+        head.TextColor3 = accent
+    end
+    if count then
+        count.Text = string.format("ends in %s -- %s",
+            fmtCountdown(eventState.endsInSec or 0),
+            e.sub or "")
+    end
+end
+
+remotes.EventStateChanged.OnClientEvent:Connect(function(payload: any)
+    eventState = payload or { active = false }
+    applyEventBanner()
+end)
+
+-- Local countdown ticker so the "ends in X" text feels live without
+-- depending on server scan cadence (server pushes every 30s; local tick
+-- decrements every second).
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if eventState.active and eventState.endsInSec then
+            eventState.endsInSec = math.max(0, (eventState.endsInSec or 0) - 1)
+            applyEventBanner()
+            if eventState.endsInSec <= 0 then
+                -- Server will fire the next state change; until then hide.
+                eventState.active = false
+                applyEventBanner()
+            end
+        end
+    end
+end)
+
 print("[HUD] mounted")

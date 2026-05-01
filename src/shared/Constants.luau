@@ -216,7 +216,37 @@ Constants.ANALYTICS_EVENTS = {
     CODE_REDEEMED = "CodeRedeemed",
     PASS_PURCHASED = "PassPurchased",
     TIER_UP = "TierUp",
+    EVENT_ACTIVE = "EventActive",
 }
+
+-- Limited-time events. Cross-server consistent via os.time(). Each entry:
+--   id              stable string key for analytics + HUD copy
+--   name            player-facing headline ("WEEKEND 2X")
+--   sub             one-line description
+--   multiplier      stacks multiplicatively with tier + rebirth + passes
+--   startUnix       inclusive
+--   endUnix         exclusive
+--   color           "pink" | "cyan" | "amber" | "purple" -- HUD accent
+--
+-- Schedule recurring weekend events as separate entries (one per weekend).
+-- For permanent recurring events we'd add a cron-like helper; for v1 the
+-- explicit list keeps the feature small and lets David tweet a precise
+-- countdown ("2x ends in 4h 22m").
+--
+-- Times are UTC. Weekend = Fri 16:00 UTC -> Mon 04:00 UTC (covers all
+-- timezones for both Friday-evening US and Sunday-evening AU windows).
+Constants.LIVE_EVENTS = {
+    -- launch weekend (placeholder — actual launch date TBD)
+    { id = "launch_weekend", name = "LAUNCH 2X", sub = "double income all weekend",
+      multiplier = 2.0, startUnix = 1746115200, endUnix = 1746374400, color = "pink" },
+    -- GTA6 hype week (one week before launch)
+    { id = "gta6_hype_week", name = "GTA6 HYPE WEEK", sub = "3x income leading to launch",
+      multiplier = 3.0, startUnix = 1762905600, endUnix = 1763510400, color = "amber" },
+}
+
+-- How often the EventService scans for active events. 30s is plenty —
+-- events tick over at minute granularity from the player's perspective.
+Constants.EVENT_SCAN_INTERVAL_SEC = 30
 
 -- Per-tier plot art. Foundation Material + Color paints visible progression
 -- so a tier-5 plot looks unmistakably wealthier than a tier-1 plot at a glance.

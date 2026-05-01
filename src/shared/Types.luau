@@ -48,6 +48,7 @@ export type RemoteMap = {
     QuestProgressed: RemoteEvent,   -- server -> client; payload {questId, progress, target}
     QuestClaimed: RemoteEvent,      -- server -> client; payload {questId, reward}
     QuestRejected: RemoteEvent,     -- server -> client; payload {questId, reason}
+    EventStateChanged: RemoteEvent, -- server -> client; payload {active, event?, endsInSec?}
 }
 
 return {}

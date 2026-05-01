@@ -12,6 +12,7 @@ local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
+local EventService = require(script.Parent:WaitForChild("EventService.server"))
 
 local remotes = Remotes.get()
 
@@ -64,6 +65,8 @@ local function multiplierFor(userId: number, data): number
     if sp and (os.time() - sp) <= Constants.GAME_PASS_MULT.STARTER_PACK_DURATION_SEC then
         mult *= Constants.GAME_PASS_MULT.STARTER_PACK_MULT
     end
+    -- Limited-time event multiplier (1.0 if no event active, else 2x/3x/etc)
+    mult *= EventService.getMultiplier()
     return mult
 end
 
