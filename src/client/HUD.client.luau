@@ -64,6 +64,17 @@ local function makeLabel(name: string, parent: Instance, text: string, size: UDi
     return l
 end
 
+-- Forward declarations: each feature section is wrapped in a do/end block to
+-- keep the chunk's local-register count under Luau's 200 limit. Functions
+-- referenced across sections (or before their definition) are declared here
+-- so the closure captures the upvalue, then assigned (without `local`) inside
+-- their owning section.
+local showToast: (string, string, Color3, number?) -> ()
+local playSound: (string?, number?) -> ()
+local flashScreen: (Color3, number) -> ()
+local refreshPets: () -> ()
+local refreshAchievements: () -> ()
+
 -- Balance panel (top-left)
 local balancePanel = makeFrame("BalancePanel", UDim2.new(0, 240, 0, 84), UDim2.new(0, 16, 0, 16))
 balancePanel.Parent = screen
@@ -579,7 +590,10 @@ remotes.LeaderboardUpdated.OnClientEvent:Connect(function(rows)
 end)
 
 -- =============================================================================
--- Stats Profile screen
+-- Stats Profile screen + main HUD body (passes/codes/quests/events/rebirth/pets)
+-- Not wrapped in do/end -- squad ribbon UI declared here is used by the Notif
+-- section below, and refreshPets/showToast/playSound/flashScreen are shared
+-- via forward-declared upvalues.
 -- =============================================================================
 
 local STATS_TEAL = Color3.fromRGB(110, 220, 220)
@@ -790,7 +804,7 @@ end)
 -- Sound layer. SoundIds live in Constants.SOUND_IDS as either a stable
 -- "rbxassetid://N" string or "" (empty). Empty short-circuits, so the
 -- world is silent until David picks library assets and updates the table.
-local function playSound(assetId: string?, volume: number?)
+function playSound(assetId: string?, volume: number?)
     if not assetId or assetId == "" or assetId == "0" then return end
     local s = Instance.new("Sound")
     s.SoundId = assetId
@@ -803,7 +817,7 @@ local function playSound(assetId: string?, volume: number?)
     task.delay(8, function() if s.Parent then s:Destroy() end end)
 end
 
-local function showToast(headline: string, sub: string, accent: Color3, holdSec: number?)
+function showToast(headline: string, sub: string, accent: Color3, holdSec: number?)
     -- Center-screen banner that fades in, holds, fades out. Stacks if called
     -- in quick succession (each toast is independent and self-cleans).
     local toast = Instance.new("Frame")
@@ -860,7 +874,7 @@ local function showToast(headline: string, sub: string, accent: Color3, holdSec:
     end)
 end
 
-local function flashScreen(color: Color3, duration: number)
+function flashScreen(color: Color3, duration: number)
     -- Full-screen color flash for tier-up, fades from 0.5 transparency to
     -- fully transparent. Doesn't block input (CanvasGroup with no callbacks).
     local flash = Instance.new("Frame")
@@ -2309,7 +2323,7 @@ end
 local petsEggsList: ScrollingFrame? = nil
 local petsInvList: ScrollingFrame? = nil
 
-local function refreshPets()
+function refreshPets()
     task.spawn(function()
         local ok, result = pcall(function() return remotes.GetPetState:InvokeServer() end)
         if ok and result then
@@ -2517,6 +2531,7 @@ local squadActive = false
 -- Coalesces deltas inside FLOATER_COALESCE_SEC so a 1Hz tick doesn't
 -- spam 60 floaters per minute. Only positive deltas float (debits like
 -- pet boost / egg hatch are silent -- their own modal already has UX).
+do
 
 local FLOATER_COALESCE_SEC = 0.6
 local lastKnownCoins: number? = nil
@@ -2582,9 +2597,12 @@ task.spawn(function()
     end
 end)
 
+end -- close Floating +N section
+
 -- =============================================================================
 -- Notification Bell (top-right, aggregates pending claims across all systems)
 -- =============================================================================
+do
 
 local BELL_PINK = Color3.fromRGB(255, 130, 200)
 local notifPanel: Frame? = nil
@@ -2781,11 +2799,18 @@ remotes.PetFuseRejected.OnClientEvent:Connect(function(rarity: string, reason: s
     playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
 end)
 
+end -- close Notification Bell + Squad section
+
+-- Shared between Achievements + Tribute (Tribute fires an achievement-themed
+-- toast/flash on claim; both need the same color). Lifted to chunk scope so
+-- the wrapped Achievements section's local GOLD doesn't shadow it.
+local GOLD = Color3.fromRGB(255, 207, 64)
+
 -- =============================================================================
 -- Achievements
 -- =============================================================================
+do
 
-local GOLD = Color3.fromRGB(255, 207, 64)
 local achModal: Frame? = nil
 local achList: ScrollingFrame? = nil
 
@@ -2965,7 +2990,7 @@ local function rebuildAchievementsList(list: ScrollingFrame, snap: any)
     end
 end
 
-local function refreshAchievements()
+function refreshAchievements()
     task.spawn(function()
         local ok, snap = pcall(function() return remotes.GetAchievements:InvokeServer() end)
         if ok and snap then
@@ -2987,9 +3012,12 @@ end)
 -- Initial badge sync once remotes are warm
 task.delay(2, refreshAchievements)
 
+end -- close Achievements section
+
 -- =============================================================================
 -- Hourly Tribute (sessions/user/day driver)
 -- =============================================================================
+do
 
 local CYAN_TRIBUTE = Color3.fromRGB(110, 220, 220)
 
@@ -3150,9 +3178,12 @@ remotes.AchievementUnlocked.OnClientEvent:Connect(function(payload: any)
     refreshAchievements()
 end)
 
+end -- close Hourly Tribute section
+
 -- =============================================================================
 -- Auras (cosmetic flex; sister to Pets but visible to other players)
 -- =============================================================================
+do
 
 local AURA_PINK = Color3.fromRGB(255, 130, 200)
 local auraModal: Frame? = nil
@@ -3363,9 +3394,12 @@ remotes.AuraRejected.OnClientEvent:Connect(function(_auraId: string, reason: str
     showToast("AURA FAILED", copy, AMBER, 3)
 end)
 
+end -- close Auras section
+
 -- =============================================================================
 -- Live Activity Feed (FOMO ticker, top-left)
 -- =============================================================================
+do
 
 local FEED_KIND_COLOR: {[string]: Color3} = {
     hatch_legendary = Color3.fromRGB(255, 207, 64),    -- gold
@@ -3481,9 +3515,12 @@ task.spawn(function()
     end
 end)
 
+end -- close Live Activity Feed section
+
 -- =============================================================================
 -- Player Titles
 -- =============================================================================
+do
 
 local TITLE_TEAL = Color3.fromRGB(180, 220, 255)
 local titlesModal: Frame? = nil
@@ -3664,9 +3701,12 @@ titlesBtn.MouseButton1Click:Connect(function()
     refreshTitles()
 end)
 
+end -- close Player Titles section
+
 -- =============================================================================
 -- Daily Spin Wheel
 -- =============================================================================
+do
 
 local SPIN_GOLD = Color3.fromRGB(255, 207, 64)
 local spinModal: Frame? = nil
@@ -3915,5 +3955,7 @@ remotes.TitleRejected.OnClientEvent:Connect(function(_titleId: string, reason: s
     end
     showToast("TITLE FAILED", copy, AMBER, 3)
 end)
+
+end -- close Daily Spin Wheel section
 
 print("[HUD] mounted")
