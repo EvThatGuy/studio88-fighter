@@ -79,6 +79,7 @@ local REMOTE_NAMES = {
     {name = "ClaimSpin", class = "RemoteEvent"},
     {name = "SpinResult", class = "RemoteEvent"},
     {name = "SpinRejected", class = "RemoteEvent"},
+    {name = "GetNotifications", class = "RemoteFunction"},
 }
 
 local function ensureFolder(): Folder

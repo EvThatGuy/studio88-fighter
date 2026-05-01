@@ -117,6 +117,7 @@ export type RemoteMap = {
     ClaimSpin: RemoteEvent,           -- client -> server; no payload
     SpinResult: RemoteEvent,          -- server -> client; payload {segmentId, label, kind, valueGranted, message}
     SpinRejected: RemoteEvent,        -- server -> client; payload {reason}
+    GetNotifications: RemoteFunction, -- client -> server; returns {entries=[{kind,label,actionHint,count?}], total}
 }
 
 return {}

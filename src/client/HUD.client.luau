@@ -2376,6 +2376,159 @@ task.spawn(function()
     end
 end)
 
+-- =============================================================================
+-- Notification Bell (top-right, aggregates pending claims across all systems)
+-- =============================================================================
+
+local BELL_PINK = Color3.fromRGB(255, 130, 200)
+local notifPanel: Frame? = nil
+local notifList: Frame? = nil
+local notifBadge: TextLabel? = nil
+
+local notifBtn = Instance.new("TextButton")
+notifBtn.Name = "NotifBell"
+notifBtn.Size = UDim2.new(0, 44, 0, 44)
+-- Top-right, just left of the leaderboard panel (which sits at -296)
+notifBtn.Position = UDim2.new(1, -348, 0, 16)
+notifBtn.BackgroundColor3 = BG
+notifBtn.BackgroundTransparency = 0.15
+notifBtn.BorderSizePixel = 0
+notifBtn.AutoButtonColor = false
+notifBtn.Text = "🔔"
+notifBtn.TextColor3 = BELL_PINK
+notifBtn.Font = Enum.Font.GothamBold
+notifBtn.TextSize = 22
+notifBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = BELL_PINK; s.Thickness = 1; s.Parent = notifBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = notifBtn
+end
+
+local nbadge = Instance.new("TextLabel")
+nbadge.Size = UDim2.new(0, 22, 0, 18)
+nbadge.Position = UDim2.new(1, -10, 0, -8)
+nbadge.AnchorPoint = Vector2.new(0, 0)
+nbadge.BackgroundColor3 = BELL_PINK
+nbadge.BorderSizePixel = 0
+nbadge.Text = "0"
+nbadge.TextColor3 = BG
+nbadge.Font = Enum.Font.GothamBold
+nbadge.TextSize = 11
+nbadge.Visible = false
+nbadge.Parent = notifBtn
+do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = nbadge end
+notifBadge = nbadge
+
+local function buildNotifPanel()
+    if notifPanel then return end
+    local p = Instance.new("Frame")
+    p.Size = UDim2.new(0, 320, 0, 280)
+    p.Position = UDim2.new(1, -332, 0, 68)
+    p.BackgroundColor3 = BG
+    p.BackgroundTransparency = 0.05
+    p.BorderSizePixel = 0
+    p.Visible = false
+    p.ZIndex = 50
+    p.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = BELL_PINK; s.Thickness = 1; s.Parent = p
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = p
+    end
+    local head = makeLabel("Head", p, "INBOX", UDim2.new(1, -16, 0, 16), UDim2.new(0, 8, 0, 8))
+    head.TextColor3 = BELL_PINK
+    head.Font = Enum.Font.GothamBold
+    head.ZIndex = 51
+    local list = Instance.new("ScrollingFrame")
+    list.Size = UDim2.new(1, -16, 1, -36)
+    list.Position = UDim2.new(0, 8, 0, 28)
+    list.BackgroundTransparency = 1
+    list.ScrollBarThickness = 4
+    list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    list.CanvasSize = UDim2.new(0, 0, 0, 0)
+    list.ZIndex = 51
+    list.Parent = p
+    local L = Instance.new("UIListLayout"); L.SortOrder = Enum.SortOrder.LayoutOrder; L.Padding = UDim.new(0, 4); L.Parent = list
+    notifPanel = p
+    notifList = list
+end
+
+local function rebuildNotifList(snap: any)
+    if not notifList then return end
+    for _, c in ipairs(notifList:GetChildren()) do
+        if c:IsA("Frame") or c:IsA("TextLabel") then c:Destroy() end
+    end
+    if not snap or not snap.entries or #snap.entries == 0 then
+        local empty = makeLabel("Empty", notifList, "(all caught up)",
+            UDim2.new(1, 0, 0, 18), UDim2.new(0, 0, 0, 0))
+        empty.TextColor3 = TEXT
+        empty.Font = Enum.Font.Code
+        empty.TextSize = 12
+        empty.TextTransparency = 0.5
+        empty.TextXAlignment = Enum.TextXAlignment.Left
+        return
+    end
+    for i, e in ipairs(snap.entries) do
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, 0, 0, 38)
+        row.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+        row.BorderSizePixel = 0
+        row.LayoutOrder = i
+        row.ZIndex = 52
+        row.Parent = notifList
+        do
+            local s = Instance.new("UIStroke"); s.Color = BELL_PINK; s.Thickness = 1; s.Parent = row
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = row
+        end
+        local title = makeLabel("Title", row, e.label or "?",
+            UDim2.new(1, -12, 0, 16), UDim2.new(0, 8, 0, 4))
+        title.TextColor3 = BELL_PINK
+        title.Font = Enum.Font.GothamBold
+        title.TextSize = 12
+        title.TextXAlignment = Enum.TextXAlignment.Left
+        title.ZIndex = 53
+        local sub = makeLabel("Hint", row, e.actionHint or "",
+            UDim2.new(1, -12, 0, 14), UDim2.new(0, 8, 0, 20))
+        sub.TextColor3 = TEXT
+        sub.Font = Enum.Font.Code
+        sub.TextSize = 11
+        sub.TextTransparency = 0.4
+        sub.TextXAlignment = Enum.TextXAlignment.Left
+        sub.ZIndex = 53
+    end
+end
+
+local function refreshNotifications()
+    task.spawn(function()
+        local ok, snap = pcall(function() return remotes.GetNotifications:InvokeServer() end)
+        if not ok or not snap then return end
+        if notifBadge then
+            notifBadge.Visible = (snap.total or 0) > 0
+            notifBadge.Text = tostring(snap.total or 0)
+        end
+        if notifPanel and notifPanel.Visible then
+            rebuildNotifList(snap)
+        end
+    end)
+end
+
+notifBtn.MouseButton1Click:Connect(function()
+    if not notifPanel then buildNotifPanel() end
+    if notifPanel then
+        notifPanel.Visible = not notifPanel.Visible
+        if notifPanel.Visible then refreshNotifications() end
+    end
+end)
+
+-- Background poll every 30s for the badge count
+task.spawn(function()
+    task.wait(2)
+    refreshNotifications()
+    while true do
+        task.wait(30)
+        refreshNotifications()
+    end
+end)
+
 remotes.SquadBonusChanged.OnClientEvent:Connect(function(payload: any)
     if not payload then return end
     squadRibbon.Visible = payload.active == true
