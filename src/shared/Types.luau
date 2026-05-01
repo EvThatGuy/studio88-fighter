@@ -38,6 +38,7 @@ export type PlayerData = {
     referredBy: string?,            -- friend code that referred them, if any (one-shot)
     referralCount: number,          -- how many people redeemed THIS player's code
     pendingReferralBonusCoins: number, -- queued bonus from referrals while offline; granted on next session start
+    petBoostExpiresUnix: number,    -- unix when the active pet-boost expires; <= os.time() means inactive
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 
@@ -100,6 +101,10 @@ export type RemoteMap = {
     ReferralBonusGranted: RemoteEvent,-- server -> client; payload {sourceCount, totalBonus} (fires when a referrer's bonus is realized)
     AutoEquipPets: RemoteEvent,       -- client -> server; no payload (server picks optimal best-mult unequipped pets up to PET_MAX_EQUIPPED)
     StreakEggGranted: RemoteEvent,    -- server -> client; payload {streakDay, eggId, pet=OwnedPet, petName} (issued alongside DailyBonusGranted at threshold streaks)
+    GetPetBoost: RemoteFunction,      -- client -> server; returns {active, remainingSec, multiplier, costForCurrentTier}
+    BuyPetBoost: RemoteEvent,         -- client -> server; no payload (server pulls cost-for-current-tier)
+    PetBoostStateChanged: RemoteEvent,-- server -> client; payload {active, remainingSec, multiplier}
+    PetBoostRejected: RemoteEvent,    -- server -> client; payload {reason, needed?}
 }
 
 return {}

@@ -128,7 +128,83 @@ function PetService.getPetMultiplier(userId: number): number
         if not seen[def.id] then complete = false; break end
     end
     if complete then mult *= (1 + Constants.PET_COLLECTION_COMPLETE_BONUS) end
+    -- Pet Boost: timed multiplier on the pet contribution. Stacks with
+    -- equipped + collection bonus and itself. Inactive when expired.
+    local boostExpires = data.petBoostExpiresUnix or 0
+    if boostExpires > os.time() then
+        mult *= Constants.PET_BOOST.MULTIPLIER
+    end
     return mult
+end
+
+-- ---- Pet Boost ----------------------------------------------------------
+
+local function pushBoostState(player: Player, data: Types.PlayerData)
+    local now = os.time()
+    local active = (data.petBoostExpiresUnix or 0) > now
+    local remaining = active and (data.petBoostExpiresUnix - now) or 0
+    pcall(function()
+        remotes.PetBoostStateChanged:FireClient(player, {
+            active = active,
+            remainingSec = remaining,
+            multiplier = Constants.PET_BOOST.MULTIPLIER,
+        })
+    end)
+end
+
+local function pushBoostReject(player: Player, reason: string, needed: number?)
+    pcall(function()
+        remotes.PetBoostRejected:FireClient(player, reason, needed)
+    end)
+end
+
+function PetService.snapshotBoost(userId: number)
+    local data = DataStore.getCached(userId)
+    if not data then
+        return { active = false, remainingSec = 0,
+            multiplier = Constants.PET_BOOST.MULTIPLIER, costForCurrentTier = 0 }
+    end
+    local now = os.time()
+    local active = (data.petBoostExpiresUnix or 0) > now
+    local remaining = active and (data.petBoostExpiresUnix - now) or 0
+    local cost = Constants.PET_BOOST.COST_PER_TIER[data.upgradeTier] or 0
+    return {
+        active = active, remainingSec = remaining,
+        multiplier = Constants.PET_BOOST.MULTIPLIER,
+        costForCurrentTier = cost,
+        durationSec = Constants.PET_BOOST.DURATION_SEC,
+    }
+end
+
+function PetService.attemptBuyBoost(player: Player): (boolean, string?)
+    local userId = player.UserId
+    local data = DataStore.getCached(userId)
+    if not data then
+        pushBoostReject(player, "no_data")
+        return false, "no_data"
+    end
+    local cost = Constants.PET_BOOST.COST_PER_TIER[data.upgradeTier]
+    if not cost then
+        pushBoostReject(player, "no_cost_tier")
+        return false, "no_cost_tier"
+    end
+    if data.coins < cost then
+        pushBoostReject(player, "insufficient_coins", cost - data.coins)
+        return false, "insufficient_coins"
+    end
+    data.coins -= cost
+    -- Extend if already active, else start fresh from now.
+    local now = os.time()
+    local current = data.petBoostExpiresUnix or 0
+    local base = (current > now) and current or now
+    data.petBoostExpiresUnix = base + Constants.PET_BOOST.DURATION_SEC
+    pcall(function()
+        remotes.BalanceUpdated:FireClient(player, data.coins, data.lifetimeCoins)
+    end)
+    pushBoostState(player, data)
+    print(string.format("[PetService] %s bought boost for %d coins (active until %d)",
+        player.Name, cost, data.petBoostExpiresUnix))
+    return true, nil
 end
 
 -- ---- Snapshot ------------------------------------------------------------
@@ -508,6 +584,28 @@ end
 
 remotes.AutoEquipPets.OnServerEvent:Connect(function(player: Player)
     PetService.attemptAutoEquip(player)
+end)
+
+remotes.GetPetBoost.OnServerInvoke = function(player: Player)
+    return PetService.snapshotBoost(player.UserId)
+end
+
+remotes.BuyPetBoost.OnServerEvent:Connect(function(player: Player)
+    PetService.attemptBuyBoost(player)
+end)
+
+-- Sweep every 30s and push state-change to anyone whose boost just expired
+-- so the HUD can flip "INACTIVE" without polling.
+task.spawn(function()
+    while true do
+        task.wait(30)
+        for _, player in ipairs(Players:GetPlayers()) do
+            local data = DataStore.getCached(player.UserId)
+            if data then
+                pushBoostState(player, data)
+            end
+        end
+    end
 end)
 
 remotes.FusePets.OnServerEvent:Connect(function(player: Player, rarity: any)

@@ -54,6 +54,7 @@ local function defaultPlayerData(): Types.PlayerData
         referredBy = nil,
         referralCount = 0,
         pendingReferralBonusCoins = 0,
+        petBoostExpiresUnix = 0,
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -148,6 +149,14 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
         data.referralCount = data.referralCount or 0
         data.pendingReferralBonusCoins = data.pendingReferralBonusCoins or 0
         data.schemaVersion = "v11"
+        return data
+    end,
+    -- v11 -> v12: pet boost. petBoostExpiresUnix = 0 means no boost active.
+    -- Existing players see no behavioral change; the BUY BOOST UI just
+    -- starts working on next login.
+    ["v11"] = function(data: any): Types.PlayerData
+        data.petBoostExpiresUnix = data.petBoostExpiresUnix or 0
+        data.schemaVersion = "v12"
         return data
     end,
 }

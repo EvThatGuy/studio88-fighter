@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v11"
+Constants.DATASTORE_VERSION = "v12"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -21,6 +21,27 @@ Constants.UPGRADE_TIERS = {
     {cost = 5000,   incomeMult = 12},  -- Tier 4
     {cost = 20000,  incomeMult = 30},  -- Tier 5
     {cost = 100000, incomeMult = 80},  -- Tier 6 (capstone)
+}
+
+-- Pet Boost. A timed 2x multiplier on the equipped-pets contribution to
+-- the income stack, purchasable for coins. Stacks with everything (event
+-- mult, passes, etc) but ONLY multiplies the pet portion -- so the more
+-- pets a player has equipped, the more value they get from a boost. This
+-- is the "max your loadout before clicking" loop.
+--
+-- Coin cost scales with current tier so it stays meaningful late-game.
+-- One boost active at a time; buying again extends remaining time.
+Constants.PET_BOOST = {
+    DURATION_SEC = 900,             -- 15 minutes
+    MULTIPLIER = 2.0,
+    COST_PER_TIER = {               -- coin cost indexed by upgradeTier
+        [1] = 500,
+        [2] = 2500,
+        [3] = 12000,
+        [4] = 60000,
+        [5] = 250000,
+        [6] = 1000000,
+    },
 }
 
 -- Streak egg grants. When the daily login streak hits one of these days,

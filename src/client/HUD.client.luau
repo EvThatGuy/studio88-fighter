@@ -2009,6 +2009,12 @@ local function buildPetsModal()
     invList.Parent = m
     local iL = Instance.new("UIListLayout"); iL.SortOrder = Enum.SortOrder.LayoutOrder; iL.Padding = UDim.new(0, 8); iL.Parent = invList
 
+    -- Pet Boost strip (BUY 2x 15m + active state)
+    buildPetBoostStrip(m)
+    -- Tighten the lists to leave room for the boost strip at the bottom
+    eggsList.Size = UDim2.new(1, -32, 1, -160)
+    invList.Size = UDim2.new(1, -32, 1, -160)
+
     eggsTab.MouseButton1Click:Connect(function()
         eggsList.Visible = true; invList.Visible = false
         eggsTab.BackgroundColor3 = GREEN; eggsTab.TextColor3 = BG
@@ -2046,6 +2052,7 @@ petsBtn.MouseButton1Click:Connect(function()
     end
     petsModal.Visible = true
     refreshPets()
+    refreshPetBoost()
 end)
 
 remotes.PetHatched.OnClientEvent:Connect(function(pet: any, petName: string)
@@ -2082,6 +2089,131 @@ end)
 
 remotes.PetEquipChanged.OnClientEvent:Connect(function(_equippedPetIds: {string})
     refreshPets()
+end)
+
+-- Pet Boost status strip (renders in-place over the pets-modal header
+-- when active; updates from PetBoostStateChanged + a local 1s tick).
+local petBoostState: any = nil
+local petBoostStrip: Frame? = nil
+local petBoostLbl: TextLabel? = nil
+local petBoostBuyBtn: TextButton? = nil
+
+local function buildPetBoostStrip(parent: Frame)
+    if petBoostStrip then return end
+    local strip = Instance.new("Frame")
+    strip.Name = "BoostStrip"
+    strip.Size = UDim2.new(1, -32, 0, 36)
+    strip.Position = UDim2.new(0, 16, 1, -52)
+    strip.BackgroundColor3 = Color3.fromRGB(28, 24, 44)
+    strip.BorderSizePixel = 0
+    strip.ZIndex = 51
+    strip.Parent = parent
+    do
+        local s = Instance.new("UIStroke"); s.Color = AMBER; s.Thickness = 1; s.Parent = strip
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = strip
+    end
+    local lbl = makeLabel("Status", strip, "PET BOOST: inactive", UDim2.new(1, -160, 1, -8), UDim2.new(0, 10, 0, 4))
+    lbl.TextColor3 = TEXT
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 13
+    lbl.ZIndex = 52
+    petBoostLbl = lbl
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 130, 0, 28)
+    btn.Position = UDim2.new(1, -140, 0.5, -14)
+    btn.BackgroundColor3 = AMBER
+    btn.TextColor3 = BG
+    btn.Text = "BUY 2x 15m"
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 13
+    btn.BorderSizePixel = 0
+    btn.ZIndex = 52
+    btn.Parent = strip
+    do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn end
+    petBoostBuyBtn = btn
+    btn.MouseButton1Click:Connect(function()
+        pcall(function() remotes.BuyPetBoost:FireServer() end)
+    end)
+    petBoostStrip = strip
+end
+
+local function applyPetBoostUI()
+    if not petBoostLbl or not petBoostBuyBtn then return end
+    local s = petBoostState
+    if s and s.active and s.remainingSec and s.remainingSec > 0 then
+        local m = math.floor(s.remainingSec / 60)
+        local sec = s.remainingSec - m * 60
+        petBoostLbl.Text = string.format("PET BOOST x%.1f -- %d:%02d left",
+            s.multiplier or 2, m, sec)
+        petBoostLbl.TextColor3 = AMBER
+        petBoostBuyBtn.Text = "EXTEND +15m"
+    else
+        local cost = (s and s.costForCurrentTier) or 0
+        petBoostLbl.Text = "PET BOOST: inactive"
+        petBoostLbl.TextColor3 = TEXT
+        if cost > 0 then
+            petBoostBuyBtn.Text = string.format("BUY 2x 15m (%s)", fmt(cost))
+        else
+            petBoostBuyBtn.Text = "BUY 2x 15m"
+        end
+    end
+end
+
+local function refreshPetBoost()
+    task.spawn(function()
+        local ok, snap = pcall(function() return remotes.GetPetBoost:InvokeServer() end)
+        if ok and snap then petBoostState = snap; applyPetBoostUI() end
+    end)
+end
+
+remotes.PetBoostStateChanged.OnClientEvent:Connect(function(payload: any)
+    -- Preserve cost-for-current-tier from prior snapshot since the push
+    -- only carries active/remaining/multiplier.
+    local cost = (petBoostState and petBoostState.costForCurrentTier) or 0
+    petBoostState = {
+        active = payload.active,
+        remainingSec = payload.remainingSec,
+        multiplier = payload.multiplier,
+        costForCurrentTier = cost,
+    }
+    applyPetBoostUI()
+    -- Within 5s of full duration = this push is a fresh purchase, pop a flash
+    if payload.active and payload.remainingSec >= (Constants.PET_BOOST.DURATION_SEC - 5) then
+        flashScreen(AMBER, 0.4)
+        playSound(Constants.SOUND_IDS.tier_up, 0.6)
+    end
+end)
+
+remotes.PetBoostRejected.OnClientEvent:Connect(function(reason: string, needed: number?)
+    local copy = "Couldn't buy boost."
+    if reason == "insufficient_coins" and needed then
+        copy = string.format("Need %s more coins for boost.", fmt(needed))
+    elseif reason == "no_cost_tier" then
+        copy = "Boost not available at this tier."
+    end
+    showToast("BOOST FAILED", copy, AMBER, 3)
+    playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
+end)
+
+-- Local 1s tick to count down the visible timer between server pushes
+task.spawn(function()
+    while true do
+        task.wait(1)
+        if petBoostState and petBoostState.active and petBoostState.remainingSec > 0 then
+            petBoostState.remainingSec -= 1
+            if petBoostState.remainingSec <= 0 then
+                petBoostState.active = false
+                refreshPetBoost()
+            else
+                applyPetBoostUI()
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    task.wait(2)
+    refreshPetBoost()
 end)
 
 remotes.StreakEggGranted.OnClientEvent:Connect(function(streakDay: number, _eggId: string, pet: any, petName: string)
