@@ -248,6 +248,12 @@ Constants.LIVE_EVENTS = {
 -- events tick over at minute granularity from the player's perspective.
 Constants.EVENT_SCAN_INTERVAL_SEC = 30
 
+-- AFK auto-collect sweep interval (Premium pass perk). Coin lifetime is
+-- 30s on the conveyor, so a 2s sweep means worst-case 2s of unclaimed
+-- coins on screen for a Premium player -- effectively instant feedback
+-- without per-frame iteration cost.
+Constants.AFK_AUTOCOLLECT_INTERVAL_SEC = 2
+
 -- Per-tier plot art. Foundation Material + Color paints visible progression
 -- so a tier-5 plot looks unmistakably wealthier than a tier-1 plot at a glance.
 -- Indexed identically to UPGRADE_TIERS.
