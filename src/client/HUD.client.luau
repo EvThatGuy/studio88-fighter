@@ -553,19 +553,42 @@ end)
 remotes.LeaderboardUpdated.OnClientEvent:Connect(function(rows)
     -- Clear existing
     for _, child in ipairs(lbList:GetChildren()) do
-        if child:IsA("TextLabel") then child:Destroy() end
+        if child:IsA("TextLabel") or child:IsA("TextButton") then child:Destroy() end
     end
     for i, row in ipairs(rows) do
-        local entry = Instance.new("TextLabel")
+        -- TextButton instead of TextLabel so we can click-to-visit. Visual
+        -- is unchanged for non-self rows; self row stays pink.
+        local entry = Instance.new("TextButton")
         entry.Size = UDim2.new(1, 0, 0, 28)
         entry.BackgroundTransparency = 1
         entry.Font = Enum.Font.Code
         entry.TextSize = 14
         entry.TextXAlignment = Enum.TextXAlignment.Left
+        entry.AutoButtonColor = false
         entry.TextColor3 = (row.userId == player.UserId) and PINK or TEXT
         entry.Text = string.format("%2d. %-12s %s", i, row.name:sub(1, 12), fmt(row.lifetimeCoins))
         entry.LayoutOrder = i
         entry.Parent = lbList
+        if row.userId and row.userId ~= player.UserId then
+            local targetUid = row.userId
+            entry.MouseButton1Click:Connect(function()
+                pcall(function() remotes.VisitPlayer:FireServer(targetUid) end)
+            end)
+        end
+    end
+end)
+
+remotes.VisitRejected.OnClientEvent:Connect(function(reason: string, retryInSec: number?)
+    if reason == "cooldown" and retryInSec then
+        showToast("VISIT COOLDOWN",
+            string.format("wait %ds before visiting again", retryInSec),
+            AMBER, 2.5)
+    elseif reason == "not_in_server" then
+        showToast("CAN'T VISIT", "that player isn't in this server", AMBER, 3)
+    elseif reason == "is_self" then
+        -- silent
+    else
+        showToast("VISIT FAILED", reason, AMBER, 2)
     end
 end)
 

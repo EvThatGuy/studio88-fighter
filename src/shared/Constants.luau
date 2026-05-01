@@ -666,6 +666,12 @@ Constants.PLAYER_TITLES = {
      trigger = "aura_equipped",           unlockValue = "apex"},
 }
 
+-- Visit Plot. Tap a leaderboard row to teleport to that player's plot.
+-- See their pet stand, aura, title, etc -- the social-proof payoff for
+-- the whole cosmetic system. Cooldown prevents abuse.
+Constants.VISIT_COOLDOWN_SEC = 30
+Constants.VISIT_HEIGHT_OFFSET = 8 -- studs above the foundation, so you don't clip in
+
 -- Squad Bonus. When the server has SQUAD_THRESHOLD or more concurrent
 -- players, EVERYONE in that server gets a flat income multiplier. Gives
 -- players a reason to stay in busier servers (Roblox session-length
