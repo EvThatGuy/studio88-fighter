@@ -235,8 +235,8 @@ codesLabel.TextXAlignment = Enum.TextXAlignment.Center
 -- the parent ScreenGui order. ESC or the X button dismisses.
 local codesModal = Instance.new("Frame")
 codesModal.Name = "CodesModal"
-codesModal.Size = UDim2.new(0, 380, 0, 180)
-codesModal.Position = UDim2.new(0.5, -190, 0.5, -90)
+codesModal.Size = UDim2.new(0, 380, 0, 320)
+codesModal.Position = UDim2.new(0.5, -190, 0.5, -160)
 codesModal.BackgroundColor3 = BG
 codesModal.BackgroundTransparency = 0.05
 codesModal.BorderSizePixel = 0
@@ -283,7 +283,7 @@ end
 local submitBtn = Instance.new("TextButton")
 submitBtn.Name = "Submit"
 submitBtn.Size = UDim2.new(0, 100, 0, 36)
-submitBtn.Position = UDim2.new(1, -116, 1, -52)
+submitBtn.Position = UDim2.new(1, -116, 0, 116)
 submitBtn.BackgroundColor3 = PINK
 submitBtn.BorderSizePixel = 0
 submitBtn.Text = "REDEEM"
@@ -307,6 +307,86 @@ closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 18
 closeBtn.ZIndex = 51
 closeBtn.Parent = codesModal
+
+-- Friend code section (bottom of codes modal)
+local friendDiv = Instance.new("Frame")
+friendDiv.Size = UDim2.new(1, -32, 0, 1)
+friendDiv.Position = UDim2.new(0, 16, 0, 168)
+friendDiv.BackgroundColor3 = Color3.fromRGB(60, 56, 80)
+friendDiv.BorderSizePixel = 0
+friendDiv.ZIndex = 51
+friendDiv.Parent = codesModal
+
+local friendHead = makeLabel("FriendHead", codesModal, "YOUR FRIEND CODE", UDim2.new(1, -32, 0, 16), UDim2.new(0, 16, 0, 178))
+friendHead.TextColor3 = CYAN
+friendHead.Font = Enum.Font.GothamBold
+friendHead.TextSize = 12
+friendHead.ZIndex = 51
+
+local friendCodeBox = Instance.new("TextBox")
+friendCodeBox.Name = "FriendCode"
+friendCodeBox.Size = UDim2.new(1, -32, 0, 36)
+friendCodeBox.Position = UDim2.new(0, 16, 0, 198)
+friendCodeBox.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+friendCodeBox.BorderSizePixel = 0
+friendCodeBox.Text = "loading..."
+friendCodeBox.TextEditable = false
+friendCodeBox.ClearTextOnFocus = false
+friendCodeBox.TextColor3 = CYAN
+friendCodeBox.Font = Enum.Font.GothamBold
+friendCodeBox.TextScaled = true
+friendCodeBox.ZIndex = 51
+friendCodeBox.Parent = codesModal
+do
+    local s = Instance.new("UIStroke"); s.Color = CYAN; s.Thickness = 1; s.Parent = friendCodeBox
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = friendCodeBox
+end
+
+local friendStat = makeLabel("FriendStat", codesModal, "share with friends -- both get a coin bonus when they redeem",
+    UDim2.new(1, -32, 0, 14), UDim2.new(0, 16, 0, 240))
+friendStat.TextColor3 = TEXT
+friendStat.Font = Enum.Font.Code
+friendStat.TextSize = 11
+friendStat.TextTransparency = 0.4
+friendStat.ZIndex = 51
+
+local friendCount = makeLabel("FriendCount", codesModal, "0 friends used your code -> +0 coins lifetime",
+    UDim2.new(1, -32, 0, 14), UDim2.new(0, 16, 0, 258))
+friendCount.TextColor3 = AMBER
+friendCount.Font = Enum.Font.GothamBold
+friendCount.TextSize = 11
+friendCount.ZIndex = 51
+
+local function refreshFriendCode()
+    task.spawn(function()
+        local ok, snap = pcall(function() return remotes.GetFriendCode:InvokeServer() end)
+        if not ok or not snap then return end
+        if snap.friendCode and snap.friendCode ~= "" then
+            friendCodeBox.Text = snap.friendCode
+        else
+            friendCodeBox.Text = "(generating...)"
+        end
+        local count = snap.referralCount or 0
+        friendCount.Text = string.format("%d friend%s used your code -> +%s coins earned",
+            count, count == 1 and "" or "s", fmt(count * snap.referrerBonus))
+        if snap.referredBy then
+            friendStat.Text = "you were referred by " .. snap.referredBy
+            friendStat.TextColor3 = CYAN
+            friendStat.TextTransparency = 0.1
+        else
+            friendStat.Text = string.format("share with friends -- new player gets +%s, you get +%s each",
+                fmt(snap.referredBonus), fmt(snap.referrerBonus))
+        end
+    end)
+end
+
+remotes.ReferralBonusGranted.OnClientEvent:Connect(function(sourceCount: number, totalBonus: number)
+    showToast(string.format("+%d FRIEND%s", sourceCount, sourceCount == 1 and "" or "S"),
+        string.format("+%s coins from referrals", fmt(totalBonus)),
+        CYAN, 4)
+    flashScreen(CYAN, 0.5)
+    refreshFriendCode()
+end)
 
 -- Leaderboard panel (top-right)
 local lbPanel = makeFrame("LeaderboardPanel", UDim2.new(0, 280, 0, 380), UDim2.new(1, -296, 0, 16))
@@ -866,6 +946,7 @@ refreshOwnership()
 local function openCodesModal()
     codeBox.Text = ""
     codesModal.Visible = true
+    refreshFriendCode()
     -- Pop a half-second after modal becomes visible so focus lands cleanly
     task.delay(0.05, function()
         if codesModal.Visible then codeBox:CaptureFocus() end

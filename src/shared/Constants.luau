@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v10"
+Constants.DATASTORE_VERSION = "v11"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -451,6 +451,22 @@ Constants.ACHIEVEMENTS = {
     {id = "shopaholic",        name = "Shopaholic",         desc = "Buy 3 rebirth shop items",
      trigger = "rebirth_shop_owned", threshold = 3,            rewardCoins = 0,      rewardTokens = 2, badgeId = 0},
 }
+
+-- Friend Codes / Referrals. Each player auto-generates a sharable code on
+-- first join. New players can redeem someone else's code (one-shot per
+-- account) and BOTH parties get a coin bonus. Compounds with the existing
+-- promo CodesService -- if a redeemed string isn't a known promo code,
+-- it's checked against the friend-code registry next.
+--
+-- Cross-session lookup uses a separate DataStore keyed by friend code
+-- (FRIEND_CODE_REGISTRY_NAME) -> referrer userId, so referrals work even
+-- when the referrer is offline. Referrer's bonus is queued via DataStore
+-- update on their record (their next login granular-claims it).
+Constants.FRIEND_CODE_REGISTRY_NAME = "FriendCodeRegistry_v1"
+Constants.FRIEND_CODE_PREFIX = "STUD-"           -- distinguishes from promo codes
+Constants.FRIEND_CODE_SUFFIX_LENGTH = 5           -- 5-char alphanumeric suffix
+Constants.REFERRAL_REFERRER_BONUS = 1000          -- per referral, no cap
+Constants.REFERRAL_REFERRED_BONUS = 2000          -- one-shot for the new player
 
 -- Live Activity Feed. A cross-server-synced ticker of recent "wow"
 -- moments (legendary hatches, rebirth milestones, aura unlocks, code

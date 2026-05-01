@@ -34,6 +34,10 @@ export type PlayerData = {
     questsClaimedTotal: number,     -- monotonic across all days (for "Quest Grinder" achievement)
     lastHourlyTributeUnix: number,  -- last time the hourly-tribute stacks were claimed; used to compute available
     equippedAura: string?,          -- {AURAS[].id} or nil; visible to all players via character Trail
+    friendCode: string,             -- this player's sharable code (e.g. "STUD-AB3X4"); generated on first join
+    referredBy: string?,            -- friend code that referred them, if any (one-shot)
+    referralCount: number,          -- how many people redeemed THIS player's code
+    pendingReferralBonusCoins: number, -- queued bonus from referrals while offline; granted on next session start
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 
@@ -92,6 +96,8 @@ export type RemoteMap = {
     AuraRejected: RemoteEvent,        -- server -> client; payload {auraId, reason}
     GetActivityFeed: RemoteFunction,  -- client -> server; returns {entries=[{kind, userName, detail, unix, agoSec}]}
     ActivityFeedUpdated: RemoteEvent, -- server -> client; payload {entries} (push when feed changes server-side)
+    GetFriendCode: RemoteFunction,    -- client -> server; returns {friendCode, referralCount, referredBy, pendingBonusCoins}
+    ReferralBonusGranted: RemoteEvent,-- server -> client; payload {sourceCount, totalBonus} (fires when a referrer's bonus is realized)
 }
 
 return {}

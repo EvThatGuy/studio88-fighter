@@ -94,6 +94,27 @@ function CodesService.attemptRedeem(player: Player, rawCode: any): (boolean, str
     end
     local spec = Constants.CODES[code]
     if not spec then
+        -- Fall through to friend-code redemption if the input matches the
+        -- friend-code shape. ReferralService handles its own client push,
+        -- so we just translate its rejection reasons back to the codes
+        -- modal for unified UX.
+        local ok, ReferralService = pcall(function()
+            return require(script.Parent:WaitForChild("ReferralService.server"))
+        end)
+        if ok and ReferralService and ReferralService.isFriendCode(code) then
+            local fok, freason = ReferralService.attemptRedeem(player, code)
+            if fok then
+                -- Reuse the code-redeemed UX for the redeemer; the actual
+                -- coin balance push already happened inside ReferralService.
+                pcall(function()
+                    remotes.CodeRedeemed:FireClient(player, code, Constants.REFERRAL_REFERRED_BONUS)
+                end)
+                return true, nil
+            else
+                pushReject(player, code, "friend_" .. (freason or "unknown"))
+                return false, freason
+            end
+        end
         pushReject(player, code, "unknown")
         return false, "unknown"
     end

@@ -50,6 +50,10 @@ local function defaultPlayerData(): Types.PlayerData
         questsClaimedTotal = 0,
         lastHourlyTributeUnix = 0,
         equippedAura = nil,
+        friendCode = "",                  -- generated on first join by ReferralService
+        referredBy = nil,
+        referralCount = 0,
+        pendingReferralBonusCoins = 0,
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -133,6 +137,17 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
     ["v9"] = function(data: any): Types.PlayerData
         if data.equippedAura == nil then data.equippedAura = nil end -- explicit no-op for clarity
         data.schemaVersion = "v10"
+        return data
+    end,
+    -- v10 -> v11: friend codes. friendCode = "" means ReferralService will
+    -- generate one on next login (lazy because we need a fresh registry
+    -- collision check). referredBy stays nil so legacy players can still
+    -- redeem someone's code one-shot for the bonus.
+    ["v10"] = function(data: any): Types.PlayerData
+        data.friendCode = data.friendCode or ""
+        data.referralCount = data.referralCount or 0
+        data.pendingReferralBonusCoins = data.pendingReferralBonusCoins or 0
+        data.schemaVersion = "v11"
         return data
     end,
 }
