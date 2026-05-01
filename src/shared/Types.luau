@@ -9,6 +9,7 @@ export type PlayerData = {
     lastLoginUnix: number,          -- os.time() at last full login
     streak: number,                 -- consecutive days logged in
     starterPackPurchasedUnix: number?, -- for the 30-min Starter Pack window
+    rebirths: number,               -- prestige count; permanent across all sessions
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 
@@ -26,6 +27,9 @@ export type RemoteMap = {
     TierUpgraded: RemoteEvent,      -- server -> client; payload {newTier, mult}
     DailyBonusGranted: RemoteEvent, -- server -> client; payload {streak, reward}
     PurchaseRejected: RemoteEvent,  -- server -> client; payload {reason, needed?}
+    RequestRebirth: RemoteEvent,    -- client -> server; ask to prestige
+    RebirthGranted: RemoteEvent,    -- server -> client; payload {rebirths, newMult}
+    RebirthRejected: RemoteEvent,   -- server -> client; payload {reason, needed?}
 }
 
 return {}

@@ -4,9 +4,10 @@
 -- children. The Esc menu and default top-right player list pick them up
 -- automatically -- zero client code required.
 --
--- We expose two stats: Coins (current spendable balance) and Tier
--- (1..#UPGRADE_TIERS). Server scripts that mutate cached PlayerData call
--- Leaderstats.refresh(userId) to push the latest values.
+-- We expose three stats: Coins (current spendable balance), Tier
+-- (1..#UPGRADE_TIERS), and Rebirths (prestige count). Server scripts that
+-- mutate cached PlayerData call Leaderstats.refresh(userId) to push the
+-- latest values.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,6 +29,10 @@ local function ensureFolder(player: Player): Folder
     tier.Name = "Tier"
     tier.Value = 1
     tier.Parent = folder
+    local rebirths = Instance.new("IntValue")
+    rebirths.Name = "Rebirths"
+    rebirths.Value = 0
+    rebirths.Parent = folder
     folder.Parent = player
     return folder
 end
@@ -40,9 +45,11 @@ function Leaderstats.refresh(userId: number)
     local folder = ensureFolder(player)
     local coinsVal = folder:FindFirstChild("Coins") :: IntValue?
     local tierVal = folder:FindFirstChild("Tier") :: IntValue?
+    local rebirthVal = folder:FindFirstChild("Rebirths") :: IntValue?
     -- IntValue caps at int32; clamp huge balances so we don't overflow
     if coinsVal then coinsVal.Value = math.clamp(data.coins, 0, 2147483647) end
     if tierVal then tierVal.Value = data.upgradeTier end
+    if rebirthVal then rebirthVal.Value = data.rebirths or 0 end
 end
 
 -- Bootstrap: populate at join + on every cache landing
@@ -59,6 +66,6 @@ Players.PlayerAdded:Connect(function(player)
     end)
 end)
 
-print("[Leaderstats] mounted (Coins + Tier in Esc menu player list)")
+print("[Leaderstats] mounted (Coins + Tier + Rebirths in Esc menu player list)")
 
 return Leaderstats

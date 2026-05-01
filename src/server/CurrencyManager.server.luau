@@ -51,6 +51,9 @@ local function multiplierFor(userId: number, data): number
     -- Tier multiplier
     local tier = Constants.UPGRADE_TIERS[data.upgradeTier]
     if tier then mult *= tier.incomeMult end
+    -- Rebirth permanent multiplier (1 + rebirths * REBIRTH_BONUS_PER)
+    local rb = data.rebirths or 0
+    if rb > 0 then mult *= (1 + rb * Constants.REBIRTH_BONUS_PER) end
     -- Pass multipliers
     local passes = getPasses(userId)
     if passes.vip then mult *= Constants.GAME_PASS_MULT.VIP_MULT end
@@ -83,12 +86,12 @@ local function tick()
 end
 
 -- Server-authoritative balance read for the client (RemoteFunction).
-remotes.GetBalance.OnServerInvoke = function(player: Player): {coins: number, lifetimeCoins: number, upgradeTier: number}
+remotes.GetBalance.OnServerInvoke = function(player: Player): {coins: number, lifetimeCoins: number, upgradeTier: number, rebirths: number}
     local data = DataStore.getCached(player.UserId)
     if not data then
-        return {coins = 0, lifetimeCoins = 0, upgradeTier = 1}
+        return {coins = 0, lifetimeCoins = 0, upgradeTier = 1, rebirths = 0}
     end
-    return {coins = data.coins, lifetimeCoins = data.lifetimeCoins, upgradeTier = data.upgradeTier}
+    return {coins = data.coins, lifetimeCoins = data.lifetimeCoins, upgradeTier = data.upgradeTier, rebirths = data.rebirths or 0}
 end
 
 -- Drop pass cache when a player leaves so memory doesn't bloat

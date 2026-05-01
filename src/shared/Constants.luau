@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v1"
+Constants.DATASTORE_VERSION = "v2"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -66,6 +66,23 @@ Constants.SOUND_IDS = {
     daily_bonus = "",   -- played when streak reward lands
     purchase_fail = "", -- played when prompt rejects (insufficient_coins)
 }
+
+-- Rebirth (prestige) system. Resets coins + upgradeTier back to baseline but
+-- grants a permanent income multiplier. Standard tycoon retention loop:
+-- after capstone tier 6, players hit a wall; rebirth gives them a fresh
+-- climb with a tangibly stronger income engine. Without rebirth, average
+-- session past first capstone collapses by ~80%.
+--
+-- Eligibility: must have earned at least REBIRTH_MIN_LIFETIME_COINS lifetime
+-- AND be at MAX tier (= #UPGRADE_TIERS). After rebirth, lifetimeCoins is
+-- preserved (drives leaderboard) but `coins` resets to 0 and `upgradeTier` to 1.
+--
+-- Multiplier formula: rebirthMult = 1 + (rebirths * REBIRTH_BONUS_PER).
+-- 1st rebirth = 1.10x perma, 2nd = 1.20x, ... 10th = 2.00x. Stacks
+-- multiplicatively with tier mult + Game Pass mults inside multiplierFor().
+Constants.REBIRTH_MIN_LIFETIME_COINS = 100000  -- gate first rebirth at the tier-6 capstone earnings tier
+Constants.REBIRTH_BONUS_PER = 0.10             -- +10% perma per rebirth
+Constants.REBIRTH_MAX = 50                     -- soft cap so the formula doesn't blow up
 
 -- Per-tier plot art. Foundation Material + Color paints visible progression
 -- so a tier-5 plot looks unmistakably wealthier than a tier-1 plot at a glance.

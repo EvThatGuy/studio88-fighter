@@ -34,14 +34,24 @@ local function defaultPlayerData(): Types.PlayerData
         lastLoginUnix = 0,
         streak = 0,
         starterPackPurchasedUnix = nil,
+        rebirths = 0,
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
 
--- Migration table: a no-op for v1 since we have no prior schema. Adding new
--- versions: add `["v1"] = function(data) ... return data end` and bump
+-- Migration table. Adding new versions: add `["vN"] = function(data) ... end`
+-- that returns data with schemaVersion bumped to "vN+1", and bump
 -- Constants.DATASTORE_VERSION + DATASTORE_NAME.
-local migrations: {[string]: (any) -> Types.PlayerData} = {}
+--
+-- v1 -> v2: rebirth system added. Old docs get rebirths=0 (defaultPlayerData
+-- backfill catches it but explicit migration documents the intent).
+local migrations: {[string]: (any) -> Types.PlayerData} = {
+    ["v1"] = function(data: any): Types.PlayerData
+        data.rebirths = data.rebirths or 0
+        data.schemaVersion = "v2"
+        return data
+    end,
+}
 
 local function migrate(raw: any): Types.PlayerData
     local data = raw or defaultPlayerData()

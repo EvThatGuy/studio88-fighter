@@ -64,7 +64,7 @@ local function makeLabel(name: string, parent: Instance, text: string, size: UDi
 end
 
 -- Balance panel (top-left)
-local balancePanel = makeFrame("BalancePanel", UDim2.new(0, 240, 0, 70), UDim2.new(0, 16, 0, 16))
+local balancePanel = makeFrame("BalancePanel", UDim2.new(0, 240, 0, 84), UDim2.new(0, 16, 0, 16))
 balancePanel.Parent = screen
 
 local balanceTag = makeLabel("Tag", balancePanel, "COINS", UDim2.new(1, -16, 0, 14), UDim2.new(0, 8, 0, 6))
@@ -74,9 +74,38 @@ balanceTag.Font = Enum.Font.Code
 local balanceValue = makeLabel("Value", balancePanel, "0", UDim2.new(1, -16, 0, 38), UDim2.new(0, 8, 0, 22))
 balanceValue.TextColor3 = TEXT
 
-local tierLabel = makeLabel("Tier", balancePanel, "Tier 1", UDim2.new(1, -16, 0, 12), UDim2.new(0, 8, 1, -16))
+local tierLabel = makeLabel("Tier", balancePanel, "Tier 1", UDim2.new(0, 120, 0, 12), UDim2.new(0, 8, 1, -16))
 tierLabel.TextColor3 = PINK
 tierLabel.Font = Enum.Font.Code
+
+local rebirthLabel = makeLabel("Rebirths", balancePanel, "R: 0", UDim2.new(0, 96, 0, 12), UDim2.new(1, -104, 1, -16))
+rebirthLabel.TextColor3 = CYAN
+rebirthLabel.Font = Enum.Font.Code
+rebirthLabel.TextXAlignment = Enum.TextXAlignment.Right
+
+-- Rebirth button (bottom-left). Visible always; disabled-look until eligible.
+-- Uses a TextButton (not Frame) so client can press it; server validates.
+local rebirthBtn = Instance.new("TextButton")
+rebirthBtn.Name = "RebirthButton"
+rebirthBtn.Size = UDim2.new(0, 240, 0, 56)
+rebirthBtn.Position = UDim2.new(0, 16, 1, -72)
+rebirthBtn.BackgroundColor3 = BG
+rebirthBtn.BackgroundTransparency = 0.15
+rebirthBtn.BorderSizePixel = 0
+rebirthBtn.AutoButtonColor = false
+rebirthBtn.Text = ""
+rebirthBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = CYAN; s.Thickness = 1; s.Parent = rebirthBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = rebirthBtn
+end
+local rebirthHead = makeLabel("Head", rebirthBtn, "REBIRTH", UDim2.new(1, -16, 0, 18), UDim2.new(0, 8, 0, 6))
+rebirthHead.TextColor3 = CYAN
+rebirthHead.Font = Enum.Font.Code
+local rebirthSub = makeLabel("Sub", rebirthBtn, "reach max tier first", UDim2.new(1, -16, 0, 26), UDim2.new(0, 8, 0, 24))
+rebirthSub.TextColor3 = TEXT
+rebirthSub.Font = Enum.Font.Gotham
+rebirthSub.TextTransparency = 0.4
 
 -- Leaderboard panel (top-right)
 local lbPanel = makeFrame("LeaderboardPanel", UDim2.new(0, 280, 0, 380), UDim2.new(1, -296, 0, 16))
@@ -106,9 +135,54 @@ local function fmt(n: number): string
     return string.format("%.2fM", n / 1000000)
 end
 
-local function setBalance(coins: number, lifetime: number, tier: number?)
+-- Mirror of last-known server state so the rebirth button can decide whether
+-- it's eligible without re-pinging the server on every tick. Updated by
+-- BalanceUpdated, TierUpgraded, RebirthGranted, and the initial GetBalance.
+local localState = {
+    coins = 0,
+    lifetimeCoins = 0,
+    upgradeTier = 1,
+    rebirths = 0,
+}
+
+local MAX_TIER = #Constants.UPGRADE_TIERS
+
+local function refreshRebirthButton()
+    local rb = localState.rebirths
+    local atMaxTier = localState.upgradeTier >= MAX_TIER
+    local hasLifetime = localState.lifetimeCoins >= Constants.REBIRTH_MIN_LIFETIME_COINS
+    local atMaxRebirths = rb >= Constants.REBIRTH_MAX
+    local eligible = atMaxTier and hasLifetime and not atMaxRebirths
+    if atMaxRebirths then
+        rebirthHead.Text = "MAX REBIRTHS"
+        rebirthSub.Text = string.format("R%d perma x%.2f", rb, 1 + rb * Constants.REBIRTH_BONUS_PER)
+        rebirthSub.TextTransparency = 0.4
+    elseif eligible then
+        local nextMult = 1 + (rb + 1) * Constants.REBIRTH_BONUS_PER
+        rebirthHead.Text = "REBIRTH READY"
+        rebirthSub.Text = string.format("press to prestige - new perma x%.2f", nextMult)
+        rebirthSub.TextTransparency = 0
+    elseif not atMaxTier then
+        rebirthHead.Text = "REBIRTH"
+        rebirthSub.Text = string.format("reach tier %d first", MAX_TIER)
+        rebirthSub.TextTransparency = 0.4
+    else
+        local need = Constants.REBIRTH_MIN_LIFETIME_COINS - localState.lifetimeCoins
+        rebirthHead.Text = "REBIRTH"
+        rebirthSub.Text = string.format("earn %s more lifetime coins", fmt(math.max(0, need)))
+        rebirthSub.TextTransparency = 0.4
+    end
+end
+
+local function setBalance(coins: number, lifetime: number, tier: number?, rebirths: number?)
+    localState.coins = coins
+    localState.lifetimeCoins = lifetime
+    if tier then localState.upgradeTier = tier end
+    if rebirths then localState.rebirths = rebirths end
     balanceValue.Text = fmt(coins)
     if tier then tierLabel.Text = "Tier " .. tier end
+    rebirthLabel.Text = "R: " .. localState.rebirths
+    refreshRebirthButton()
 end
 
 -- First-time hint: on first BalanceUpdated of the session we know the
@@ -176,6 +250,15 @@ remotes.BalanceUpdated.OnClientEvent:Connect(function(coins, lifetime)
     dismissHint()
 end)
 
+-- Click handler: ask the server to rebirth. Server validates eligibility
+-- (we don't trust the client's button-enabled state). Either RebirthGranted
+-- or RebirthRejected fires back.
+rebirthBtn.MouseButton1Click:Connect(function()
+    pcall(function()
+        remotes.RequestRebirth:FireServer()
+    end)
+end)
+
 remotes.LeaderboardUpdated.OnClientEvent:Connect(function(rows)
     -- Clear existing
     for _, child in ipairs(lbList:GetChildren()) do
@@ -201,7 +284,7 @@ task.spawn(function()
         return remotes.GetBalance:InvokeServer()
     end)
     if ok and result then
-        setBalance(result.coins or 0, result.lifetimeCoins or 0, result.upgradeTier)
+        setBalance(result.coins or 0, result.lifetimeCoins or 0, result.upgradeTier, result.rebirths)
     end
 end)
 
@@ -314,6 +397,8 @@ end)
 
 remotes.TierUpgraded.OnClientEvent:Connect(function(newTier: number, mult: number)
     tierLabel.Text = "Tier " .. newTier
+    localState.upgradeTier = newTier
+    refreshRebirthButton()
     showToast(
         string.format("TIER %d UNLOCKED", newTier),
         string.format("Income x%s", tostring(mult)),
@@ -322,6 +407,42 @@ remotes.TierUpgraded.OnClientEvent:Connect(function(newTier: number, mult: numbe
     )
     flashScreen(PINK, 0.6)
     playSound(Constants.SOUND_IDS.tier_up, 0.7)
+end)
+
+remotes.RebirthGranted.OnClientEvent:Connect(function(rebirths: number, newMult: number)
+    -- Server has reset coins/tier server-side; the next BalanceUpdated will
+    -- carry the zero. Update local mirror for the button copy + label.
+    localState.rebirths = rebirths
+    localState.upgradeTier = 1
+    localState.coins = 0
+    rebirthLabel.Text = "R: " .. rebirths
+    tierLabel.Text = "Tier 1"
+    balanceValue.Text = "0"
+    refreshRebirthButton()
+    showToast(
+        string.format("REBIRTH #%d", rebirths),
+        string.format("perma income x%.2f -- climb again, faster", newMult),
+        CYAN,
+        6
+    )
+    flashScreen(CYAN, 0.8)
+    playSound(Constants.SOUND_IDS.tier_up, 0.7)
+end)
+
+local REBIRTH_REJECTION_COPY: {[string]: string} = {
+    no_data = "Save data still loading. Try again in a sec.",
+    min_tier = "You need to reach the max upgrade tier first.",
+    insufficient_lifetime = "Earn %s more lifetime coins first.",
+    max_rebirths = "You're already at max rebirths. Flex on the leaderboard.",
+}
+
+remotes.RebirthRejected.OnClientEvent:Connect(function(reason: string, needed: number?)
+    local sub = REBIRTH_REJECTION_COPY[reason] or reason
+    if reason == "insufficient_lifetime" and needed then
+        sub = string.format(REBIRTH_REJECTION_COPY[reason], fmt(needed))
+    end
+    showToast("CAN'T REBIRTH YET", sub, AMBER, 3)
+    playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
 end)
 
 local REJECTION_COPY: {[string]: {head: string, sub: string}} = {
