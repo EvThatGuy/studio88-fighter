@@ -24,6 +24,9 @@ local REMOTE_NAMES = {
     {name = "RequestRebirth", class = "RemoteEvent"},
     {name = "RebirthGranted", class = "RemoteEvent"},
     {name = "RebirthRejected", class = "RemoteEvent"},
+    {name = "RequestRedeemCode", class = "RemoteEvent"},
+    {name = "CodeRedeemed", class = "RemoteEvent"},
+    {name = "CodeRejected", class = "RemoteEvent"},
 }
 
 local function ensureFolder(): Folder

@@ -107,6 +107,104 @@ rebirthSub.TextColor3 = TEXT
 rebirthSub.Font = Enum.Font.Gotham
 rebirthSub.TextTransparency = 0.4
 
+-- Codes button (bottom-right). Always visible; clicking opens the input
+-- modal. Codes are advertised via @ModernGrindTech tweets / Discord pins.
+local codesBtn = Instance.new("TextButton")
+codesBtn.Name = "CodesButton"
+codesBtn.Size = UDim2.new(0, 140, 0, 44)
+codesBtn.Position = UDim2.new(1, -156, 1, -60)
+codesBtn.BackgroundColor3 = BG
+codesBtn.BackgroundTransparency = 0.15
+codesBtn.BorderSizePixel = 0
+codesBtn.AutoButtonColor = false
+codesBtn.Text = ""
+codesBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = PINK; s.Thickness = 1; s.Parent = codesBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = codesBtn
+end
+local codesLabel = makeLabel("Label", codesBtn, "+ CODES", UDim2.new(1, -16, 1, -8), UDim2.new(0, 8, 0, 4))
+codesLabel.TextColor3 = PINK
+codesLabel.Font = Enum.Font.Code
+codesLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+-- Codes input modal (hidden by default). Center-screen, click-blocks via
+-- the parent ScreenGui order. ESC or the X button dismisses.
+local codesModal = Instance.new("Frame")
+codesModal.Name = "CodesModal"
+codesModal.Size = UDim2.new(0, 380, 0, 180)
+codesModal.Position = UDim2.new(0.5, -190, 0.5, -90)
+codesModal.BackgroundColor3 = BG
+codesModal.BackgroundTransparency = 0.05
+codesModal.BorderSizePixel = 0
+codesModal.Visible = false
+codesModal.ZIndex = 50
+codesModal.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = PINK; s.Thickness = 2; s.Parent = codesModal
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = codesModal
+end
+local modalHead = makeLabel("Head", codesModal, "REDEEM CODE", UDim2.new(1, -32, 0, 22), UDim2.new(0, 16, 0, 12))
+modalHead.TextColor3 = PINK
+modalHead.Font = Enum.Font.GothamBold
+modalHead.ZIndex = 51
+
+local modalSub = makeLabel("Sub", codesModal, "type the code from @ModernGrindTech", UDim2.new(1, -32, 0, 16), UDim2.new(0, 16, 0, 36))
+modalSub.TextColor3 = TEXT
+modalSub.Font = Enum.Font.Code
+modalSub.TextTransparency = 0.3
+modalSub.ZIndex = 51
+
+local codeBox = Instance.new("TextBox")
+codeBox.Name = "CodeInput"
+codeBox.Size = UDim2.new(1, -32, 0, 44)
+codeBox.Position = UDim2.new(0, 16, 0, 64)
+codeBox.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+codeBox.BackgroundTransparency = 0
+codeBox.BorderSizePixel = 0
+codeBox.Text = ""
+codeBox.PlaceholderText = "e.g. LAUNCH"
+codeBox.PlaceholderColor3 = Color3.fromRGB(96, 96, 110)
+codeBox.TextColor3 = TEXT
+codeBox.Font = Enum.Font.Code
+codeBox.TextScaled = true
+codeBox.ClearTextOnFocus = false
+codeBox.MultiLine = false
+codeBox.ZIndex = 51
+codeBox.Parent = codesModal
+do
+    local s = Instance.new("UIStroke"); s.Color = CYAN; s.Thickness = 1; s.Parent = codeBox
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = codeBox
+end
+
+local submitBtn = Instance.new("TextButton")
+submitBtn.Name = "Submit"
+submitBtn.Size = UDim2.new(0, 100, 0, 36)
+submitBtn.Position = UDim2.new(1, -116, 1, -52)
+submitBtn.BackgroundColor3 = PINK
+submitBtn.BorderSizePixel = 0
+submitBtn.Text = "REDEEM"
+submitBtn.TextColor3 = BG
+submitBtn.Font = Enum.Font.GothamBold
+submitBtn.TextSize = 16
+submitBtn.ZIndex = 51
+submitBtn.Parent = codesModal
+do
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = submitBtn
+end
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Name = "Close"
+closeBtn.Size = UDim2.new(0, 24, 0, 24)
+closeBtn.Position = UDim2.new(1, -32, 0, 8)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Text = "X"
+closeBtn.TextColor3 = TEXT
+closeBtn.Font = Enum.Font.GothamBold
+closeBtn.TextSize = 18
+closeBtn.ZIndex = 51
+closeBtn.Parent = codesModal
+
 -- Leaderboard panel (top-right)
 local lbPanel = makeFrame("LeaderboardPanel", UDim2.new(0, 280, 0, 380), UDim2.new(1, -296, 0, 16))
 lbPanel.Parent = screen
@@ -442,6 +540,70 @@ remotes.RebirthRejected.OnClientEvent:Connect(function(reason: string, needed: n
         sub = string.format(REBIRTH_REJECTION_COPY[reason], fmt(needed))
     end
     showToast("CAN'T REBIRTH YET", sub, AMBER, 3)
+    playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
+end)
+
+-- ----- Codes modal wiring -----
+
+local function openCodesModal()
+    codeBox.Text = ""
+    codesModal.Visible = true
+    -- Pop a half-second after modal becomes visible so focus lands cleanly
+    task.delay(0.05, function()
+        if codesModal.Visible then codeBox:CaptureFocus() end
+    end)
+end
+
+local function closeCodesModal()
+    codesModal.Visible = false
+end
+
+local function submitCode()
+    local raw = codeBox.Text or ""
+    if #raw == 0 then return end
+    pcall(function()
+        remotes.RequestRedeemCode:FireServer(raw)
+    end)
+    -- Keep modal open until server responds; CodeRedeemed closes it,
+    -- CodeRejected leaves it open so the player can try another spelling.
+end
+
+codesBtn.MouseButton1Click:Connect(openCodesModal)
+closeBtn.MouseButton1Click:Connect(closeCodesModal)
+submitBtn.MouseButton1Click:Connect(submitCode)
+codeBox.FocusLost:Connect(function(enterPressed)
+    if enterPressed then submitCode() end
+end)
+
+remotes.CodeRedeemed.OnClientEvent:Connect(function(code: string, reward: number)
+    closeCodesModal()
+    showToast(
+        string.format("+%s COINS", fmt(reward)),
+        string.format("code '%s' redeemed", code),
+        PINK,
+        4
+    )
+    flashScreen(PINK, 0.5)
+    playSound(Constants.SOUND_IDS.daily_bonus, 0.6)
+end)
+
+local CODE_REJECTION_COPY: {[string]: string} = {
+    rate_limited = "Slow down -- one redeem at a time.",
+    empty = "Type the code first.",
+    unknown = "Code '%s' isn't valid. Check spelling.",
+    expired = "Code '%s' has expired.",
+    no_data = "Save data still loading. Try again in a sec.",
+    already_redeemed = "You already redeemed '%s'.",
+    cap_reached = "Code '%s' hit its global cap. Sorry!",
+}
+
+remotes.CodeRejected.OnClientEvent:Connect(function(code: string, reason: string)
+    local template = CODE_REJECTION_COPY[reason] or reason
+    local sub = template
+    if string.find(template, "%%s") then
+        sub = string.format(template, code ~= "" and code or "(blank)")
+    end
+    showToast("CODE REJECTED", sub, AMBER, 3)
     playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
 end)
 

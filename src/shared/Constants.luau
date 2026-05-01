@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v2"
+Constants.DATASTORE_VERSION = "v3"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -83,6 +83,49 @@ Constants.SOUND_IDS = {
 Constants.REBIRTH_MIN_LIFETIME_COINS = 100000  -- gate first rebirth at the tier-6 capstone earnings tier
 Constants.REBIRTH_BONUS_PER = 0.10             -- +10% perma per rebirth
 Constants.REBIRTH_MAX = 50                     -- soft cap so the formula doesn't blow up
+
+-- Promo codes. David tweets / DMs / pins a code; players type it for free
+-- coins. This is the cheapest top-of-funnel retention loop available
+-- because every code post forces players to log in within the validity
+-- window, and every redeemer adds a follow / DM signal.
+--
+-- Format per code (string -> table):
+--   reward = number of coins granted on redeem
+--   expiresUnix = os.time() cutoff after which redeem returns "expired"
+--                 (nil = never expires; only use for permanent welcome codes)
+--   maxGlobalRedemptions = optional global cap; nil = unlimited per player
+--
+-- Codes are case-insensitive on input (server uppercases). Keep them short
+-- and SMS-typeable. ALWAYS uppercase the keys here.
+--
+-- Per-player redemption history lives in PlayerData.redeemedCodes; one
+-- redeem per code per player is enforced server-side regardless of what
+-- the global cap says.
+Constants.CODES = {
+    LAUNCH = {
+        reward = 5000,
+        expiresUnix = nil,                         -- evergreen; pinned welcome
+        maxGlobalRedemptions = nil,
+    },
+    STARMEXXX = {
+        reward = 2500,
+        expiresUnix = nil,                         -- credits the playbook
+        maxGlobalRedemptions = nil,
+    },
+    GTA6HYPE = {
+        reward = 7500,
+        expiresUnix = 1763510400,                  -- 2025-11-18 (day before GTA6)
+        maxGlobalRedemptions = nil,
+    },
+    THANKYOU = {
+        reward = 10000,
+        expiresUnix = nil,
+        maxGlobalRedemptions = 1000,               -- first 1000 only; FOMO ramp
+    },
+}
+
+-- Per-player input rate limit on RequestRedeemCode (anti-spam).
+Constants.CODE_REDEEM_COOLDOWN_SEC = 3
 
 -- Per-tier plot art. Foundation Material + Color paints visible progression
 -- so a tier-5 plot looks unmistakably wealthier than a tier-1 plot at a glance.

@@ -10,6 +10,7 @@ export type PlayerData = {
     streak: number,                 -- consecutive days logged in
     starterPackPurchasedUnix: number?, -- for the 30-min Starter Pack window
     rebirths: number,               -- prestige count; permanent across all sessions
+    redeemedCodes: {[string]: boolean}, -- {[UPPERCASE_CODE] = true} for one-shot enforcement
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 
@@ -30,6 +31,9 @@ export type RemoteMap = {
     RequestRebirth: RemoteEvent,    -- client -> server; ask to prestige
     RebirthGranted: RemoteEvent,    -- server -> client; payload {rebirths, newMult}
     RebirthRejected: RemoteEvent,   -- server -> client; payload {reason, needed?}
+    RequestRedeemCode: RemoteEvent, -- client -> server; payload {code: string}
+    CodeRedeemed: RemoteEvent,      -- server -> client; payload {code, reward}
+    CodeRejected: RemoteEvent,      -- server -> client; payload {code, reason}
 }
 
 return {}

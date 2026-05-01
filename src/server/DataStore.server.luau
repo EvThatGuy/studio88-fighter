@@ -35,6 +35,7 @@ local function defaultPlayerData(): Types.PlayerData
         streak = 0,
         starterPackPurchasedUnix = nil,
         rebirths = 0,
+        redeemedCodes = {},
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -43,12 +44,19 @@ end
 -- that returns data with schemaVersion bumped to "vN+1", and bump
 -- Constants.DATASTORE_VERSION + DATASTORE_NAME.
 --
--- v1 -> v2: rebirth system added. Old docs get rebirths=0 (defaultPlayerData
--- backfill catches it but explicit migration documents the intent).
+-- v1 -> v2: rebirth system added.
+-- v2 -> v3: codes system added. redeemedCodes is the per-player one-shot
+-- redemption ledger; without it old docs would happily redeem the same
+-- code over and over.
 local migrations: {[string]: (any) -> Types.PlayerData} = {
     ["v1"] = function(data: any): Types.PlayerData
         data.rebirths = data.rebirths or 0
         data.schemaVersion = "v2"
+        return data
+    end,
+    ["v2"] = function(data: any): Types.PlayerData
+        data.redeemedCodes = data.redeemedCodes or {}
+        data.schemaVersion = "v3"
         return data
     end,
 }
