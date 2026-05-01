@@ -13,6 +13,7 @@ local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
 local EventService = require(script.Parent:WaitForChild("EventService.server"))
+local TutorialService = require(script.Parent:WaitForChild("TutorialService.server"))
 
 local remotes = Remotes.get()
 
@@ -88,6 +89,13 @@ local function tick()
                     -- single bump per tick is fine.
                     DailyQuestService.bumpProgress(player.UserId,
                         Constants.QUEST_KIND.EARN_COINS_TODAY, gain)
+                    -- Tutorial step 5: lifetime crossed the rebirth gate
+                    -- AND player is at max tier (eligibility). Advance
+                    -- best-effort; TutorialService no-ops if past.
+                    if data.lifetimeCoins >= Constants.REBIRTH_MIN_LIFETIME_COINS
+                        and data.upgradeTier >= #Constants.UPGRADE_TIERS then
+                        TutorialService.advance(player.UserId, "05_eligible_for_rebirth")
+                    end
                 end
             end
         end

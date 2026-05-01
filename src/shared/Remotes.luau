@@ -35,6 +35,8 @@ local REMOTE_NAMES = {
     {name = "QuestClaimed", class = "RemoteEvent"},
     {name = "QuestRejected", class = "RemoteEvent"},
     {name = "EventStateChanged", class = "RemoteEvent"},
+    {name = "TutorialStepReached", class = "RemoteEvent"},
+    {name = "GetTutorialStep", class = "RemoteFunction"},
 }
 
 local function ensureFolder(): Folder

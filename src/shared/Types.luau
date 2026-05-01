@@ -18,6 +18,7 @@ export type PlayerData = {
     rebirths: number,               -- prestige count; permanent across all sessions
     redeemedCodes: {[string]: boolean}, -- {[UPPERCASE_CODE] = true} for one-shot enforcement
     dailyQuests: DailyQuestState,   -- today's quest progress + claim state
+    tutorialStep: number,           -- highest FTUE step completed (0..#FTUE_STEPS); 0 = brand new
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 
@@ -49,6 +50,8 @@ export type RemoteMap = {
     QuestClaimed: RemoteEvent,      -- server -> client; payload {questId, reward}
     QuestRejected: RemoteEvent,     -- server -> client; payload {questId, reason}
     EventStateChanged: RemoteEvent, -- server -> client; payload {active, event?, endsInSec?}
+    TutorialStepReached: RemoteEvent, -- server -> client; payload {stepIndex, stepId}
+    GetTutorialStep: RemoteFunction,  -- client -> server; returns current step number
 }
 
 return {}

@@ -16,6 +16,7 @@ local Workspace = game:GetService("Workspace")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local TutorialService = require(script.Parent:WaitForChild("TutorialService.server"))
 
 local PlotAssigner = {}
 
@@ -149,6 +150,10 @@ local function assign(player: Player)
     local lifetime = (data and data.lifetimeCoins) or 0
     PlotAssigner.applyTierArt(clone, tier)
     PlotAssigner.updateStatsBoard(clone, tier, lifetime)
+
+    -- FTUE step 1: plot assigned. Players who already past this step are
+    -- no-op'd inside TutorialService.advance (highest-step-wins).
+    TutorialService.advance(player.UserId, "01_arrived_at_plot")
 
     print(string.format("[PlotAssigner] %s -> plot index %s",
         player.Name, tostring(anchor:GetAttribute("PlotIndex"))))

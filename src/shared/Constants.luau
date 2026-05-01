@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v4"
+Constants.DATASTORE_VERSION = "v5"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -247,6 +247,17 @@ Constants.LIVE_EVENTS = {
 -- How often the EventService scans for active events. 30s is plenty —
 -- events tick over at minute granularity from the player's perspective.
 Constants.EVENT_SCAN_INTERVAL_SEC = 30
+
+-- FTUE step ids. Server tracks these via AnalyticsService:LogOnboardingFunnelStepEvent
+-- (Roblox creator-docs analytics/retention.md names FTUE as one of the
+-- three D1 levers). Order matters; client only highlights the next step.
+Constants.FTUE_STEPS = {
+    "01_arrived_at_plot",
+    "02_first_coin_spawned",
+    "03_first_coin_collected",
+    "04_first_upgrade",
+    "05_eligible_for_rebirth",
+}
 
 -- AFK auto-collect sweep interval (Premium pass perk). Coin lifetime is
 -- 30s on the conveyor, so a 2s sweep means worst-case 2s of unclaimed

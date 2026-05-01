@@ -41,6 +41,7 @@ local function defaultPlayerData(): Types.PlayerData
         rebirths = 0,
         redeemedCodes = {},
         dailyQuests = emptyDailyQuests(),
+        tutorialStep = 0,
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -67,6 +68,14 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
     ["v3"] = function(data: any): Types.PlayerData
         data.dailyQuests = data.dailyQuests or { dateKey = "", progress = {}, claimed = {} }
         data.schemaVersion = "v4"
+        return data
+    end,
+    -- v4 -> v5: FTUE step tracker. Existing players are presumed past the
+    -- tutorial; we set tutorialStep = #FTUE_STEPS so they don't get
+    -- onboarding tooltips on next login.
+    ["v4"] = function(data: any): Types.PlayerData
+        data.tutorialStep = data.tutorialStep or #Constants.FTUE_STEPS
+        data.schemaVersion = "v5"
         return data
     end,
 }

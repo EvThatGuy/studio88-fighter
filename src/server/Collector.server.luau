@@ -14,6 +14,7 @@ local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
 local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
 local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
+local TutorialService = require(script.Parent:WaitForChild("TutorialService.server"))
 
 local remotes = Remotes.get()
 
@@ -69,6 +70,7 @@ local function onCollect(collector: BasePart, hit: BasePart)
     -- so a 25-drop easy quest finishes inside ~30 seconds at the door.
     DailyQuestService.bumpProgress(ownerUserId,
         Constants.QUEST_KIND.COLLECT_DROPS_TODAY, 1)
+    TutorialService.advance(ownerUserId, "03_first_coin_collected")
 end
 
 local function bind(collector: BasePart)

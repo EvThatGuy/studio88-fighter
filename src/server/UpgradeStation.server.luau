@@ -17,6 +17,7 @@ local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
 local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
 local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
 local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
+local TutorialService = require(script.Parent:WaitForChild("TutorialService.server"))
 
 local remotes = Remotes.get()
 
@@ -72,6 +73,7 @@ function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
     end)
     DailyQuestService.bumpProgress(player.UserId,
         Constants.QUEST_KIND.TIER_UPS_TODAY, 1)
+    TutorialService.advance(player.UserId, "04_first_upgrade")
     print(string.format("[UpgradeStation] %s -> tier %d (cost %d paid)",
         player.Name, nextTier, tierSpec.cost))
     return true, nil
