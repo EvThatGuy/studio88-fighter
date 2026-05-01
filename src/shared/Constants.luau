@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v14"
+Constants.DATASTORE_VERSION = "v15"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -588,6 +588,45 @@ Constants.AURAS = {
 Constants.HOURLY_TRIBUTE_INTERVAL_SEC = 3600
 Constants.HOURLY_TRIBUTE_STACK_CAP = 4
 Constants.HOURLY_TRIBUTE_BASE_REWARD = 500 -- multiplied by current tier incomeMult
+
+-- Daily Spin Wheel. Once per UTC day, the player gets one free spin for
+-- a random reward. Variable-reward interactive moment that drives
+-- dopamine more reliably than the deterministic daily-login bonus.
+-- Rewards are coin-only at low weights + special slots at higher weights;
+-- weight tuned so the "exciting" rewards land roughly 1-in-5 spins.
+--
+-- Each segment has:
+--   id        stable string for analytics + HUD
+--   label     player-facing tag
+--   color     {r,g,b} for the wheel slice
+--   weight    relative probability (totals don't need to sum to anything)
+--   reward    {kind, value} where kind in:
+--             "coins"          coin amount = value scaled by tier mult
+--             "rebirth_token"  flat number of tokens
+--             "boost_seconds"  pet-boost duration extension (no cost)
+--             "free_egg"       free hatch from value (eggId)
+Constants.SPIN_SEGMENTS = {
+    {id = "coins_small",  label = "+250c",          color = {180, 220, 255}, weight = 22,
+     reward = {kind = "coins", value = 250}},
+    {id = "coins_med",    label = "+1000c",         color = {130, 200, 255}, weight = 18,
+     reward = {kind = "coins", value = 1000}},
+    {id = "coins_big",    label = "+5000c",         color = {110, 220, 220}, weight = 12,
+     reward = {kind = "coins", value = 5000}},
+    {id = "coins_huge",   label = "+25000c",        color = {255, 207,  64}, weight = 6,
+     reward = {kind = "coins", value = 25000}},
+    {id = "boost_5m",     label = "+5m PetBoost",   color = {255, 176,   0}, weight = 8,
+     reward = {kind = "boost_seconds", value = 300}},
+    {id = "boost_15m",    label = "+15m PetBoost",  color = {255, 130,  60}, weight = 4,
+     reward = {kind = "boost_seconds", value = 900}},
+    {id = "free_starter", label = "FREE Starter Egg", color = {200, 255, 200}, weight = 10,
+     reward = {kind = "free_egg", value = "starter_egg"}},
+    {id = "free_standard",label = "FREE Standard Egg", color = {130, 220, 130}, weight = 5,
+     reward = {kind = "free_egg", value = "standard_egg"}},
+    {id = "free_luxury",  label = "FREE Luxury Egg", color = {255, 130, 200}, weight = 1,
+     reward = {kind = "free_egg", value = "luxury_egg"}},
+    {id = "rebirth_token",label = "+1 RebirthToken", color = {200, 130, 255}, weight = 3,
+     reward = {kind = "rebirth_token", value = 1}},
+}
 
 -- Player Titles. Earned tags shown over the character (BillboardGui)
 -- visible to all players. Pure flex; no income effect. Predicates reuse

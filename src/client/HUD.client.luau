@@ -3295,6 +3295,250 @@ titlesBtn.MouseButton1Click:Connect(function()
     refreshTitles()
 end)
 
+-- =============================================================================
+-- Daily Spin Wheel
+-- =============================================================================
+
+local SPIN_GOLD = Color3.fromRGB(255, 207, 64)
+local spinModal: Frame? = nil
+local spinBadge: TextLabel? = nil
+local spinSegmentsState: {any}? = nil
+local spinAvailable = false
+
+local spinBtn = Instance.new("TextButton")
+spinBtn.Name = "SpinButton"
+spinBtn.Size = UDim2.new(0, 140, 0, 44)
+spinBtn.Position = UDim2.new(0, 12, 1, -116)
+spinBtn.BackgroundColor3 = BG
+spinBtn.BackgroundTransparency = 0.15
+spinBtn.BorderSizePixel = 0
+spinBtn.AutoButtonColor = false
+spinBtn.Text = ""
+spinBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = SPIN_GOLD; s.Thickness = 1; s.Parent = spinBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = spinBtn
+end
+local spinLabel = makeLabel("Label", spinBtn, "* DAILY SPIN", UDim2.new(1, -16, 1, -8), UDim2.new(0, 8, 0, 4))
+spinLabel.TextColor3 = SPIN_GOLD
+spinLabel.Font = Enum.Font.Code
+spinLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local spinAvailBadge = Instance.new("TextLabel")
+spinAvailBadge.Size = UDim2.new(0, 56, 0, 18)
+spinAvailBadge.Position = UDim2.new(1, 4, 0, -8)
+spinAvailBadge.AnchorPoint = Vector2.new(0, 0)
+spinAvailBadge.BackgroundColor3 = SPIN_GOLD
+spinAvailBadge.BorderSizePixel = 0
+spinAvailBadge.Text = "READY"
+spinAvailBadge.TextColor3 = BG
+spinAvailBadge.Font = Enum.Font.GothamBold
+spinAvailBadge.TextSize = 11
+spinAvailBadge.Visible = false
+spinAvailBadge.Parent = spinBtn
+do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = spinAvailBadge end
+spinBadge = spinAvailBadge
+
+local function buildSpinModal(): Frame
+    local m = Instance.new("Frame")
+    m.Size = UDim2.new(0, 460, 0, 480)
+    m.Position = UDim2.new(0.5, -230, 0.5, -240)
+    m.BackgroundColor3 = BG
+    m.BackgroundTransparency = 0.05
+    m.BorderSizePixel = 0
+    m.ZIndex = 50
+    m.Visible = false
+    m.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = SPIN_GOLD; s.Thickness = 2; s.Parent = m
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = m
+    end
+    local head = makeLabel("Head", m, "DAILY SPIN", UDim2.new(1, -32, 0, 24), UDim2.new(0, 16, 0, 12))
+    head.TextColor3 = SPIN_GOLD
+    head.Font = Enum.Font.GothamBold
+    head.ZIndex = 51
+    local sub = makeLabel("Sub", m, "one free spin per UTC day", UDim2.new(1, -32, 0, 14), UDim2.new(0, 16, 0, 38))
+    sub.TextColor3 = TEXT
+    sub.Font = Enum.Font.Code
+    sub.TextTransparency = 0.3
+    sub.ZIndex = 51
+    local x = Instance.new("TextButton")
+    x.Size = UDim2.new(0, 24, 0, 24)
+    x.Position = UDim2.new(1, -32, 0, 8)
+    x.BackgroundTransparency = 1
+    x.Text = "X"
+    x.TextColor3 = TEXT
+    x.Font = Enum.Font.GothamBold
+    x.TextSize = 18
+    x.ZIndex = 51
+    x.Parent = m
+    x.MouseButton1Click:Connect(function() m.Visible = false end)
+    return m
+end
+
+-- Wheel renderer: lays out segments around a circle, highlights one on landing.
+local spinWheelFrame: Frame? = nil
+local spinSegmentLabels: {TextLabel} = {}
+local spinResultLabel: TextLabel? = nil
+local spinClaimBtn: TextButton? = nil
+
+local function buildSpinWheel(parent: Frame, segments: {any})
+    if spinWheelFrame then spinWheelFrame:Destroy() end
+    spinSegmentLabels = {}
+    local wheel = Instance.new("Frame")
+    wheel.Size = UDim2.new(0, 320, 0, 320)
+    wheel.Position = UDim2.new(0.5, -160, 0, 64)
+    wheel.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+    wheel.BorderSizePixel = 0
+    wheel.ZIndex = 51
+    wheel.Parent = parent
+    do
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(1, 0); c.Parent = wheel
+        local s = Instance.new("UIStroke"); s.Color = SPIN_GOLD; s.Thickness = 2; s.Parent = wheel
+    end
+    local n = #segments
+    local radius = 110
+    local centerX, centerY = 160, 160
+    for i, seg in ipairs(segments) do
+        local angle = (i - 1) * (2 * math.pi / n) - math.pi / 2
+        local x = centerX + math.cos(angle) * radius - 50
+        local y = centerY + math.sin(angle) * radius - 12
+        local color = Color3.fromRGB(seg.color[1], seg.color[2], seg.color[3])
+        local label = makeLabel("Seg" .. i, wheel, seg.label,
+            UDim2.new(0, 100, 0, 24), UDim2.new(0, x, 0, y))
+        label.TextColor3 = color
+        label.Font = Enum.Font.GothamBold
+        label.TextSize = 12
+        label.TextStrokeTransparency = 0.5
+        label.ZIndex = 52
+        table.insert(spinSegmentLabels, label)
+    end
+    spinWheelFrame = wheel
+end
+
+local function refreshSpin()
+    task.spawn(function()
+        local ok, snap = pcall(function() return remotes.GetSpinState:InvokeServer() end)
+        if not ok or not snap then return end
+        spinSegmentsState = snap.segments
+        spinAvailable = snap.available == true
+        if spinBadge then
+            spinBadge.Visible = spinAvailable
+        end
+        if spinClaimBtn then
+            if spinAvailable then
+                spinClaimBtn.Text = "SPIN!"
+                spinClaimBtn.BackgroundColor3 = SPIN_GOLD
+                spinClaimBtn.AutoButtonColor = true
+                spinClaimBtn.Active = true
+            else
+                local hours = math.floor(snap.nextResetSec / 3600)
+                local mins = math.floor((snap.nextResetSec % 3600) / 60)
+                spinClaimBtn.Text = string.format("RESETS IN %dh %02dm", hours, mins)
+                spinClaimBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+                spinClaimBtn.AutoButtonColor = false
+                spinClaimBtn.Active = false
+            end
+        end
+        if spinModal and snap.segments and not spinWheelFrame then
+            buildSpinWheel(spinModal, snap.segments)
+        end
+    end)
+end
+
+local function spinAnim(landingIndex: number)
+    -- Cycle highlight rapidly through segments, slowing down toward landing
+    if not spinSegmentLabels or #spinSegmentLabels == 0 then return end
+    local n = #spinSegmentLabels
+    local steps = n * 3 + landingIndex - 1 -- 3 full revolutions + landing slot
+    local delay = 0.05
+    for i = 0, steps do
+        local idx = ((i) % n) + 1
+        for j, lbl in ipairs(spinSegmentLabels) do
+            if j == idx then
+                lbl.TextStrokeTransparency = 0
+                lbl.TextSize = 14
+            else
+                lbl.TextStrokeTransparency = 0.5
+                lbl.TextSize = 12
+            end
+        end
+        task.wait(delay)
+        delay = delay * 1.05 -- decelerate
+        if delay > 0.25 then delay = 0.25 end
+    end
+end
+
+spinBtn.MouseButton1Click:Connect(function()
+    if not spinModal then
+        spinModal = buildSpinModal()
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 200, 0, 40)
+        btn.Position = UDim2.new(0.5, -100, 1, -100)
+        btn.BackgroundColor3 = SPIN_GOLD
+        btn.TextColor3 = BG
+        btn.Text = "SPIN!"
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 18
+        btn.BorderSizePixel = 0
+        btn.ZIndex = 53
+        btn.Parent = spinModal
+        do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = btn end
+        spinClaimBtn = btn
+        local result = makeLabel("Result", spinModal, "",
+            UDim2.new(1, -32, 0, 24), UDim2.new(0, 16, 1, -54))
+        result.TextColor3 = TEXT
+        result.Font = Enum.Font.GothamBold
+        result.TextSize = 14
+        result.TextXAlignment = Enum.TextXAlignment.Center
+        result.ZIndex = 53
+        spinResultLabel = result
+        btn.MouseButton1Click:Connect(function()
+            if not spinAvailable then return end
+            spinAvailable = false
+            btn.AutoButtonColor = false
+            btn.Active = false
+            btn.Text = "spinning..."
+            pcall(function() remotes.ClaimSpin:FireServer() end)
+        end)
+    end
+    spinModal.Visible = true
+    refreshSpin()
+end)
+
+remotes.SpinResult.OnClientEvent:Connect(function(payload: any)
+    if not payload then return end
+    -- Find the segment index for animation
+    local landingIndex = 1
+    if spinSegmentsState then
+        for i, s in ipairs(spinSegmentsState) do
+            if s.id == payload.segmentId then landingIndex = i; break end
+        end
+    end
+    spinAnim(landingIndex)
+    if spinResultLabel then
+        spinResultLabel.Text = payload.message or payload.label or "?"
+        spinResultLabel.TextColor3 = SPIN_GOLD
+    end
+    showToast("SPIN: " .. (payload.label or "?"), payload.message or "", SPIN_GOLD, 5)
+    flashScreen(SPIN_GOLD, 0.5)
+    playSound(Constants.SOUND_IDS.daily_bonus, 0.7)
+    refreshSpin()
+end)
+
+remotes.SpinRejected.OnClientEvent:Connect(function(reason: string)
+    if reason == "already_spun" then
+        showToast("SPIN UNAVAILABLE", "come back tomorrow", AMBER, 3)
+    end
+    refreshSpin()
+end)
+
+-- Initial state poll
+task.spawn(function()
+    task.wait(2)
+    refreshSpin()
+end)
+
 remotes.TitleRejected.OnClientEvent:Connect(function(_titleId: string, reason: string)
     local copy = "Couldn't equip title."
     if reason == "locked" then copy = "You haven't unlocked that title yet."

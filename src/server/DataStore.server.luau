@@ -57,6 +57,7 @@ local function defaultPlayerData(): Types.PlayerData
         petBoostExpiresUnix = 0,
         hatchesSinceLastLegendary = 0,
         equippedTitle = nil,
+        lastSpinDateKey = "",
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -175,6 +176,14 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
     ["v13"] = function(data: any): Types.PlayerData
         if data.equippedTitle == nil then data.equippedTitle = nil end
         data.schemaVersion = "v14"
+        return data
+    end,
+    -- v14 -> v15: daily spin. lastSpinDateKey = "" means available now;
+    -- legacy players come back to a free spin waiting (intentional
+    -- engagement nudge to recover them).
+    ["v14"] = function(data: any): Types.PlayerData
+        data.lastSpinDateKey = data.lastSpinDateKey or ""
+        data.schemaVersion = "v15"
         return data
     end,
 }

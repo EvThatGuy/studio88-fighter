@@ -41,6 +41,7 @@ export type PlayerData = {
     petBoostExpiresUnix: number,    -- unix when the active pet-boost expires; <= os.time() means inactive
     hatchesSinceLastLegendary: number, -- pity counter; force-legendary at PET_PITY_THRESHOLD, reset on any legendary
     equippedTitle: string?,         -- {PLAYER_TITLES[].id} or nil; rendered above character
+    lastSpinDateKey: string,        -- "YYYY-MM-DD" UTC of last claim; "" means never
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 
@@ -112,6 +113,10 @@ export type RemoteMap = {
     EquipTitle: RemoteEvent,          -- client -> server; payload {titleId or "" to clear}
     TitleReplicate: RemoteEvent,      -- server -> ALL clients; payload {userId, titleId or nil, name, color}
     TitleRejected: RemoteEvent,       -- server -> client; payload {titleId, reason}
+    GetSpinState: RemoteFunction,     -- client -> server; returns {available, segments=[{id,label,color,weight}], nextResetSec}
+    ClaimSpin: RemoteEvent,           -- client -> server; no payload
+    SpinResult: RemoteEvent,          -- server -> client; payload {segmentId, label, kind, valueGranted, message}
+    SpinRejected: RemoteEvent,        -- server -> client; payload {reason}
 }
 
 return {}
