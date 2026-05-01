@@ -15,6 +15,9 @@
       "$className": "ReplicatedStorage",
       "Modules": {
         "$path": "src/shared"
+      },
+      "Packages": {
+        "$path": "Packages"
       }
     },
     "StarterPlayer": {
