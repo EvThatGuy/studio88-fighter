@@ -16,6 +16,8 @@ export type PlayerData = {
     streak: number,                 -- consecutive days logged in
     starterPackPurchasedUnix: number?, -- for the 30-min Starter Pack window
     rebirths: number,               -- prestige count; permanent across all sessions
+    rebirthTokens: number,          -- spendable tokens for the rebirth shop; +1 per rebirth
+    purchasedRebirthUpgrades: {[string]: boolean}, -- {[itemId]=true} one-shot ledger
     redeemedCodes: {[string]: boolean}, -- {[UPPERCASE_CODE] = true} for one-shot enforcement
     dailyQuests: DailyQuestState,   -- today's quest progress + claim state
     tutorialStep: number,           -- highest FTUE step completed (0..#FTUE_STEPS); 0 = brand new
@@ -52,6 +54,10 @@ export type RemoteMap = {
     EventStateChanged: RemoteEvent, -- server -> client; payload {active, event?, endsInSec?}
     TutorialStepReached: RemoteEvent, -- server -> client; payload {stepIndex, stepId}
     GetTutorialStep: RemoteFunction,  -- client -> server; returns current step number
+    GetRebirthShop: RemoteFunction,   -- client -> server; returns {tokens, items=[{id,title,sub,cost,owned}]}
+    BuyRebirthShopItem: RemoteEvent,  -- client -> server; payload {itemId}
+    RebirthShopPurchased: RemoteEvent,-- server -> client; payload {itemId, tokensRemaining}
+    RebirthShopRejected: RemoteEvent, -- server -> client; payload {itemId, reason, needed?}
 }
 
 return {}

@@ -84,6 +84,27 @@ rebirthLabel.TextColor3 = CYAN
 rebirthLabel.Font = Enum.Font.Code
 rebirthLabel.TextXAlignment = Enum.TextXAlignment.Right
 
+-- Rebirth shop button (bottom-left, above rebirth button). Always visible;
+-- modal lists permanent unlock items priced in Rebirth Tokens.
+local rebirthShopBtn = Instance.new("TextButton")
+rebirthShopBtn.Name = "RebirthShopButton"
+rebirthShopBtn.Size = UDim2.new(0, 240, 0, 36)
+rebirthShopBtn.Position = UDim2.new(0, 16, 1, -116)
+rebirthShopBtn.BackgroundColor3 = BG
+rebirthShopBtn.BackgroundTransparency = 0.15
+rebirthShopBtn.BorderSizePixel = 0
+rebirthShopBtn.AutoButtonColor = false
+rebirthShopBtn.Text = ""
+rebirthShopBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = Color3.fromRGB(180, 100, 240); s.Thickness = 1; s.Parent = rebirthShopBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = rebirthShopBtn
+end
+local rebirthShopLbl = makeLabel("Label", rebirthShopBtn, "REBIRTH SHOP", UDim2.new(1, -16, 1, -8), UDim2.new(0, 8, 0, 4))
+rebirthShopLbl.TextColor3 = Color3.fromRGB(180, 100, 240)
+rebirthShopLbl.Font = Enum.Font.Code
+rebirthShopLbl.TextXAlignment = Enum.TextXAlignment.Center
+
 -- Rebirth button (bottom-left). Visible always; disabled-look until eligible.
 -- Uses a TextButton (not Frame) so client can press it; server validates.
 local rebirthBtn = Instance.new("TextButton")
@@ -1322,6 +1343,224 @@ task.spawn(function()
             end
         end
     end
+end)
+
+-- ----- Rebirth Shop modal -----
+
+local PURPLE = Color3.fromRGB(180, 100, 240)
+local rebirthShopModal: Frame? = nil
+local rebirthShopState: {tokens: number, items: {any}}? = nil
+
+local function buildRebirthShopModal()
+    local m = Instance.new("Frame")
+    m.Name = "RebirthShopModal"
+    m.Size = UDim2.new(0, 480, 0, 540)
+    m.Position = UDim2.new(0.5, -240, 0.5, -270)
+    m.BackgroundColor3 = BG
+    m.BackgroundTransparency = 0.05
+    m.BorderSizePixel = 0
+    m.ZIndex = 50
+    m.Visible = false
+    m.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = PURPLE; s.Thickness = 2; s.Parent = m
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = m
+    end
+    local head = makeLabel("Head", m, "REBIRTH SHOP", UDim2.new(1, -32, 0, 24), UDim2.new(0, 16, 0, 12))
+    head.TextColor3 = PURPLE
+    head.Font = Enum.Font.GothamBold
+    head.ZIndex = 51
+
+    local sub = makeLabel("Sub", m, "spend rebirth tokens on permanent unlocks", UDim2.new(1, -32, 0, 16), UDim2.new(0, 16, 0, 38))
+    sub.TextColor3 = TEXT
+    sub.Font = Enum.Font.Code
+    sub.TextTransparency = 0.3
+    sub.ZIndex = 51
+
+    local tokenLbl = Instance.new("TextLabel")
+    tokenLbl.Name = "Tokens"
+    tokenLbl.Size = UDim2.new(0, 120, 0, 22)
+    tokenLbl.Position = UDim2.new(1, -136, 0, 12)
+    tokenLbl.BackgroundTransparency = 1
+    tokenLbl.Text = "0 TOKENS"
+    tokenLbl.TextColor3 = AMBER
+    tokenLbl.Font = Enum.Font.GothamBold
+    tokenLbl.TextXAlignment = Enum.TextXAlignment.Right
+    tokenLbl.TextScaled = true
+    tokenLbl.ZIndex = 51
+    tokenLbl.Parent = m
+
+    local x = Instance.new("TextButton")
+    x.Size = UDim2.new(0, 24, 0, 24)
+    x.Position = UDim2.new(1, -32, 0, 38)
+    x.BackgroundTransparency = 1
+    x.Text = "X"
+    x.TextColor3 = TEXT
+    x.Font = Enum.Font.GothamBold
+    x.TextSize = 18
+    x.ZIndex = 51
+    x.Parent = m
+    x.MouseButton1Click:Connect(function() m.Visible = false end)
+
+    local list = Instance.new("ScrollingFrame")
+    list.Name = "Cards"
+    list.Size = UDim2.new(1, -32, 1, -88)
+    list.Position = UDim2.new(0, 16, 0, 72)
+    list.BackgroundTransparency = 1
+    list.ScrollBarThickness = 4
+    list.CanvasSize = UDim2.new(0, 0, 0, 0)
+    list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    list.ZIndex = 51
+    list.Parent = m
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 8)
+    layout.Parent = list
+
+    return m
+end
+
+local rebirthShopCardsById: {[string]: Frame} = {}
+
+local function applyShopCardState(card: Frame, item: any, tokens: number)
+    local btn = card:FindFirstChild("Buy") :: TextButton?
+    if not btn then return end
+    if item.owned then
+        btn.Text = "OWNED"
+        btn.BackgroundColor3 = Color3.fromRGB(40, 80, 40)
+        btn.TextColor3 = TEXT
+        btn.AutoButtonColor = false
+        btn.Active = false
+    elseif tokens < item.cost then
+        btn.Text = string.format("%d T", item.cost)
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+        btn.TextColor3 = TEXT
+        btn.AutoButtonColor = false
+        btn.Active = false
+    else
+        btn.Text = string.format("%d T", item.cost)
+        btn.BackgroundColor3 = PURPLE
+        btn.TextColor3 = BG
+        btn.AutoButtonColor = true
+        btn.Active = true
+    end
+end
+
+local function buildShopCard(parent: Instance, item: any, tokens: number, order: number): Frame
+    local card = Instance.new("Frame")
+    card.Name = "Item_" .. item.id
+    card.Size = UDim2.new(1, -8, 0, 90)
+    card.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+    card.BorderSizePixel = 0
+    card.ZIndex = 52
+    card.LayoutOrder = order
+    card.Parent = parent
+    do
+        local s = Instance.new("UIStroke"); s.Color = PURPLE; s.Thickness = 1; s.Parent = card
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+    end
+
+    local title = makeLabel("Title", card, item.title, UDim2.new(1, -120, 0, 22), UDim2.new(0, 12, 0, 10))
+    title.TextColor3 = PURPLE
+    title.Font = Enum.Font.GothamBold
+    title.ZIndex = 53
+
+    local sub = makeLabel("Sub", card, item.sub, UDim2.new(1, -120, 0, 18), UDim2.new(0, 12, 0, 36))
+    sub.TextColor3 = TEXT
+    sub.Font = Enum.Font.Code
+    sub.ZIndex = 53
+
+    local btn = Instance.new("TextButton")
+    btn.Name = "Buy"
+    btn.Size = UDim2.new(0, 100, 0, 50)
+    btn.Position = UDim2.new(1, -112, 0.5, -25)
+    btn.BorderSizePixel = 0
+    btn.Font = Enum.Font.GothamBold
+    btn.TextSize = 18
+    btn.ZIndex = 53
+    btn.Parent = card
+    do
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn
+    end
+    applyShopCardState(card, item, tokens)
+    btn.MouseButton1Click:Connect(function()
+        if not btn.Active then return end
+        pcall(function()
+            remotes.BuyRebirthShopItem:FireServer(item.id)
+        end)
+    end)
+    card:SetAttribute("ItemId", item.id)
+    return card
+end
+
+local function renderRebirthShop(state: any)
+    rebirthShopState = state
+    if not rebirthShopModal then return end
+    local tokenLbl = rebirthShopModal:FindFirstChild("Tokens") :: TextLabel?
+    if tokenLbl then tokenLbl.Text = string.format("%d TOKENS", state.tokens) end
+    local list = rebirthShopModal:FindFirstChild("Cards")
+    if not list then return end
+    for order, item in ipairs(state.items) do
+        local card = rebirthShopCardsById[item.id]
+        if card and card.Parent ~= list then card = nil end
+        if not card then
+            card = buildShopCard(list, item, state.tokens, order)
+            rebirthShopCardsById[item.id] = card
+        else
+            applyShopCardState(card, item, state.tokens)
+        end
+    end
+end
+
+local function refreshRebirthShop()
+    task.spawn(function()
+        local ok, result = pcall(function()
+            return remotes.GetRebirthShop:InvokeServer()
+        end)
+        if ok and result then renderRebirthShop(result) end
+    end)
+end
+
+rebirthShopBtn.MouseButton1Click:Connect(function()
+    if not rebirthShopModal then rebirthShopModal = buildRebirthShopModal() end
+    rebirthShopModal.Visible = true
+    refreshRebirthShop()
+end)
+
+remotes.RebirthShopPurchased.OnClientEvent:Connect(function(itemId: string, tokensRemaining: number)
+    if rebirthShopState then
+        rebirthShopState.tokens = tokensRemaining
+        for _, it in ipairs(rebirthShopState.items) do
+            if it.id == itemId then it.owned = true; break end
+        end
+        renderRebirthShop(rebirthShopState)
+    end
+    showToast(
+        "PERMA-UNLOCK ACTIVE",
+        string.format("'%s' multiplier now stacks forever", itemId),
+        PURPLE,
+        5
+    )
+    flashScreen(PURPLE, 0.6)
+    playSound(Constants.SOUND_IDS.tier_up, 0.7)
+end)
+
+local SHOP_REJECTION_COPY: {[string]: string} = {
+    no_data = "Save data still loading.",
+    bad_request = "Invalid item.",
+    unknown_item = "Unknown item.",
+    already_owned = "Already owned.",
+    insufficient_tokens = "Need %d more tokens (rebirth more).",
+}
+
+remotes.RebirthShopRejected.OnClientEvent:Connect(function(itemId: string, reason: string, needed: number?)
+    local template = SHOP_REJECTION_COPY[reason] or reason
+    local sub = template
+    if reason == "insufficient_tokens" and needed then
+        sub = string.format(template, needed)
+    end
+    showToast("CAN'T BUY", sub, AMBER, 3)
+    playSound(Constants.SOUND_IDS.purchase_fail, 0.5)
 end)
 
 print("[HUD] mounted")

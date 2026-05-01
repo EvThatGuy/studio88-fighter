@@ -69,6 +69,8 @@ function RebirthService.attemptRebirth(player: Player): (boolean, string?)
     data.coins = 0
     data.upgradeTier = 1
     data.rebirths = (data.rebirths or 0) + 1
+    -- Rebirth shop currency: 1 token per rebirth (Constants-tunable)
+    data.rebirthTokens = (data.rebirthTokens or 0) + Constants.REBIRTH_TOKEN_PER_REBIRTH
     -- Repaint the plot back to tier-1 art so the visual matches
     local plot = PlotAssigner.getPlotFor(userId)
     if plot then

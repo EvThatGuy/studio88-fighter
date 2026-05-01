@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v5"
+Constants.DATASTORE_VERSION = "v6"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -115,6 +115,31 @@ Constants.SOUND_IDS = {
 Constants.REBIRTH_MIN_LIFETIME_COINS = 100000  -- gate first rebirth at the tier-6 capstone earnings tier
 Constants.REBIRTH_BONUS_PER = 0.10             -- +10% perma per rebirth
 Constants.REBIRTH_MAX = 50                     -- soft cap so the formula doesn't blow up
+
+-- Rebirth shop. Per /research-engineer brief #5: rebirth needs a SINK
+-- to drive long-tail D30 retention -- otherwise rebirth #4 feels
+-- identical to rebirth #1 and the dopamine curve flat-lines. Players
+-- earn 1 Rebirth Token per rebirth, spent on permanent unlocks that
+-- meta-stack with the rebirth perma-mult.
+--
+-- Each item is a ONE-TIME purchase (idempotent flag in PlayerData.
+-- purchasedRebirthUpgrades). Multipliers stack multiplicatively in
+-- CurrencyManager.multiplierFor() via REBIRTH_SHOP_MULT_TOTAL().
+--
+-- Token economy: 50 rebirths cap * 1 token each = 50 tokens lifetime.
+-- All items below sum to 47 tokens so a fully-rebirthed player can
+-- unlock everything with 3 tokens to spare.
+Constants.REBIRTH_TOKEN_PER_REBIRTH = 1
+
+Constants.REBIRTH_SHOP_ITEMS = {
+    {id = "spark",       title = "SPARK BOOST",      cost = 2,  multAdd = 0.05, sub = "+5% income forever"},
+    {id = "tempo",       title = "TEMPO TURBINE",    cost = 5,  multAdd = 0.15, sub = "+15% income forever"},
+    {id = "crystal",     title = "CAPSTONE CRYSTAL", cost = 10, multAdd = 0.30, sub = "+30% income forever"},
+    {id = "studio88",    title = "STUDIO 88 BRAND",  cost = 15, multAdd = 0.60, sub = "+60% income forever"},
+    {id = "ascension",   title = "GTA6 ASCENSION",   cost = 25, multAdd = 1.00, sub = "+100% income forever"},
+}
+
+Constants.REBIRTH_SHOP_ORDER = {"spark", "tempo", "crystal", "studio88", "ascension"}
 
 -- Promo codes. David tweets / DMs / pins a code; players type it for free
 -- coins. This is the cheapest top-of-funnel retention loop available

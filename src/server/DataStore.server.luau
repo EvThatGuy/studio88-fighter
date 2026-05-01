@@ -39,6 +39,8 @@ local function defaultPlayerData(): Types.PlayerData
         streak = 0,
         starterPackPurchasedUnix = nil,
         rebirths = 0,
+        rebirthTokens = 0,
+        purchasedRebirthUpgrades = {},
         redeemedCodes = {},
         dailyQuests = emptyDailyQuests(),
         tutorialStep = 0,
@@ -76,6 +78,15 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
     ["v4"] = function(data: any): Types.PlayerData
         data.tutorialStep = data.tutorialStep or #Constants.FTUE_STEPS
         data.schemaVersion = "v5"
+        return data
+    end,
+    -- v5 -> v6: rebirth shop. Existing players keep their rebirths but
+    -- start with zero rebirthTokens (we can't retroactively grant; would
+    -- need a backfill ledger). Empty purchasedRebirthUpgrades.
+    ["v5"] = function(data: any): Types.PlayerData
+        data.rebirthTokens = data.rebirthTokens or 0
+        data.purchasedRebirthUpgrades = data.purchasedRebirthUpgrades or {}
+        data.schemaVersion = "v6"
         return data
     end,
 }

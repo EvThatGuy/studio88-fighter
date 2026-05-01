@@ -57,6 +57,15 @@ local function multiplierFor(userId: number, data): number
     -- Rebirth permanent multiplier (1 + rebirths * REBIRTH_BONUS_PER)
     local rb = data.rebirths or 0
     if rb > 0 then mult *= (1 + rb * Constants.REBIRTH_BONUS_PER) end
+    -- Rebirth shop unlocks (1 + sum of multAdd of each owned item).
+    -- Stacks meta-multiplicatively with the rebirth perma-mult so a fully-
+    -- decked end-game player can hit ~10x from rebirth alone.
+    local owned = data.purchasedRebirthUpgrades or {}
+    local shopAdd = 0
+    for _, item in ipairs(Constants.REBIRTH_SHOP_ITEMS) do
+        if owned[item.id] then shopAdd += item.multAdd end
+    end
+    if shopAdd > 0 then mult *= (1 + shopAdd) end
     -- Pass multipliers
     local passes = getPasses(userId)
     if passes.vip then mult *= Constants.GAME_PASS_MULT.VIP_MULT end
