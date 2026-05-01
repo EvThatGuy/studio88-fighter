@@ -4,7 +4,7 @@
 
 local Constants = {}
 
-Constants.DATASTORE_VERSION = "v13"
+Constants.DATASTORE_VERSION = "v14"
 Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 
 -- Currency tick: every 1s grant `baseIncomePerTick * upgradeMult * passMult`.
@@ -588,6 +588,44 @@ Constants.AURAS = {
 Constants.HOURLY_TRIBUTE_INTERVAL_SEC = 3600
 Constants.HOURLY_TRIBUTE_STACK_CAP = 4
 Constants.HOURLY_TRIBUTE_BASE_REWARD = 500 -- multiplied by current tier incomeMult
+
+-- Player Titles. Earned tags shown over the character (BillboardGui)
+-- visible to all players. Pure flex; no income effect. Predicates reuse
+-- the same vocabulary as achievements/auras so a single PlayerData scan
+-- can determine eligibility.
+--
+-- triggers:
+--   "lifetime_coins"            data.lifetimeCoins >= unlockValue
+--   "rebirths"                  data.rebirths >= unlockValue
+--   "pets_collection_complete"  every PETS id present (unlockValue ignored)
+--   "achievements_unlocked"     count(data.achievementsUnlocked) >= unlockValue
+--   "aura_equipped"             data.equippedAura == unlockValue (string)
+Constants.PLAYER_TITLES = {
+    {id = "newcomer",     name = "Newcomer",       color = {200, 200, 210},
+     trigger = "lifetime_coins",          unlockValue = 0},
+    {id = "thousandaire", name = "Thousandaire",   color = {180, 220, 255},
+     trigger = "lifetime_coins",          unlockValue = 1000},
+    {id = "millionaire",  name = "Millionaire",    color = {255, 207, 64},
+     trigger = "lifetime_coins",          unlockValue = 1000000},
+    {id = "billionaire",  name = "Billionaire",    color = {255, 130, 60},
+     trigger = "lifetime_coins",          unlockValue = 1000000000},
+    {id = "reborn",       name = "Reborn",         color = {130, 200, 255},
+     trigger = "rebirths",                unlockValue = 1},
+    {id = "ascended",     name = "Ascended",       color = {200, 130, 255},
+     trigger = "rebirths",                unlockValue = 25},
+    {id = "godlike",      name = "Godlike",        color = {255, 60, 90},
+     trigger = "rebirths",                unlockValue = 50},
+    {id = "collector",    name = "Pet Collector",  color = {110, 220, 110},
+     trigger = "pets_collection_complete", unlockValue = 1},
+    {id = "trophy_hunter", name = "Trophy Hunter", color = {255, 207, 64},
+     trigger = "achievements_unlocked",   unlockValue = 10},
+    {id = "completionist", name = "Completionist", color = {255, 255, 255},
+     trigger = "achievements_unlocked",   unlockValue = 17},
+    {id = "cosmic",       name = "Cosmic",         color = {200, 130, 255},
+     trigger = "aura_equipped",           unlockValue = "galaxy"},
+    {id = "apex",         name = "Apex Predator",  color = {255, 255, 255},
+     trigger = "aura_equipped",           unlockValue = "apex"},
+}
 
 -- Squad Bonus. When the server has SQUAD_THRESHOLD or more concurrent
 -- players, EVERYONE in that server gets a flat income multiplier. Gives

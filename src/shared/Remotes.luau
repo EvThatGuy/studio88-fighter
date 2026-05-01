@@ -71,6 +71,10 @@ local REMOTE_NAMES = {
     {name = "PetBoostStateChanged", class = "RemoteEvent"},
     {name = "PetBoostRejected", class = "RemoteEvent"},
     {name = "SquadBonusChanged", class = "RemoteEvent"},
+    {name = "GetTitles", class = "RemoteFunction"},
+    {name = "EquipTitle", class = "RemoteEvent"},
+    {name = "TitleReplicate", class = "RemoteEvent"},
+    {name = "TitleRejected", class = "RemoteEvent"},
 }
 
 local function ensureFolder(): Folder

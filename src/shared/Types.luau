@@ -40,6 +40,7 @@ export type PlayerData = {
     pendingReferralBonusCoins: number, -- queued bonus from referrals while offline; granted on next session start
     petBoostExpiresUnix: number,    -- unix when the active pet-boost expires; <= os.time() means inactive
     hatchesSinceLastLegendary: number, -- pity counter; force-legendary at PET_PITY_THRESHOLD, reset on any legendary
+    equippedTitle: string?,         -- {PLAYER_TITLES[].id} or nil; rendered above character
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
 }
 
@@ -107,6 +108,10 @@ export type RemoteMap = {
     PetBoostStateChanged: RemoteEvent,-- server -> client; payload {active, remainingSec, multiplier}
     PetBoostRejected: RemoteEvent,    -- server -> client; payload {reason, needed?}
     SquadBonusChanged: RemoteEvent,   -- server -> ALL clients; payload {active, count, threshold, multiplier}
+    GetTitles: RemoteFunction,        -- client -> server; returns {entries=[{id,name,color,unlocked,equipped,trigger,progress,target}], equippedTitle}
+    EquipTitle: RemoteEvent,          -- client -> server; payload {titleId or "" to clear}
+    TitleReplicate: RemoteEvent,      -- server -> ALL clients; payload {userId, titleId or nil, name, color}
+    TitleRejected: RemoteEvent,       -- server -> client; payload {titleId, reason}
 }
 
 return {}

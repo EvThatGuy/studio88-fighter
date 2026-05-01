@@ -3041,4 +3041,195 @@ task.spawn(function()
     end
 end)
 
+-- =============================================================================
+-- Player Titles
+-- =============================================================================
+
+local TITLE_TEAL = Color3.fromRGB(180, 220, 255)
+local titlesModal: Frame? = nil
+local titlesList: ScrollingFrame? = nil
+
+local titlesBtn = Instance.new("TextButton")
+titlesBtn.Name = "TitlesButton"
+titlesBtn.Size = UDim2.new(0, 140, 0, 44)
+-- Mount on the LEFT side under the existing rebirth shop button to avoid
+-- crowding the right stack further (already 7 buttons there)
+titlesBtn.Position = UDim2.new(0, 12, 1, -60)
+titlesBtn.BackgroundColor3 = BG
+titlesBtn.BackgroundTransparency = 0.15
+titlesBtn.BorderSizePixel = 0
+titlesBtn.AutoButtonColor = false
+titlesBtn.Text = ""
+titlesBtn.Parent = screen
+do
+    local s = Instance.new("UIStroke"); s.Color = TITLE_TEAL; s.Thickness = 1; s.Parent = titlesBtn
+    local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = titlesBtn
+end
+local titlesLabel = makeLabel("Label", titlesBtn, "* TITLES", UDim2.new(1, -16, 1, -8), UDim2.new(0, 8, 0, 4))
+titlesLabel.TextColor3 = TITLE_TEAL
+titlesLabel.Font = Enum.Font.Code
+titlesLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+local function buildTitlesModal(): (Frame, ScrollingFrame)
+    local m = Instance.new("Frame")
+    m.Name = "TitlesModal"
+    m.Size = UDim2.new(0, 480, 0, 540)
+    m.Position = UDim2.new(0.5, -240, 0.5, -270)
+    m.BackgroundColor3 = BG
+    m.BackgroundTransparency = 0.05
+    m.BorderSizePixel = 0
+    m.ZIndex = 50
+    m.Visible = false
+    m.Parent = screen
+    do
+        local s = Instance.new("UIStroke"); s.Color = TITLE_TEAL; s.Thickness = 2; s.Parent = m
+        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 8); c.Parent = m
+    end
+    local head = makeLabel("Head", m, "TITLES", UDim2.new(1, -32, 0, 24), UDim2.new(0, 16, 0, 12))
+    head.TextColor3 = TITLE_TEAL
+    head.Font = Enum.Font.GothamBold
+    head.ZIndex = 51
+    local sub = makeLabel("Sub", m, "tag floating above your character -- visible to everyone",
+        UDim2.new(1, -32, 0, 16), UDim2.new(0, 16, 0, 38))
+    sub.TextColor3 = TEXT
+    sub.Font = Enum.Font.Code
+    sub.TextTransparency = 0.3
+    sub.ZIndex = 51
+
+    local x = Instance.new("TextButton")
+    x.Size = UDim2.new(0, 24, 0, 24)
+    x.Position = UDim2.new(1, -32, 0, 8)
+    x.BackgroundTransparency = 1
+    x.Text = "X"
+    x.TextColor3 = TEXT
+    x.Font = Enum.Font.GothamBold
+    x.TextSize = 18
+    x.ZIndex = 51
+    x.Parent = m
+    x.MouseButton1Click:Connect(function() m.Visible = false end)
+
+    local list = Instance.new("ScrollingFrame")
+    list.Size = UDim2.new(1, -32, 1, -76)
+    list.Position = UDim2.new(0, 16, 0, 64)
+    list.BackgroundTransparency = 1
+    list.ScrollBarThickness = 4
+    list.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    list.CanvasSize = UDim2.new(0,0,0,0)
+    list.ZIndex = 51
+    list.Parent = m
+    local L = Instance.new("UIListLayout"); L.SortOrder = Enum.SortOrder.LayoutOrder; L.Padding = UDim.new(0, 6); L.Parent = list
+
+    return m, list
+end
+
+local function rebuildTitlesList(list: ScrollingFrame, snap: any)
+    for _, c in ipairs(list:GetChildren()) do
+        if c:IsA("Frame") then c:Destroy() end
+    end
+    if not snap or not snap.entries then return end
+    local entries = {}
+    for i, e in ipairs(snap.entries) do entries[i] = e end
+    table.sort(entries, function(a, b)
+        if a.equipped ~= b.equipped then return a.equipped end
+        if a.unlocked ~= b.unlocked then return a.unlocked end
+        return a.name < b.name
+    end)
+    for i, e in ipairs(entries) do
+        local color = Color3.fromRGB(e.color[1], e.color[2], e.color[3])
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, -8, 0, 50)
+        card.BackgroundColor3 = Color3.fromRGB(20, 18, 32)
+        card.BorderSizePixel = 0
+        card.LayoutOrder = i
+        card.ZIndex = 52
+        card.Parent = list
+        do
+            local s = Instance.new("UIStroke"); s.Color = e.unlocked and color or Color3.fromRGB(60, 56, 80); s.Thickness = e.equipped and 2 or 1; s.Parent = card
+            local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = card
+        end
+        local title = makeLabel("Title", card, "[ " .. e.name .. " ]",
+            UDim2.new(1, -150, 0, 18), UDim2.new(0, 12, 0, 6))
+        title.TextColor3 = e.unlocked and color or TEXT
+        title.Font = Enum.Font.GothamBold
+        title.ZIndex = 53
+        local statusText = e.unlocked and "UNLOCKED" or "LOCKED"
+        if not e.unlocked then
+            if e.trigger == "lifetime_coins" then
+                statusText = string.format("%s / %s lifetime coins", fmt(e.progress), fmt(e.target))
+            elseif e.trigger == "rebirths" then
+                statusText = string.format("rebirth %d / %d", e.progress, e.target)
+            elseif e.trigger == "achievements_unlocked" then
+                statusText = string.format("trophies %d / %d", e.progress, e.target)
+            elseif e.trigger == "pets_collection_complete" then
+                statusText = "complete the pet collection"
+            elseif e.trigger == "aura_equipped" then
+                statusText = "equip the matching aura"
+            end
+        end
+        local desc = makeLabel("Status", card, statusText,
+            UDim2.new(1, -150, 0, 14), UDim2.new(0, 12, 0, 28))
+        desc.TextColor3 = e.unlocked and color or TEXT
+        desc.Font = Enum.Font.Code
+        desc.TextSize = 11
+        desc.TextTransparency = e.unlocked and 0.1 or 0.4
+        desc.ZIndex = 53
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 120, 0, 30)
+        btn.Position = UDim2.new(1, -130, 0.5, -15)
+        btn.Font = Enum.Font.GothamBold
+        btn.TextSize = 13
+        btn.BorderSizePixel = 0
+        btn.ZIndex = 53
+        btn.Parent = card
+        do local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 4); c.Parent = btn end
+        if e.equipped then
+            btn.Text = "UNEQUIP"
+            btn.BackgroundColor3 = AMBER
+            btn.TextColor3 = BG
+            btn.MouseButton1Click:Connect(function()
+                pcall(function() remotes.EquipTitle:FireServer("") end)
+            end)
+        elseif e.unlocked then
+            btn.Text = "EQUIP"
+            btn.BackgroundColor3 = color
+            btn.TextColor3 = BG
+            local idCapture = e.id
+            btn.MouseButton1Click:Connect(function()
+                pcall(function() remotes.EquipTitle:FireServer(idCapture) end)
+            end)
+        else
+            btn.Text = "LOCKED"
+            btn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+            btn.TextColor3 = TEXT
+            btn.AutoButtonColor = false
+            btn.Active = false
+        end
+    end
+end
+
+local function refreshTitles()
+    task.spawn(function()
+        local ok, snap = pcall(function() return remotes.GetTitles:InvokeServer() end)
+        if ok and snap and titlesList then
+            rebuildTitlesList(titlesList, snap)
+        end
+    end)
+end
+
+titlesBtn.MouseButton1Click:Connect(function()
+    if not titlesModal then
+        titlesModal, titlesList = buildTitlesModal()
+    end
+    titlesModal.Visible = true
+    refreshTitles()
+end)
+
+remotes.TitleRejected.OnClientEvent:Connect(function(_titleId: string, reason: string)
+    local copy = "Couldn't equip title."
+    if reason == "locked" then copy = "You haven't unlocked that title yet."
+    elseif reason == "unknown_title" then copy = "That title doesn't exist."
+    end
+    showToast("TITLE FAILED", copy, AMBER, 3)
+end)
+
 print("[HUD] mounted")

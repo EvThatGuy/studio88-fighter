@@ -56,6 +56,7 @@ local function defaultPlayerData(): Types.PlayerData
         pendingReferralBonusCoins = 0,
         petBoostExpiresUnix = 0,
         hatchesSinceLastLegendary = 0,
+        equippedTitle = nil,
         schemaVersion = Constants.DATASTORE_VERSION,
     }
 end
@@ -166,6 +167,14 @@ local migrations: {[string]: (any) -> Types.PlayerData} = {
     ["v12"] = function(data: any): Types.PlayerData
         data.hatchesSinceLastLegendary = data.hatchesSinceLastLegendary or 0
         data.schemaVersion = "v13"
+        return data
+    end,
+    -- v13 -> v14: player titles. equippedTitle = nil; legacy players see
+    -- "Newcomer" auto-eligible at lifetime>=0 plus whatever else they've
+    -- progressed past, ready to equip on next session.
+    ["v13"] = function(data: any): Types.PlayerData
+        if data.equippedTitle == nil then data.equippedTitle = nil end
+        data.schemaVersion = "v14"
         return data
     end,
 }
