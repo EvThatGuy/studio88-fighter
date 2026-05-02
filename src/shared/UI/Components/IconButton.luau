@@ -28,6 +28,8 @@ local function IconButton(props: IconButtonProps)
         Size = UDim2.fromOffset(size, size),
         Text = "",
         LayoutOrder = props.layoutOrder,
+        Active = true,
+        Selectable = true,
         [React.Event.Activated] = props.onClick,
     }, {
         Corner = e("UICorner", { CornerRadius = Tokens.radius.md }),
