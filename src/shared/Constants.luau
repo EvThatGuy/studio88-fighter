@@ -153,6 +153,24 @@ Constants.GAME_PASS_MULT = {
 -- behind it. Cosmetic + soft income bump only. +25% income perma.
 Constants.ROBLOX_PREMIUM_INCOME_MULT = 1.25
 
+-- Income multiplier hard ceiling. CurrencyManager.multiplierFor stacks
+-- 7+ multipliers meta-multiplicatively (tier × rebirth × shop × passes
+-- × premium × event × pets × squad). Theoretical max for fully-decked
+-- player ≈ 72,000x base. 50,000x cap leaves comfortable end-game
+-- headroom while bounding economy damage from any single exploit chain.
+Constants.INCOME_MULT_CAP = 50000
+
+-- Session-time bonuses. Per checklist: session-length engagement is a
+-- leading retention indicator. Players who claim a 30/60-min in-session
+-- bonus are far more likely to return D2. Bonus tiers reset on rejoin
+-- (lifetime-session counter, not cumulative across sessions). Each tier
+-- is a one-time claim per session.
+Constants.SESSION_TIME_BONUSES = {
+    {seconds = 15 * 60, reward = 2000,  label = "15 minute play bonus"},
+    {seconds = 30 * 60, reward = 5000,  label = "30 minute play bonus"},
+    {seconds = 60 * 60, reward = 15000, label = "60 minute play bonus"},
+}
+
 -- Leaderboard refresh interval (server side). Lifetime coins are the metric.
 Constants.LEADERBOARD_REFRESH_SEC = 10
 -- Top-50 (not top-10) per tycoon-retention-checklist: top-10 unreachable

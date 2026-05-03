@@ -93,6 +93,15 @@ local function multiplierFor(userId: number, data): number
     -- Squad Bonus: 1.0 below threshold, otherwise SQUAD_BONUS.MULTIPLIER
     -- for everyone in the server. Compounds with the rest.
     mult *= SquadBonusService.getMultiplier()
+    -- Hard ceiling so no exploit chain (full premium pass + max rebirths
+    -- + every shop item + collection complete + boost active + event 3x)
+    -- can drive the multiplier into runaway territory. Theoretical max
+    -- without cap = ~72,000x base (tier 80 × rebirth 6 × shop 2 × passes 3
+    -- × premium 1.25 × event 2 × pets ~10). 50,000x cap leaves comfortable
+    -- end-game headroom while bounding economy damage from any single bug.
+    if mult > Constants.INCOME_MULT_CAP then
+        mult = Constants.INCOME_MULT_CAP
+    end
     return mult
 end
 
