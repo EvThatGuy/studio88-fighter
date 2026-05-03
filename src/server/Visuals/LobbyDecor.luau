@@ -315,6 +315,36 @@ function LobbyDecor.build()
         end
     end
 
+    -- 6 teleport pads ringing the pedestal top, one per plot anchor.
+    -- Each pad has a "PlotIndex" attribute matching its anchor, plus a
+    -- ProximityPrompt for jump-to-my-plot. PlotTeleportProxy.server.luau
+    -- handles the actual teleport with ownership check.
+    local padRadius = 9  -- inside the top-tier pedestal circle
+    for i = 1, 6 do
+        local angle = math.rad((i - 1) * 60 - 90)
+        local x = math.cos(angle) * padRadius
+        local z = math.sin(angle) * padRadius
+        local pad = part("PlotTeleportPad" .. i, container, {
+            Size = Vector3.new(2.4, 0.4, 2.4),
+            Position = Vector3.new(x, 3.0, z),
+            Material = Enum.Material.Neon,
+            Color = Color3.fromRGB(60, 65, 78),  -- grey baseline; updated on ownership
+            Transparency = 0.2,
+        })
+        local mesh = Instance.new("CylinderMesh")
+        mesh.Scale = Vector3.new(1, 0.6, 1)
+        mesh.Parent = pad
+        pad:SetAttribute("PlotIndex", i)
+        local prompt = Instance.new("ProximityPrompt")
+        prompt.Name = "TeleportPrompt"
+        prompt.ActionText = "Teleport"
+        prompt.ObjectText = "Plot " .. i
+        prompt.HoldDuration = 0.1
+        prompt.MaxActivationDistance = 5
+        prompt.Enabled = false  -- enabled by proxy when player owns this slot
+        prompt.Parent = pad
+    end
+
     -- 6 directional pillars at the lobby perimeter, each subtly indicating
     -- which way a plot anchor sits. Placed on the same 110-stud radius the
     -- plot anchors use, but at half-height with a small cap so they don't
