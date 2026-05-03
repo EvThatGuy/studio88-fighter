@@ -11,16 +11,19 @@ Constants.DATASTORE_NAME = "PlayerData_" .. Constants.DATASTORE_VERSION
 Constants.TICK_SECONDS = 1
 Constants.BASE_INCOME_PER_TICK = 1
 
--- Upgrade tiers. Index = tier (1..5). Each entry: {cost, incomeMult}.
+-- Upgrade tiers. Index = tier (1..6). Each entry: {cost, incomeMult}.
 -- Cost is what player pays to ENTER that tier from the previous one.
 -- incomeMult is the cumulative multiplier on BASE_INCOME_PER_TICK at that tier.
+-- Tuned 2026-05-03 per retention playbook: smoothed mid-tier wall so D7
+-- cohort can reach capstone before they drop off. Old curve had a 4-5×
+-- jump tier 4→6 (5K→20K→100K); new curve is ~3-4× consistent.
 Constants.UPGRADE_TIERS = {
     {cost = 0,      incomeMult = 1},   -- Tier 1 (default, no cost)
-    {cost = 250,    incomeMult = 2},   -- Tier 2
-    {cost = 1000,   incomeMult = 5},   -- Tier 3
-    {cost = 5000,   incomeMult = 12},  -- Tier 4
-    {cost = 20000,  incomeMult = 30},  -- Tier 5
-    {cost = 100000, incomeMult = 80},  -- Tier 6 (capstone)
+    {cost = 250,    incomeMult = 2},   -- Tier 2 (~4min from spawn)
+    {cost = 1000,   incomeMult = 5},   -- Tier 3 (~10min)
+    {cost = 4000,   incomeMult = 12},  -- Tier 4 (~25min)
+    {cost = 14000,  incomeMult = 30},  -- Tier 5 (~45min)
+    {cost = 50000,  incomeMult = 80},  -- Tier 6 capstone (~75min, was 100K = ~2hr)
 }
 
 -- Pet Boost. A timed 2x multiplier on the equipped-pets contribution to
@@ -31,16 +34,21 @@ Constants.UPGRADE_TIERS = {
 --
 -- Coin cost scales with current tier so it stays meaningful late-game.
 -- One boost active at a time; buying again extends remaining time.
+-- Tuned 2026-05-03: previous tier-6 cost (1M) was a net LOSS even with
+-- 3 legendaries equipped (boost-delta over 15min ≈ 612K vs 1M cost).
+-- New scale targets boost being a clear net WIN for engaged players
+-- (player with 1 rebirth + 2-3 epic pets earns ~220/sec at tier 6,
+-- boost adds ~220/sec more for 15min = +198K, vs 100K cost = 2x ROI).
 Constants.PET_BOOST = {
     DURATION_SEC = 900,             -- 15 minutes
     MULTIPLIER = 2.0,
     COST_PER_TIER = {               -- coin cost indexed by upgradeTier
         [1] = 500,
-        [2] = 2500,
-        [3] = 12000,
-        [4] = 60000,
-        [5] = 250000,
-        [6] = 1000000,
+        [2] = 2000,
+        [3] = 8000,
+        [4] = 30000,
+        [5] = 100000,
+        [6] = 350000,
     },
 }
 
@@ -48,8 +56,12 @@ Constants.PET_BOOST = {
 -- ALSO grant a free hatch from the specified egg (no coin cost) on top
 -- of the coin bonus. Adds a tangible long-term incentive to maintain
 -- the streak and compounds with the pets gacha.
+-- Day-7 promoted to luxury_egg (rare-or-better skewed) per retention
+-- checklist: day-7 is the MYTHIC anchor, the carrot pulling D1 players
+-- through day 3-4 trough. Standard egg (biasTier 2) was undersized vs
+-- the "MYTHIC" label — luxury (biasTier 3) actually delivers.
 Constants.STREAK_EGG_GRANTS = {
-    [7]  = "standard_egg",
+    [7]  = "luxury_egg",
     [14] = "luxury_egg",
     [30] = "luxury_egg",
 }
