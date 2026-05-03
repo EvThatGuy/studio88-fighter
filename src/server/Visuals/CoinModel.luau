@@ -21,6 +21,14 @@ local function colorForTier(tier: number): Color3
     else return CYAN end
 end
 
+-- Per-tier sound modifiers consumed by Collector via the AmbientAudio
+-- spatial play. Higher tier = louder + lower pitch (chunkier "chink").
+function CoinModel.soundForTier(tier: number): (number, number)
+    local volume = 0.15 + math.min(tier, 6) * 0.04   -- 0.19 .. 0.39
+    local pitch  = 1.15 - math.min(tier, 6) * 0.05   -- 1.10 .. 0.85
+    return volume, pitch
+end
+
 -- Build a coin disc: cylinder body, neon rim, inner face decal (a glowing
 -- "$" symbol via TextLabel on a SurfaceGui rather than a Decal asset, so we
 -- ship zero external dependencies). Returns the body Part with all visuals

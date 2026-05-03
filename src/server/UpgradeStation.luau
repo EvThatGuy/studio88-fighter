@@ -74,6 +74,66 @@ function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
                 pcall(function() AmbientAudio.playSpatial("tier_up", soundAnchor, 0.5) end)
             end
         end
+        -- Capstone fireworks: tier 6 = the visual peak. Spawn 5 short-lived
+        -- particle bursts arrayed around the foundation, GC after 3.5s.
+        if nextTier >= #Constants.UPGRADE_TIERS then
+            local foundation = plot:FindFirstChild("Foundation") :: BasePart?
+            if foundation then
+                pcall(function()
+                    local FOUNTAIN_COLORS = {
+                        Color3.fromRGB(255, 215, 0),    -- gold
+                        Color3.fromRGB(255, 46, 136),   -- pink
+                        Color3.fromRGB(0, 240, 255),    -- cyan
+                        Color3.fromRGB(255, 176, 0),    -- amber
+                        Color3.fromRGB(255, 255, 255),  -- white
+                    }
+                    for i = 1, 5 do
+                        local angle = math.rad((i - 1) * 72)
+                        local fxAnchor = Instance.new("Part")
+                        fxAnchor.Name = "CapstoneFx"
+                        fxAnchor.Size = Vector3.new(0.1, 0.1, 0.1)
+                        fxAnchor.Position = foundation.Position + Vector3.new(
+                            math.cos(angle) * 18,
+                            foundation.Size.Y / 2 + 4,
+                            math.sin(angle) * 18
+                        )
+                        fxAnchor.Anchored = true
+                        fxAnchor.Transparency = 1
+                        fxAnchor.CanCollide = false
+                        fxAnchor.CanQuery = false
+                        fxAnchor.CanTouch = false
+                        fxAnchor.Parent = plot
+
+                        local pe = Instance.new("ParticleEmitter")
+                        pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+                        pe.LightEmission = 1
+                        pe.Color = ColorSequence.new(FOUNTAIN_COLORS[i])
+                        pe.Speed = NumberRange.new(14, 22)
+                        pe.Lifetime = NumberRange.new(1.5, 2.5)
+                        pe.Rate = 80
+                        pe.SpreadAngle = Vector2.new(35, 35)
+                        pe.Acceleration = Vector3.new(0, -10, 0)  -- arc back down
+                        pe.Size = NumberSequence.new({
+                            NumberSequenceKeypoint.new(0, 0.6),
+                            NumberSequenceKeypoint.new(0.5, 1.4),
+                            NumberSequenceKeypoint.new(1, 0.4),
+                        })
+                        pe.Transparency = NumberSequence.new({
+                            NumberSequenceKeypoint.new(0, 0.2),
+                            NumberSequenceKeypoint.new(0.6, 0.5),
+                            NumberSequenceKeypoint.new(1, 1),
+                        })
+                        pe.Parent = fxAnchor
+
+                        -- Stop emitting after 1.5s so total visual duration is ~3.5s
+                        task.delay(1.5, function() if pe.Parent then pe.Enabled = false end end)
+                        task.delay(4, function() if fxAnchor.Parent then fxAnchor:Destroy() end end)
+                    end
+                end)
+                -- Capstone celebration sound — louder than regular tier-up
+                pcall(function() AmbientAudio.playSpatial("rebirth", foundation, 0.7) end)
+            end
+        end
     end
     Leaderstats.refresh(player.UserId)
     pcall(function()

@@ -56,13 +56,15 @@ function AmbientAudio.ensureUiPings()
 end
 
 -- Spatial one-shot: parent a Sound to the given part, play, GC after Play
--- completes. Volume default 0.4. Silent no-op if soundKey unknown.
-function AmbientAudio.playSpatial(soundKey: string, attachTo: BasePart, volume: number?)
+-- completes. Volume default 0.4. Optional pitch (PlaybackSpeed) default 1.0.
+-- Silent no-op if soundKey unknown.
+function AmbientAudio.playSpatial(soundKey: string, attachTo: BasePart, volume: number?, pitch: number?)
     local soundPath = SOUND_PATHS[soundKey]
     if not soundPath or not attachTo then return end
     local s = Instance.new("Sound")
     s.SoundId = soundPath
     s.Volume = volume or 0.4
+    s.PlaybackSpeed = pitch or 1.0
     s.PlayOnRemove = true
     s.Parent = attachTo
     s.Played:Once(function()

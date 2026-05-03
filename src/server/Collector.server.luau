@@ -16,6 +16,7 @@ local Leaderstats = require(script.Parent:WaitForChild("Leaderstats"))
 local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService"))
 local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
 local AmbientAudio = require(script.Parent:WaitForChild("AmbientAudio"))
+local CoinModel = require(script.Parent:WaitForChild("Visuals"):WaitForChild("CoinModel"))
 
 local remotes = Remotes.get()
 
@@ -48,9 +49,12 @@ local function onCollect(collector: BasePart, hit: BasePart)
         pcall(function() fx:Emit(8) end)
     end
 
-    -- Spatial coin pickup ping. Volume 0.18 — soft enough that 4 coins/sec
-    -- at later tiers don't become a machine-gun assault.
-    pcall(function() AmbientAudio.playSpatial("coin", collector, 0.18) end)
+    -- Spatial coin pickup ping. Tier-scaled volume (0.19→0.39) + pitch
+    -- (1.10→0.85) so a tier-6 gold coin lands chunkier than tier-1 cyan.
+    -- Read tier off the coin attribute so we don't have to look up data.
+    local coinTier = hit:GetAttribute("Tier") or 1
+    local volume, pitch = CoinModel.soundForTier(coinTier)
+    pcall(function() AmbientAudio.playSpatial("coin", collector, volume, pitch) end)
 
     -- Floating "+N" text. Owner-only — server fires only at the plot owner
     -- so other players don't get spammed when they're nearby someone's

@@ -150,6 +150,48 @@ function PlotAssigner.updateStatsBoard(plot: Model, tier: number, lifetime: numb
     if tierLbl then tierLbl.Text = "TIER " .. tier end
     if incomeLbl then incomeLbl.Text = string.format("+%s / sec", fmtCoins(math.floor(perSec))) end
     if lifetimeLbl then lifetimeLbl.Text = "lifetime: " .. fmtCoins(lifetime) end
+
+    -- Tier rank pips: ●●○○○○ visual badge so the eye reads tier without
+    -- having to parse the text. 6 dots, filled to current tier. Built once
+    -- on first call (lazy) and updated on each call.
+    local pipsRoot = frame:FindFirstChild("TierPips") :: Frame?
+    if not pipsRoot then
+        pipsRoot = Instance.new("Frame")
+        pipsRoot.Name = "TierPips"
+        pipsRoot.Size = UDim2.new(0, 200, 0, 18)
+        pipsRoot.Position = UDim2.new(0, 16, 0, 130)
+        pipsRoot.BackgroundTransparency = 1
+        pipsRoot.Parent = frame
+        local layout = Instance.new("UIListLayout")
+        layout.FillDirection = Enum.FillDirection.Horizontal
+        layout.Padding = UDim.new(0, 6)
+        layout.SortOrder = Enum.SortOrder.LayoutOrder
+        layout.Parent = pipsRoot
+        for i = 1, #Constants.UPGRADE_TIERS do
+            local pip = Instance.new("Frame")
+            pip.Name = "Pip" .. i
+            pip.Size = UDim2.new(0, 16, 0, 16)
+            pip.LayoutOrder = i
+            pip.BorderSizePixel = 0
+            pip.Parent = pipsRoot
+            local cor = Instance.new("UICorner")
+            cor.CornerRadius = UDim.new(0.5, 0)
+            cor.Parent = pip
+        end
+        -- Push existing labels down to make room for the pip row
+        if incomeLbl then incomeLbl.Position = UDim2.new(0, 16, 0, 156) end
+        if lifetimeLbl then lifetimeLbl.Position = UDim2.new(0, 16, 0, 226) end
+    end
+    -- Color pips: filled = tier color (use TIER_OBELISK color), empty = grey
+    local pipFilledColor = (Constants.TIER_OBELISK[tier] and Constants.TIER_OBELISK[tier].color) or Color3.fromRGB(255, 46, 136)
+    local pipEmptyColor = Color3.fromRGB(60, 65, 78)
+    for i = 1, #Constants.UPGRADE_TIERS do
+        local pip = pipsRoot:FindFirstChild("Pip" .. i) :: Frame?
+        if pip then
+            pip.BackgroundColor3 = (i <= tier) and pipFilledColor or pipEmptyColor
+            pip.BackgroundTransparency = (i <= tier) and 0 or 0.4
+        end
+    end
 end
 
 function PlotAssigner.getPlotFor(userId: number): Model?
