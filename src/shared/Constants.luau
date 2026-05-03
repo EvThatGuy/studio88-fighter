@@ -382,18 +382,24 @@ Constants.DAILY_QUEST_POOL_EASY = {
     {id = "redeem_code",  kind = Constants.QUEST_KIND.REDEEM_CODE_TODAY,   target = 1,     reward = 500,  label = "Redeem any code (try LAUNCH)"},
 }
 
+-- MEDIUM rewards bumped 2x (1500→3000) so the bonus is meaningful vs
+-- natural income at tier 3-4 (~25% bonus over expected earn-time gain).
 Constants.DAILY_QUEST_POOL_MEDIUM = {
-    {id = "earn_5000",    kind = Constants.QUEST_KIND.EARN_COINS_TODAY,    target = 5000,  reward = 1500, label = "Earn {target} coins"},
-    {id = "tier_up_2",    kind = Constants.QUEST_KIND.TIER_UPS_TODAY,      target = 2,     reward = 1500, label = "Upgrade tier {target} times"},
-    {id = "collect_200",  kind = Constants.QUEST_KIND.COLLECT_DROPS_TODAY, target = 200,   reward = 1200, label = "Collect {target} coin drops"},
-    {id = "play_15min",   kind = Constants.QUEST_KIND.PLAY_MINUTES_TODAY,  target = 15,    reward = 1500, label = "Play for {target} minutes"},
+    {id = "earn_5000",    kind = Constants.QUEST_KIND.EARN_COINS_TODAY,    target = 5000,  reward = 3000, label = "Earn {target} coins"},
+    {id = "tier_up_2",    kind = Constants.QUEST_KIND.TIER_UPS_TODAY,      target = 2,     reward = 3000, label = "Upgrade tier {target} times"},
+    {id = "collect_200",  kind = Constants.QUEST_KIND.COLLECT_DROPS_TODAY, target = 200,   reward = 2500, label = "Collect {target} coin drops"},
+    {id = "play_15min",   kind = Constants.QUEST_KIND.PLAY_MINUTES_TODAY,  target = 15,    reward = 3000, label = "Play for {target} minutes"},
 }
 
+-- HARD rewards bumped 3x. Was 8K reward for ~30-45min of play at tier
+-- 5-6 (~10% bonus over natural earn). Now 25K reward (~30-50% bonus) so
+-- the quest is a clear "worth it" pull. Rebirth quest gets even stronger
+-- bump — that's THE D1→D7 conversion moment per checklist.
 Constants.DAILY_QUEST_POOL_HARD = {
-    {id = "earn_50000",   kind = Constants.QUEST_KIND.EARN_COINS_TODAY,    target = 50000, reward = 8000, label = "Earn {target} coins"},
-    {id = "tier_up_4",    kind = Constants.QUEST_KIND.TIER_UPS_TODAY,      target = 4,     reward = 7500, label = "Upgrade tier {target} times"},
-    {id = "rebirth_1",    kind = Constants.QUEST_KIND.REBIRTH_TODAY,       target = 1,     reward = 10000,label = "Rebirth at least once today"},
-    {id = "play_45min",   kind = Constants.QUEST_KIND.PLAY_MINUTES_TODAY,  target = 45,    reward = 8000, label = "Play for {target} minutes"},
+    {id = "earn_50000",   kind = Constants.QUEST_KIND.EARN_COINS_TODAY,    target = 50000, reward = 25000, label = "Earn {target} coins"},
+    {id = "tier_up_4",    kind = Constants.QUEST_KIND.TIER_UPS_TODAY,      target = 4,     reward = 25000, label = "Upgrade tier {target} times"},
+    {id = "rebirth_1",    kind = Constants.QUEST_KIND.REBIRTH_TODAY,       target = 1,     reward = 40000, label = "Rebirth at least once today"},
+    {id = "play_45min",   kind = Constants.QUEST_KIND.PLAY_MINUTES_TODAY,  target = 45,    reward = 25000, label = "Play for {target} minutes"},
 }
 
 -- Custom analytics event names. Centralized so we have ONE place to bump
@@ -685,6 +691,11 @@ Constants.SPIN_SEGMENTS = {
      reward = {kind = "free_egg", value = "luxury_egg"}},
     {id = "rebirth_token",label = "+1 RebirthToken", color = {200, 130, 255}, weight = 3,
      reward = {kind = "rebirth_token", value = 1}},
+    -- GRAND PRIZE per retention checklist mechanic 4: ~0.1% odds segment
+    -- keeps tension at the table. weight 0.1 vs ~89 sum = 0.11% chance.
+    -- Reward is +1hr pet boost — transformative for an active player.
+    {id = "grand_jackpot",label = "★ GRAND ★ 1hr Boost", color = {255, 215,   0}, weight = 0.1,
+     reward = {kind = "boost_seconds", value = 3600}},
 }
 
 -- Player Titles. Earned tags shown over the character (BillboardGui)
