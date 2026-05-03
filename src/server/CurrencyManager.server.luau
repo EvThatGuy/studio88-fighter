@@ -129,6 +129,14 @@ end)
 local lastCheatWarnAt: {[number]: number} = {}
 local CHEAT_WARN_COOLDOWN_SEC = 300
 
+-- Rolling 60s coin gain ceiling. Tracks {[userId] = {windowStart, totalGain}}.
+-- If actual gain over 60s exceeds (theoretical max for player state * 1.2),
+-- log a warn. Catches exploits that bypass multiplierFor entirely (direct
+-- data.coins writes from a different code path).
+type CoinWindow = {windowStart: number, totalGain: number, expectedMax: number}
+local coinWindows: {[number]: CoinWindow} = {}
+local CEILING_TOLERANCE = 1.2  -- 20% leeway for legit edge cases (boost+collection+rebirth all firing)
+
 local function tick()
     while true do
         task.wait(Constants.TICK_SECONDS)
@@ -155,6 +163,27 @@ local function tick()
                             player.Name, gain, mult, expectedGain
                         ))
                     end
+                end
+                -- Rolling 60s coin-gain ceiling tracker (anti-cheat).
+                -- Reset window every 60s. If actual gain in window exceeds
+                -- (max-mult * BASE_INCOME_PER_TICK * 60 * tolerance), warn.
+                local now = os.time()
+                local w = coinWindows[player.UserId]
+                if not w or (now - w.windowStart) >= 60 then
+                    w = {
+                        windowStart = now,
+                        totalGain = 0,
+                        expectedMax = math.floor(Constants.BASE_INCOME_PER_TICK * mult * 60 * CEILING_TOLERANCE),
+                    }
+                    coinWindows[player.UserId] = w
+                end
+                w.totalGain += gain
+                if w.totalGain > w.expectedMax and (now - (lastCheatWarnAt[player.UserId] or 0)) >= CHEAT_WARN_COOLDOWN_SEC then
+                    lastCheatWarnAt[player.UserId] = now
+                    warn(string.format(
+                        "[CurrencyManager] CEILING %s gained %d in window vs expected max %d",
+                        player.Name, w.totalGain, w.expectedMax
+                    ))
                 end
                 if gain > 0 then
                     data.coins += gain

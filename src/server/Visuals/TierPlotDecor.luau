@@ -189,8 +189,30 @@ function TierPlotDecor.build(plot: Model, tier: number)
         pl.Parent = spire
     end
 
-    -- Tier 6: capstone swirling particle ring around the foundation
+    -- Tier 6: capstone visual transformation. Foundation gold trim +
+    -- swirling particle ring + brightened decor accents.
     if tier >= 6 then
+        local GOLD = Color3.fromRGB(255, 215, 0)
+        -- Gold rim around the entire foundation top edge (4 strips,
+        -- thicker than the cyan tier-2 BorderStrip; sits above it)
+        for _, side in ipairs({
+            {pos = Vector3.new(0, fsize.Y/2 + 0.55,  fsize.Z/2 - 0.5),
+             size = Vector3.new(fsize.X, 0.5, 0.5)},
+            {pos = Vector3.new(0, fsize.Y/2 + 0.55, -fsize.Z/2 + 0.5),
+             size = Vector3.new(fsize.X, 0.5, 0.5)},
+            {pos = Vector3.new( fsize.X/2 - 0.5, fsize.Y/2 + 0.55, 0),
+             size = Vector3.new(0.5, 0.5, fsize.Z)},
+            {pos = Vector3.new(-fsize.X/2 + 0.5, fsize.Y/2 + 0.55, 0),
+             size = Vector3.new(0.5, 0.5, fsize.Z)},
+        }) do
+            makePart(folder, "CapstoneGoldRim", {
+                Size = side.size,
+                Position = fpos + side.pos,
+                Material = Enum.Material.Neon,
+                Color = GOLD,
+                Transparency = 0.1,
+            })
+        end
         local ringHost = makePart(folder, "CapstoneRingHost", {
             Size = Vector3.new(0.1, 0.1, 0.1),
             Position = fpos + Vector3.new(0, fsize.Y/2 + 0.5, 0),

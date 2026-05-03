@@ -2,6 +2,48 @@
 
 Per-publish gameplay/balance changes. Visual changes documented separately in `docs/visual-architecture.md`.
 
+## V108 — 2026-05-03
+
+### Daily Shop client overlay
+- `DailyShopOverlay.client.luau`: top-right "🛒" button (left of "?") opens centered modal
+- 3 item rows with label + buy button; bought items grey "BOUGHT"
+- Server-side `BuyDailyShopItem` fires, refetch state after 0.4s
+
+## V107 — 2026-05-03
+
+### Capstone server announce
+- `UpgradeStation.attemptPurchase` when nextTier == 6 broadcasts TextChatService system message
+- "🏆 PlayerName reached the capstone tier (rebirth #N)!"
+- Throttled globally via `_G.Studio88LastCapstoneAnnounceAt` (1/min)
+
+### Streak-risk warning toast
+- `DailyLoginBonus` 5min loop after 22:00 UTC scans 3+ day streaks who haven't claimed
+- Fires `NotificationToast` with kind="streak_risk", "⚠️ STREAK AT RISK / Your N-day streak resets in Xh"
+
+### Generic NotificationToast
+- New `NotificationToast` RemoteEvent (kind/title/body schema)
+- New `NotificationToast.client.luau`: amber/pink/cyan accent by kind, 5s hold
+
+## V106 — 2026-05-03
+
+### First-rebirth jackpot (D1→D7 conversion ceremony)
+- `RebirthService.attemptRebirth` detects rebirths==0 BEFORE increment
+- Grants `FIRST_REBIRTH_BONUS_COINS=5000` + 1 free luxury_egg pet hatch
+- PetHatched fires for the toast; subsequent rebirths get standard reward only
+
+### VaultRaid chat announce
+- `VaultRaidEvent.startRaid` broadcasts TextChatService system message
+- "★ A Vault Raider has appeared at the lobby! Tag for $50K pool (60s)"
+
+### Daily Shop coin sink
+- `Constants.DAILY_SHOP_POOL` 7-item pool (boosts, eggs, tokens)
+- `DAILY_SHOP_SLOT_COUNT=3` deterministic per UTC day (same across all servers)
+- `DailyShopService.luau` (new): `todaysItems`, `snapshot(userId)`, `attemptBuy(player, itemId)`
+- Per-player one-shot per item per day
+- Items priced 2K-75K so wealthy players have meaningful spend
+- Item kinds: coins, boost_sec, rebirth_token, random_pet
+- Wired `GetDailyShop` RemoteFunction + `BuyDailyShopItem` RemoteEvent
+
 ## V105 — 2026-05-03
 
 ### TradeService scaffold (DISABLED feature flag)
