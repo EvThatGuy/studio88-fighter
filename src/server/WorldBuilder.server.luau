@@ -190,26 +190,12 @@ local function buildPlotTemplate()
     })
     emitter.Name = "Emitter"
 
-    -- Collector -- coins touch this, grant balance, despawn
-    local collector = part("Collector", plot, {
-        Size = Vector3.new(8, 4, 8),
-        Position = Vector3.new(18, 2, 0),
-        Anchored = true,
-        Material = Enum.Material.Neon,
-        Color = PINK,
-        Transparency = 0.3,
-        Locked = true,
-    })
-    CollectionService:AddTag(collector, "Studio88Collector")
-    -- Ambient pink glimmer; Collector.server.luau bursts this on each collect
-    local collectorFX = makeParticle(collector, {
-        Color = ColorSequence.new(PINK),
-        Rate = 2,
-        Speed = NumberRange.new(0, 1),
-        SpreadAngle = Vector2.new(30, 30),
-        Acceleration = Vector3.new(0, 4, 0),
-    })
-    collectorFX.Name = "CollectFX"
+    -- Collector -- vault-door receptacle. The Catch part inside the model
+    -- carries the Studio88Collector tag + a CollectFX particle, so existing
+    -- Collector.server.luau Touched bindings + FX:Emit() lookups still work.
+    local CollectorModel = require(script.Parent:WaitForChild("Visuals"):WaitForChild("CollectorModel"))
+    local collectorModel = CollectorModel.build(Vector3.new(18, 2, 0), plot)
+    local _ = collectorModel
 
     -- Conveyor surface from dropper to collector (tilted slightly)
     local conveyor = part("Conveyor", plot, {
