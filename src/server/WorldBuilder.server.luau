@@ -755,3 +755,38 @@ buildLeaderboardSign()
 tuneLighting()
 markBuilt()
 print("[WorldBuilder] scene complete -- 6 plot anchors + leaderboard + spawn")
+
+-- Time-of-day cycle: smoothly rotate ClockTime over a 10-minute real loop
+-- (golden hour 14h -> dusk 18h -> night 22h -> dawn 6h -> back). Keeps
+-- the world breathing for players who hang out longer. Pure server task,
+-- no extra parts/particles.
+task.spawn(function()
+    local CYCLE_SEC = 600  -- 10 minutes real time = 1 full day cycle
+    while true do
+        local elapsed = os.clock() % CYCLE_SEC
+        local t = elapsed / CYCLE_SEC  -- 0..1 over the cycle
+        -- Map t to ClockTime in a way that hovers in playable daylight
+        -- ranges most of the time. Cycle: 14 -> 18 -> 22 -> 6 -> 14
+        -- but linger 60% of cycle in 13-17 range for visibility.
+        local clock
+        if t < 0.6 then
+            -- 60% of cycle: 13 -> 17
+            clock = 13 + (t / 0.6) * 4
+        elseif t < 0.75 then
+            -- 15% dusk: 17 -> 20
+            clock = 17 + ((t - 0.6) / 0.15) * 3
+        elseif t < 0.85 then
+            -- 10% night: 20 -> 4 (wraps around)
+            clock = 20 + ((t - 0.75) / 0.10) * 8
+            if clock >= 24 then clock = clock - 24 end
+        elseif t < 0.95 then
+            -- 10% dawn: 4 -> 8
+            clock = 4 + ((t - 0.85) / 0.10) * 4
+        else
+            -- 5% morning lift: 8 -> 13
+            clock = 8 + ((t - 0.95) / 0.05) * 5
+        end
+        Lighting.ClockTime = clock
+        task.wait(2)  -- update every 2s — smooth enough, cheap
+    end
+end)

@@ -384,8 +384,66 @@ function LobbyDecor.build()
         pcl.Parent = cap
     end
 
+    -- Two corner fountains framing the front of the lobby (-Z direction
+    -- from spawn). Single ParticleEmitter each, water-blue particles
+    -- shooting up + falling under gravity. Adds movement at the lobby
+    -- perimeter beyond the rotating sign + crystals.
+    for _, fx in ipairs({-30, 30}) do
+        local fountainBase = part("FountainBase", container, {
+            Size = Vector3.new(3, 1.5, 3),
+            Position = Vector3.new(fx, 0.75, -22),
+            Material = Enum.Material.Marble,
+            Color = STEEL,
+        })
+        local mesh = Instance.new("CylinderMesh")
+        mesh.Scale = Vector3.new(1, 1, 1)
+        mesh.Parent = fountainBase
+
+        local rim = part("FountainRim", container, {
+            Size = Vector3.new(3.4, 0.4, 3.4),
+            Position = Vector3.new(fx, 1.7, -22),
+            Material = Enum.Material.Neon,
+            Color = CYAN,
+            Transparency = 0.3,
+            CanCollide = false,
+        })
+        local rimMesh = Instance.new("CylinderMesh")
+        rimMesh.Scale = Vector3.new(1, 0.4, 1)
+        rimMesh.Parent = rim
+
+        local emitter = part("FountainEmitter", container, {
+            Size = Vector3.new(0.2, 0.2, 0.2),
+            Position = Vector3.new(fx, 2.0, -22),
+            Transparency = 1,
+            CanCollide = false,
+        })
+        local pe = Instance.new("ParticleEmitter")
+        pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+        pe.LightEmission = 0.5
+        pe.Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(120, 200, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(60, 130, 200)),
+        })
+        pe.Speed = NumberRange.new(8, 12)
+        pe.Lifetime = NumberRange.new(1.0, 1.6)
+        pe.Rate = 18
+        pe.SpreadAngle = Vector2.new(15, 15)
+        pe.Acceleration = Vector3.new(0, -22, 0)  -- gravity arc
+        pe.Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.4),
+            NumberSequenceKeypoint.new(0.5, 0.8),
+            NumberSequenceKeypoint.new(1, 0.3),
+        })
+        pe.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.2),
+            NumberSequenceKeypoint.new(0.7, 0.5),
+            NumberSequenceKeypoint.new(1, 1),
+        })
+        pe.Parent = emitter
+    end
+
     CollectionService:AddTag(container, "Studio88LobbyDecor")
-    print("[LobbyDecor] built: 3-tier pedestal + rotating sign + 6 perimeter pillars")
+    print("[LobbyDecor] built: 3-tier pedestal + rotating sign + 6 perimeter pillars + 2 fountains + crystal centerpiece")
 end
 
 return LobbyDecor

@@ -349,6 +349,67 @@ local function paintPlotName(plot: Model, player: Player)
     lbl.Parent = bg
 end
 
+-- Welcome mat: cyan plate just inside the south walk-in gap with player
+-- name + tier on the top face. Players step onto it as they enter their
+-- plot — personalizes the entry.
+local function buildWelcomeMat(plot: Model, player: Player)
+    local foundation = plot:FindFirstChild("Foundation") :: BasePart?
+    if not foundation then return end
+    local fpos = foundation.Position
+    local fsize = foundation.Size
+    local existing = plot:FindFirstChild("WelcomeMat")
+    if existing then existing:Destroy() end
+
+    local CYAN = Color3.fromRGB(0, 240, 255)
+    local DARK = Color3.fromRGB(8, 7, 13)
+
+    local mat = Instance.new("Part")
+    mat.Name = "WelcomeMat"
+    mat.Size = Vector3.new(8, 0.2, 4)
+    mat.Position = fpos + Vector3.new(0, fsize.Y / 2 + 0.1, -fsize.Z / 2 + 4)
+    mat.Anchored = true
+    mat.Locked = true
+    mat.CanCollide = false
+    mat.CanQuery = false
+    mat.Material = Enum.Material.Neon
+    mat.Color = CYAN
+    mat.Transparency = 0.4
+    mat.TopSurface = Enum.SurfaceType.Smooth
+    mat.BottomSurface = Enum.SurfaceType.Smooth
+    mat.Parent = plot
+
+    local sg = Instance.new("SurfaceGui")
+    sg.Adornee = mat
+    sg.Face = Enum.NormalId.Top
+    sg.CanvasSize = Vector2.new(400, 200)
+    sg.LightInfluence = 0
+    sg.Parent = mat
+
+    local nameLbl = Instance.new("TextLabel")
+    nameLbl.Size = UDim2.new(1, 0, 0.55, 0)
+    nameLbl.Position = UDim2.new(0, 0, 0.1, 0)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Text = string.upper(player.Name)
+    nameLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLbl.TextStrokeTransparency = 0.2
+    nameLbl.TextStrokeColor3 = DARK
+    nameLbl.Font = Enum.Font.GothamBold
+    nameLbl.TextScaled = true
+    nameLbl.Parent = sg
+
+    local subLbl = Instance.new("TextLabel")
+    subLbl.Name = "MatTagline"
+    subLbl.Size = UDim2.new(1, 0, 0.3, 0)
+    subLbl.Position = UDim2.new(0, 0, 0.65, 0)
+    subLbl.BackgroundTransparency = 1
+    subLbl.Text = "WELCOME"
+    subLbl.TextColor3 = DARK
+    subLbl.TextStrokeTransparency = 0.6
+    subLbl.Font = Enum.Font.Code
+    subLbl.TextScaled = true
+    subLbl.Parent = sg
+end
+
 -- Build the player-name welcome arch over the south walk-in gap. The
 -- foundation is 50x50 centered at plot origin, walls have a 12-stud
 -- middle gap, and the arch sits ~7 studs above the foundation with the
@@ -468,6 +529,7 @@ local function assign(player: Player)
     stampOwner(clone, player.UserId)
     paintPlotName(clone, player)
     buildWelcomeArch(clone, player)
+    buildWelcomeMat(clone, player)
     plotsByUserId[player.UserId] = clone
 
     -- Apply tier art at assignment so returning players land on the right
