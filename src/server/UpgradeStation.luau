@@ -18,6 +18,7 @@ local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner"))
 local Leaderstats = require(script.Parent:WaitForChild("Leaderstats"))
 local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService"))
 local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
+local AmbientAudio = require(script.Parent:WaitForChild("AmbientAudio"))
 
 local remotes = Remotes.get()
 
@@ -58,12 +59,19 @@ function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
     if plot then
         PlotAssigner.applyTierArt(plot, nextTier)
         PlotAssigner.updateStatsBoard(plot, nextTier, data.lifetimeCoins)
-        -- Burst the upgrade button particle emitter for a celebratory pop
-        local btn = plot:FindFirstChild("UpgradeButton") :: BasePart?
+        -- Burst the upgrade button particle emitter for a celebratory pop.
+        -- V62 nests the button in a Model — find UpgradeFX recursively so
+        -- it works regardless of layout depth.
+        local btn = plot:FindFirstChild("UpgradeButton")
         if btn then
-            local fx = btn:FindFirstChild("UpgradeFX") :: ParticleEmitter?
+            local fx = btn:FindFirstChild("UpgradeFX", true) :: ParticleEmitter?
             if fx then
                 pcall(function() fx:Emit(30) end)
+            end
+            -- Tier-up celebration sound at the upgrade button position
+            local soundAnchor = btn:IsA("BasePart") and btn or btn:FindFirstChildWhichIsA("BasePart", true)
+            if soundAnchor then
+                pcall(function() AmbientAudio.playSpatial("tier_up", soundAnchor, 0.5) end)
             end
         end
     end

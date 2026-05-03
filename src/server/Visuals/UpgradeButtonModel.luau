@@ -66,8 +66,10 @@ function UpgradeButtonModel.build(pos: Vector3, parent: Instance): Model
         Transparency = 0.0,
     })
 
-    -- Slow upward particle drift
+    -- Slow upward particle drift. Named UpgradeFX so UpgradeStation's
+    -- per-purchase burst (FindFirstChild("UpgradeFX"):Emit(30)) finds it.
     local pe = Instance.new("ParticleEmitter")
+    pe.Name = "UpgradeFX"
     pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
     pe.LightEmission = 1
     pe.Color = ColorSequence.new(AMBER)

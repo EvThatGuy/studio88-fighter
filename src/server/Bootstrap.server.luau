@@ -35,6 +35,11 @@ end
 -- read it.
 load("DataStore")
 load("Leaderstats")
+-- AmbientAudio module is required by Collector + UpgradeStation. The
+-- companion AmbientAudio.server.luau Script also boots it, but loading
+-- here ensures the module is available even if require ordering races
+-- with the bootstrap loop.
+load("AmbientAudio")
 
 -- Plot infrastructure: must exist before tutorial / collectibles can react.
 load("PlotAssigner")

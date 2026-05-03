@@ -15,6 +15,7 @@ local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner"))
 local Leaderstats = require(script.Parent:WaitForChild("Leaderstats"))
 local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService"))
 local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
+local AmbientAudio = require(script.Parent:WaitForChild("AmbientAudio"))
 
 local remotes = Remotes.get()
 
@@ -46,6 +47,10 @@ local function onCollect(collector: BasePart, hit: BasePart)
     if fx then
         pcall(function() fx:Emit(8) end)
     end
+
+    -- Spatial coin pickup ping. Volume 0.18 — soft enough that 4 coins/sec
+    -- at later tiers don't become a machine-gun assault.
+    pcall(function() AmbientAudio.playSpatial("coin", collector, 0.18) end)
 
     -- Refresh the plot's stats board with the new lifetime total. This is
     -- per-collect so it spams a bit; UpdateStatsBoard is a string-set on a
