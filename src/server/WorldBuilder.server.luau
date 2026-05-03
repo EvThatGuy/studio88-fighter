@@ -119,54 +119,26 @@ local function buildSpawn()
         if child:IsA("SpawnLocation") then child:Destroy() end
     end
 
+    -- Invisible SpawnLocation under the lobby pedestal — players land on
+    -- top of the 3-tier pillar created by LobbyDecor. Keep neutral so the
+    -- physical SpawnLocation isn't visible (decor handles the reveal).
     local spawnPart = Instance.new("SpawnLocation")
     spawnPart.Name = "Studio88Spawn"
-    spawnPart.Size = Vector3.new(20, 1, 20)
-    spawnPart.Position = Vector3.new(0, 0.5, 0)
+    spawnPart.Size = Vector3.new(8, 1, 8)
+    spawnPart.Position = Vector3.new(0, 3.6, 0)  -- on top of the pedestal's top tier
     spawnPart.Anchored = true
-    spawnPart.Material = Enum.Material.Neon
-    spawnPart.Color = PINK
+    spawnPart.Material = Enum.Material.SmoothPlastic
+    spawnPart.Color = Color3.fromRGB(20, 17, 31)
     spawnPart.TopSurface = Enum.SurfaceType.Smooth
     spawnPart.BottomSurface = Enum.SurfaceType.Smooth
-    spawnPart.Transparency = 0.2
+    spawnPart.Transparency = 1
+    spawnPart.CanCollide = true
     spawnPart.Locked = true
     spawnPart.Parent = Workspace
 
-    -- "STUDIO 88" billboard floating above
-    local billboard = part("BrandTotem", Workspace, {
-        Size = Vector3.new(0.1, 0.1, 0.1),
-        Position = Vector3.new(0, 12, 0),
-        Anchored = true,
-        Transparency = 1,
-        CanCollide = false,
-        Locked = true,
-    })
-    local bg = Instance.new("BillboardGui")
-    bg.Adornee = billboard
-    bg.Size = UDim2.new(0, 280, 0, 80)
-    bg.AlwaysOnTop = true
-    bg.Parent = billboard
-
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0.6, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "STUDIO 88"
-    title.TextColor3 = PINK
-    title.Font = Enum.Font.GothamBold
-    title.TextStrokeTransparency = 0
-    title.TextStrokeColor3 = DARK
-    title.TextScaled = true
-    title.Parent = bg
-
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Size = UDim2.new(1, 0, 0.4, 0)
-    subtitle.Position = UDim2.new(0, 0, 0.6, 0)
-    subtitle.BackgroundTransparency = 1
-    subtitle.Text = "TYCOON v1"
-    subtitle.TextColor3 = CYAN
-    subtitle.Font = Enum.Font.Code
-    subtitle.TextScaled = true
-    subtitle.Parent = bg
+    -- Decor: 3-tier pedestal + rotating sign + 6 perimeter pillars + lights
+    local LobbyDecor = require(script.Parent:WaitForChild("Visuals"):WaitForChild("LobbyDecor"))
+    LobbyDecor.build()
 end
 
 -- --- Plot template ---------------------------------------------------------
@@ -255,6 +227,44 @@ local function buildPlotTemplate()
     belt.Name = "ConveyorVelocity"
     belt.Value = Vector3.new(8, 0, 0)
     belt.Parent = conveyor
+
+    -- Animated belt texture on the top face. Built-in pattern, scrolls
+    -- via OffsetStudsU tween so the eye reads "movement" matching the
+    -- physical surface velocity. Uses rbxasset:// built-in chain pattern;
+    -- if missing, falls back to invisible (no error).
+    local beltTex = Instance.new("Texture")
+    beltTex.Name = "BeltTex"
+    beltTex.Texture = "rbxasset://textures/SurfacesDefault.png"
+    beltTex.Color3 = Color3.fromRGB(60, 65, 78)
+    beltTex.StudsPerTileU = 4
+    beltTex.StudsPerTileV = 4
+    beltTex.Face = Enum.NormalId.Top
+    beltTex.Parent = conveyor
+    -- Scroll offset loop: shift U coordinate to match velocity
+    task.spawn(function()
+        local offset = 0
+        while beltTex.Parent do
+            offset = (offset + 0.4) % 4
+            beltTex.OffsetStudsU = -offset
+            task.wait(0.05)
+        end
+    end)
+
+    -- Cyan neon accent strips along the long edges, gives the belt a
+    -- "track" feel and ties to brand colors
+    for _, side in ipairs({-2.2, 2.2}) do
+        local strip = part("BeltStrip", plot, {
+            Size = Vector3.new(36, 0.2, 0.3),
+            Position = Vector3.new(0, 2.05, side),
+            Anchored = true,
+            Material = Enum.Material.Neon,
+            Color = Color3.fromRGB(0, 240, 255),
+            Transparency = 0.3,
+            CanCollide = false,
+            Locked = true,
+        })
+        local _ = strip
+    end
 
     -- Upgrade button (next-tier purchase). Use the arcade-button model:
     -- pedestal + dome with embedded ProximityPrompt. The Dome part is
