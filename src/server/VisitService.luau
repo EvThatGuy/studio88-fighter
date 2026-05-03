@@ -93,6 +93,19 @@ function VisitService.attemptVisit(player: Player, targetUserId: any): (boolean,
             remotes.VisitedByPlayer:FireClient(target, player.Name, tip)
         end)
     end
+    -- ALSO tip the visitor — both sides win so the social viral loop
+    -- (visit → owner tipped → visitor tipped → both motivated) compounds
+    -- per checklist. Visitor reward is flat (not tier-scaled) so tier-1
+    -- visitors aren't disadvantaged when visiting tier-6 plots.
+    local visitorData = DataStore.getCached(player.UserId)
+    if visitorData then
+        local visitorReward = Constants.VISIT_VISITOR_REWARD_COINS or 100
+        visitorData.coins += visitorReward
+        visitorData.lifetimeCoins += visitorReward
+        pcall(function()
+            remotes.BalanceUpdated:FireClient(player, visitorData.coins, visitorData.lifetimeCoins)
+        end)
+    end
     print(string.format("[VisitService] %s -> %s's plot",
         player.Name, target.Name))
     pcall(function()

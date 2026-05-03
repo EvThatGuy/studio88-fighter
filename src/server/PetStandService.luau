@@ -114,6 +114,43 @@ function PetStandService.refreshFor(userId: number)
     local count = #active
     local startX = -((count - 1) * BADGE_SPACING) / 2
 
+    -- Compute the active multiplier from equipped pets (sumAdd of rarity
+    -- mults — same math as PetService.getPetMultiplier). Show it as a
+    -- floating "x2.5 PET BOOST" label above the stand so visitors see
+    -- the social proof of the gacha grind.
+    local sumAdd = 0
+    for _, entry in ipairs(active) do
+        local r = Constants.PET_RARITIES[entry.rarity]
+        if r then sumAdd += r.mult end
+    end
+    local petMult = 1 + sumAdd
+    do
+        local labelHost = Instance.new("Part")
+        labelHost.Name = "PetMultLabel"
+        labelHost.Size = Vector3.new(0.1, 0.1, 0.1)
+        labelHost.Position = center + Vector3.new(0, BADGE_SPACING, 0)
+        labelHost.Anchored = true
+        labelHost.Transparency = 1
+        labelHost.CanCollide = false
+        labelHost.CanQuery = false
+        labelHost.Parent = stand
+        local bb = Instance.new("BillboardGui")
+        bb.Adornee = labelHost
+        bb.Size = UDim2.new(0, 220, 0, 40)
+        bb.AlwaysOnTop = false
+        bb.Parent = labelHost
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, 0, 1, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = string.format("x%.2f PET BOOST", petMult)
+        lbl.TextColor3 = Color3.fromRGB(255, 215, 0)
+        lbl.TextStrokeTransparency = 0.2
+        lbl.TextStrokeColor3 = Color3.fromRGB(8, 7, 13)
+        lbl.Font = Enum.Font.GothamBold
+        lbl.TextScaled = true
+        lbl.Parent = bb
+    end
+
     for i, entry in ipairs(active) do
         local rcolor = Constants.PET_RARITY_COLORS[entry.rarity] or {200, 200, 200}
         local color = Color3.fromRGB(rcolor[1], rcolor[2], rcolor[3])

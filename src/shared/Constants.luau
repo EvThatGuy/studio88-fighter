@@ -791,6 +791,10 @@ Constants.PLAYER_TITLES = {
 Constants.VISIT_COOLDOWN_SEC = 30
 Constants.VISIT_HEIGHT_OFFSET = 8 -- studs above the foundation, so you don't clip in
 Constants.VISIT_OWNER_TIP_COINS = 50  -- scaled by owner's tier mult; pos feedback for being visited
+-- Visitor reward (both sides win — encourages the social viral loop per
+-- retention checklist mechanic 5). Flat (not tier-scaled) so tier-1
+-- players aren't disadvantaged when visiting tier-6 plots.
+Constants.VISIT_VISITOR_REWARD_COINS = 100
 
 -- Squad Bonus. When the server has SQUAD_THRESHOLD or more concurrent
 -- players, EVERYONE in that server gets a flat income multiplier. Gives
