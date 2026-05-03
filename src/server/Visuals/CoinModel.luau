@@ -65,28 +65,13 @@ function CoinModel.build(tier: number): BasePart
     weld.Parent = coin
     rim.Parent = coin
 
-    -- Glowing "$" face. Two SurfaceGuis (one per cylinder face) so the icon
-    -- shows from both sides as the coin tumbles.
-    for _, face in ipairs({Enum.NormalId.Right, Enum.NormalId.Left}) do
-        local sg = Instance.new("SurfaceGui")
-        sg.Adornee = coin
-        sg.Face = face
-        sg.CanvasSize = Vector2.new(120, 120)
-        sg.LightInfluence = 0
-        sg.AlwaysOnTop = false
-        sg.Parent = coin
-
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(1, 0, 1, 0)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = "$"
-        lbl.TextColor3 = Color3.fromRGB(255, 255, 255)
-        lbl.TextStrokeTransparency = 0.2
-        lbl.TextStrokeColor3 = Color3.fromRGB(20, 17, 31)
-        lbl.Font = Enum.Font.GothamBold
-        lbl.TextScaled = true
-        lbl.Parent = sg
-    end
+    -- Note: previous V62 version added 2 SurfaceGuis per coin (one per
+    -- cylinder face) for a "$" symbol. PerfBudgetProbe surfaced surfaceGui
+    -- count growing 26->68 within 30s of play because coin lifetime is 30s
+    -- and spawn rate is 1/s (so up to 30 live coins = 60 guis from coins
+    -- alone). Removed: cylinder disc + neon glow + sparkle reads as a coin
+    -- without the symbol, and SurfaceGui count stays at the fixed-cost
+    -- baseline of ~8 from world fixtures.
 
     -- Subtle glow trail so the coin reads as moving even on low-end clients
     -- where conveyor velocity is barely visible.

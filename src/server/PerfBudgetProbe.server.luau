@@ -19,7 +19,11 @@ local BUDGETS = {
     parts = 3000,
     particles = 50,
     lights = 30,
-    surfaceGuis = 25,
+    -- 8 baseline from world fixtures (leaderboard, dropper marquee,
+    -- collector vault, plot stats board, etc). Coins used to add 2 each
+    -- but were removed in the leak fix. Headroom for 1 more world fixture
+    -- with up to 32 surfaceGuis is plenty.
+    surfaceGuis = 40,
 }
 
 local function audit()
