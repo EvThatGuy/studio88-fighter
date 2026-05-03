@@ -108,9 +108,14 @@ local function paintSign(rows: {{userId: number, name: string, lifetimeCoins: nu
             lbl.TextXAlignment = Enum.TextXAlignment.Left
             lbl.Parent = rowsFrame
         else
-            for i, row in ipairs(rows) do
+            -- Top-50 in payload, but the in-world sign renders the top
+            -- 20 (panel real estate cap). Client HUD modal can render
+            -- the full 50 from the LeaderboardUpdated remote.
+            local visibleN = math.min(20, #rows)
+            for i = 1, visibleN do
+                local row = rows[i]
                 local lbl = Instance.new("TextLabel")
-                lbl.Size = UDim2.new(1, 0, 0, 32)
+                lbl.Size = UDim2.new(1, 0, 0, 18)
                 lbl.BackgroundTransparency = 1
                 lbl.Text = string.format("%2d. %-14s  %s", i, row.name:sub(1, 14), fmtCoins(row.lifetimeCoins))
                 lbl.TextColor3 = (i == 1) and PINK or (i <= 3 and CYAN or TEXT)

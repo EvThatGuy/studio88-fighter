@@ -40,15 +40,26 @@ end
 function RebirthService.checkEligibility(userId: number): (boolean, string?, number?)
     local data = DataStore.getCached(userId)
     if not data then return false, "no_data", nil end
-    local maxTier = #Constants.UPGRADE_TIERS
-    if data.upgradeTier < maxTier then
-        return false, "min_tier", maxTier - data.upgradeTier
+    -- First rebirth has soft gates so D1 players can hit it in 10-15min
+    -- (per tycoon-retention-checklist). Subsequent rebirths require the
+    -- real grind: max tier + 100K lifetime.
+    local rebirths = data.rebirths or 0
+    local minTier, minLifetime
+    if rebirths == 0 then
+        minTier = Constants.REBIRTH_FIRST_MIN_TIER
+        minLifetime = Constants.REBIRTH_FIRST_MIN_LIFETIME_COINS
+    else
+        minTier = #Constants.UPGRADE_TIERS
+        minLifetime = Constants.REBIRTH_MIN_LIFETIME_COINS
     end
-    if data.lifetimeCoins < Constants.REBIRTH_MIN_LIFETIME_COINS then
+    if data.upgradeTier < minTier then
+        return false, "min_tier", minTier - data.upgradeTier
+    end
+    if data.lifetimeCoins < minLifetime then
         return false, "insufficient_lifetime",
-            Constants.REBIRTH_MIN_LIFETIME_COINS - data.lifetimeCoins
+            minLifetime - data.lifetimeCoins
     end
-    if (data.rebirths or 0) >= Constants.REBIRTH_MAX then
+    if rebirths >= Constants.REBIRTH_MAX then
         return false, "max_rebirths", nil
     end
     return true, nil, nil

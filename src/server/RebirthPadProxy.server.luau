@@ -83,7 +83,9 @@ local function refreshPad(pad: BasePart)
             local nextMult = 1 + (rb + 1) * Constants.REBIRTH_BONUS_PER
             label.Text = string.format("REBIRTH READY  x%.2f", nextMult)
         elseif reason == "min_tier" then
-            label.Text = string.format("REACH TIER %d FIRST", #Constants.UPGRADE_TIERS)
+            -- First rebirth uses REBIRTH_FIRST_MIN_TIER, subsequent uses max
+            local minTier = (rb == 0) and Constants.REBIRTH_FIRST_MIN_TIER or #Constants.UPGRADE_TIERS
+            label.Text = string.format("REACH TIER %d FIRST", minTier)
         elseif reason == "insufficient_lifetime" then
             label.Text = string.format("EARN %s MORE", fmtCoins(needed or 0))
         else

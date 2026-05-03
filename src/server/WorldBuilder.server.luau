@@ -653,7 +653,7 @@ local function buildLeaderboardSign()
     title.Size = UDim2.new(1, -32, 0, 60)
     title.Position = UDim2.new(0, 16, 0, 16)
     title.BackgroundTransparency = 1
-    title.Text = "TOP 10 -- LIFETIME"
+    title.Text = "TOP " .. Constants.LEADERBOARD_TOP_N .. " -- LIFETIME"
     title.TextColor3 = CYAN
     title.Font = Enum.Font.Code
     title.TextScaled = true

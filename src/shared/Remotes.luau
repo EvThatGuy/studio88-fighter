@@ -86,6 +86,7 @@ local REMOTE_NAMES = {
     {name = "GetPlayerStats", class = "RemoteFunction"},
     {name = "WelcomeBanner", class = "RemoteEvent"},  -- 3s join banner with player + tier + lifetime coins
     {name = "CoinCollectedFx", class = "RemoteEvent"}, -- floating "+N" text at collector position on every collect
+    {name = "GetDailyStreakSchedule", class = "RemoteFunction"}, -- HUD modal preview of upcoming days + jackpot tags
 }
 
 local function ensureFolder(): Folder

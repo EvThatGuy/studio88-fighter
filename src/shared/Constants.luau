@@ -69,6 +69,24 @@ Constants.DAILY_BONUS_BY_STREAK = {
     [30] = 50000,
 }
 
+-- Day-7 jackpot anchor labels per tycoon-retention-checklist. Day 7 is
+-- the MYTHIC payout that pulls D1 players through the day 3-4 trough.
+-- HUD modal preview reads these to show "DAY 7: MYTHIC EGG + 5000" so
+-- the carrot is visible from day 1. Day labels intentionally escalate
+-- in language to match reward magnitudes.
+Constants.DAILY_BONUS_LABELS = {
+    [1]  = {tag = "WELCOME",       jackpot = false},
+    [2]  = {tag = "DAY 2",         jackpot = false},
+    [3]  = {tag = "DAY 3",         jackpot = false},
+    [4]  = {tag = "DAY 4",         jackpot = false},
+    [5]  = {tag = "DAY 5",         jackpot = false},
+    [6]  = {tag = "DAY 6",         jackpot = false},
+    [7]  = {tag = "MYTHIC",        jackpot = true},   -- day-7 anchor + standard_egg grant
+    [14] = {tag = "ULTIMATE",      jackpot = true},   -- + luxury_egg grant
+    [21] = {tag = "ASCENDANT",     jackpot = true},
+    [30] = {tag = "TRANSCENDENT",  jackpot = true},   -- + luxury_egg grant
+}
+
 -- Game Pass IDs (placeholder; replace with real assetIds after creating in
 -- Creator Hub). The server only reads these, never trusts client-claimed
 -- ownership.
@@ -119,7 +137,10 @@ Constants.GAME_PASS_MULT = {
 
 -- Leaderboard refresh interval (server side). Lifetime coins are the metric.
 Constants.LEADERBOARD_REFRESH_SEC = 10
-Constants.LEADERBOARD_TOP_N = 10
+-- Top-50 (not top-10) per tycoon-retention-checklist: top-10 unreachable
+-- for non-whales kills aspiration, top-50 lets new players realistically
+-- chase rank within a week. Cross-server via OrderedDataStore.
+Constants.LEADERBOARD_TOP_N = 50
 
 -- Sound design hooks. Set IDs to a `rbxassetid://N` numeric string after
 -- picking assets from Roblox's free sound library. Until set, `playSound`
@@ -143,7 +164,13 @@ Constants.SOUND_IDS = {
 -- Multiplier formula: rebirthMult = 1 + (rebirths * REBIRTH_BONUS_PER).
 -- 1st rebirth = 1.10x perma, 2nd = 1.20x, ... 10th = 2.00x. Stacks
 -- multiplicatively with tier mult + Game Pass mults inside multiplierFor().
-Constants.REBIRTH_MIN_LIFETIME_COINS = 100000  -- gate first rebirth at the tier-6 capstone earnings tier
+-- First rebirth must fire at 10-15min per tycoon-retention-checklist
+-- empirical playbook (D1→D7 conversion moment). Subsequent rebirths
+-- can require the real grind. Use FIRST_* values for rebirths==0,
+-- MIN_* values for rebirths>=1.
+Constants.REBIRTH_FIRST_MIN_TIER = 2           -- first rebirth: only need to hit tier 2 (~3-5min)
+Constants.REBIRTH_FIRST_MIN_LIFETIME_COINS = 1500  -- first rebirth: ~10-15min of grind
+Constants.REBIRTH_MIN_LIFETIME_COINS = 100000  -- subsequent: tier-6 capstone earnings tier
 Constants.REBIRTH_BONUS_PER = 0.10             -- +10% perma per rebirth
 Constants.REBIRTH_MAX = 50                     -- soft cap so the formula doesn't blow up
 

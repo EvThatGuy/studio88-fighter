@@ -128,4 +128,45 @@ Players.PlayerAdded:Connect(function(player)
     end)
 end)
 
-print("[DailyLoginBonus] armed")
+-- Schedule preview remote — HUD modal calls this to render the upcoming
+-- 14 days so the day-7 MYTHIC jackpot is visible from day 1, pulling
+-- new players through the day 3-4 trough per retention playbook.
+remotes.GetDailyStreakSchedule.OnServerInvoke = function(player: Player)
+    local data = DataStore.getCached(player.UserId)
+    local currentStreak = (data and data.streak) or 0
+    -- Build a schedule of relevant days: every defined entry +
+    -- intermediates currentStreak..currentStreak+13. Sort ascending.
+    local seenDays: {[number]: boolean} = {}
+    local days: {number} = {}
+    local function add(d: number)
+        if d > 0 and not seenDays[d] then
+            seenDays[d] = true
+            table.insert(days, d)
+        end
+    end
+    for d in pairs(Constants.DAILY_BONUS_BY_STREAK) do add(d) end
+    for d = currentStreak + 1, currentStreak + 14 do add(d) end
+    table.sort(days)
+
+    local schedule = {}
+    for _, d in ipairs(days) do
+        local label = Constants.DAILY_BONUS_LABELS[d]
+        local eggGrant = Constants.STREAK_EGG_GRANTS[d]
+        table.insert(schedule, {
+            day = d,
+            coins = rewardForStreak(d),
+            tag = label and label.tag or ("DAY " .. d),
+            jackpot = label and label.jackpot or false,
+            eggGrant = eggGrant,
+            claimed = d <= currentStreak,
+            current = d == currentStreak + 1,  -- next-up day
+        })
+    end
+    return {
+        currentStreak = currentStreak,
+        nextDay = currentStreak + 1,
+        schedule = schedule,
+    }
+end
+
+print("[DailyLoginBonus] armed (schedule preview live)")
