@@ -157,6 +157,24 @@ Constants.DEV_PRODUCT_ORDER = {"COIN_PACK_SMALL", "COIN_PACK_MEDIUM", "COIN_PACK
 -- when ≥ RAID_KILL_TAGS distinct players have tagged it. Coin pool is
 -- split among taggers proportional to tag count. Drives social play
 -- (tag the boss together) without PvP between players.
+-- Trading system. THE D30 retention lever per checklist mechanic 6.
+-- DEFER until rest of game is stable per playbook — DISABLED feature
+-- flag below. When ready, flip ENABLED to true + verify all anti-scam
+-- guards (15s confirm hold, two-step confirm, value display, no value
+-- mismatch tolerance) before going live.
+Constants.TRADING = {
+    ENABLED = false,                    -- master kill switch; flip when ready
+    CONFIRM_HOLD_SEC = 15,              -- mandatory wait between offer and confirm
+    MAX_PETS_PER_OFFER = 5,
+    MAX_COINS_PER_OFFER = 1000000,
+    REQUIRE_DOUBLE_CONFIRM = true,
+    -- Value mismatch tolerance: trade is auto-rejected if estimated values
+    -- differ by more than this ratio (1.5 = 50% mismatch tolerance).
+    -- 1.0 = strict (all trades must be valued equal).
+    VALUE_MISMATCH_TOLERANCE = 1.5,
+    COOLDOWN_SEC_BETWEEN_TRADES = 10,
+}
+
 Constants.VAULT_RAID = {
     INTERVAL_SEC = 1800,           -- 30 minutes between spawns
     TIMEOUT_SEC = 60,              -- boss despawns after 60s if not killed
