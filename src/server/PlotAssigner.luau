@@ -87,6 +87,10 @@ function PlotAssigner.applyTierArt(plot: Model, tier: number)
         obelisk.Transparency = 0.05
         obelisk.Parent = plot
     end
+    -- Tier-keyed visual decor (border ring, corner posts, floor panels,
+    -- spire, capstone particle ring). Additive — tier 6 includes 2-5.
+    local TierPlotDecor = require(script.Parent:WaitForChild("Visuals"):WaitForChild("TierPlotDecor"))
+    TierPlotDecor.build(plot, tier)
 end
 
 local function fmtCoins(n: number): string
