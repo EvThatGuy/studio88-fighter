@@ -393,18 +393,93 @@ local function buildPlotAnchors()
         local angle = math.rad((i - 1) * 60 - 90)  -- start north, clockwise
         local x = math.cos(angle) * radius
         local z = math.sin(angle) * radius
+
+        -- Hidden ground marker (carries the tag — PlotAssigner reads anchors
+        -- via tag scan + position). Tiny + transparent so the visible
+        -- "claim me" beacon below is the actual visual.
         local marker = part("Plot" .. i, anchorsFolder, {
             Size = Vector3.new(2, 0.5, 2),
             Position = Vector3.new(x, 0.25, z),
             Anchored = true,
-            Material = Enum.Material.Neon,
-            Color = CYAN,
-            Transparency = 0.4,
+            Material = Enum.Material.SmoothPlastic,
+            Color = SURFACE,
+            Transparency = 1,
             CanCollide = false,
             Locked = true,
         })
         CollectionService:AddTag(marker, "Studio88PlotAnchor")
         marker:SetAttribute("PlotIndex", i)
+
+        -- Tall pillar beacon visible from across the lobby. Cyan neon
+        -- 12-stud column with a glowing cap and upward sparkle so an
+        -- unassigned plot reads as "claim me" from spawn pedestal view.
+        local beacon = part("PlotBeacon" .. i, anchorsFolder, {
+            Size = Vector3.new(1.4, 12, 1.4),
+            Position = Vector3.new(x, 6, z),
+            Anchored = true,
+            Material = Enum.Material.Neon,
+            Color = CYAN,
+            Transparency = 0.25,
+            CanCollide = false,
+            Locked = true,
+        })
+        local cap = part("PlotBeaconCap" .. i, anchorsFolder, {
+            Size = Vector3.new(2.5, 0.6, 2.5),
+            Position = Vector3.new(x, 12.2, z),
+            Anchored = true,
+            Material = Enum.Material.Neon,
+            Color = PINK,
+            CanCollide = false,
+            Locked = true,
+        })
+        do
+            local mesh = Instance.new("CylinderMesh")
+            mesh.Scale = Vector3.new(1, 0.5, 1)
+            mesh.Parent = cap
+        end
+        local light = Instance.new("PointLight")
+        light.Brightness = 1.5
+        light.Range = 14
+        light.Color = CYAN
+        light.Parent = beacon
+        local pe = Instance.new("ParticleEmitter")
+        pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+        pe.LightEmission = 1
+        pe.Color = ColorSequence.new(CYAN, PINK)
+        pe.Speed = NumberRange.new(2, 4)
+        pe.Lifetime = NumberRange.new(1, 2)
+        pe.Rate = 6
+        pe.SpreadAngle = Vector2.new(20, 20)
+        pe.Acceleration = Vector3.new(0, 4, 0)
+        pe.Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.4),
+            NumberSequenceKeypoint.new(1, 1.0),
+        })
+        pe.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.3),
+            NumberSequenceKeypoint.new(1, 1),
+        })
+        pe.Parent = beacon
+
+        -- Wayfinding path strip from spawn (origin) to this plot anchor.
+        -- Thin, low-profile, cyan neon — enough to lead the eye but not
+        -- block movement. Path length = (radius - pedestal radius - 5).
+        local pathLen = radius - 22
+        local pathMidX = (x / radius) * (22 + pathLen / 2)
+        local pathMidZ = (z / radius) * (22 + pathLen / 2)
+        local pathPart = part("PathStrip" .. i, anchorsFolder, {
+            Size = Vector3.new(1.5, 0.1, pathLen),
+            Position = Vector3.new(pathMidX, 0.15, pathMidZ),
+            Anchored = true,
+            Material = Enum.Material.Neon,
+            Color = CYAN,
+            Transparency = 0.5,
+            CanCollide = false,
+            Locked = true,
+        })
+        -- Rotate path to point from spawn to plot
+        pathPart.CFrame = CFrame.new(Vector3.new(pathMidX, 0.15, pathMidZ),
+                                     Vector3.new(x, 0.15, z))
     end
 end
 
