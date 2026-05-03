@@ -139,6 +139,98 @@ end
 -- multiple plots can animate independently without state collision.
 local incomeAnimState: {[BasePart]: number} = {}
 
+-- Per-userId rolling income samples (last 30 seconds, 1 sample/sec).
+-- Collector pushes a sample on every collect; chart loop draws.
+local incomeSamples: {[number]: {number}} = {}
+local CHART_WINDOW = 30  -- seconds
+
+-- Called by Collector on every coin collect to feed the chart
+function PlotAssigner.recordIncomeSample(userId: number, value: number)
+    local list = incomeSamples[userId]
+    if not list then
+        list = {}
+        incomeSamples[userId] = list
+    end
+    table.insert(list, value)
+    if #list > CHART_WINDOW then
+        table.remove(list, 1)
+    end
+end
+
+local function buildChart(frame: Frame)
+    local chart = frame:FindFirstChild("IncomeChart") :: Frame?
+    if chart then return chart end
+    chart = Instance.new("Frame")
+    chart.Name = "IncomeChart"
+    chart.Size = UDim2.new(1, -32, 0, 56)
+    chart.Position = UDim2.new(0, 16, 1, -72)
+    chart.AnchorPoint = Vector2.new(0, 0)
+    chart.BackgroundColor3 = Color3.fromRGB(8, 7, 13)
+    chart.BackgroundTransparency = 0.4
+    chart.BorderSizePixel = 0
+    chart.Parent = frame
+    local cor = Instance.new("UICorner")
+    cor.CornerRadius = UDim.new(0, 6)
+    cor.Parent = chart
+    -- 30 dots laid out in a horizontal strip
+    for i = 1, CHART_WINDOW do
+        local dot = Instance.new("Frame")
+        dot.Name = "ChartDot" .. i
+        dot.Size = UDim2.new(0, 6, 0, 6)
+        dot.AnchorPoint = Vector2.new(0.5, 1)
+        dot.Position = UDim2.new((i - 1) / (CHART_WINDOW - 1), 0, 1, -4)
+        dot.BackgroundColor3 = Color3.fromRGB(0, 240, 255)
+        dot.BackgroundTransparency = 0.15
+        dot.BorderSizePixel = 0
+        dot.Parent = chart
+        local dotCor = Instance.new("UICorner")
+        dotCor.CornerRadius = UDim.new(0.5, 0)
+        dotCor.Parent = dot
+    end
+    return chart
+end
+
+-- Chart loop: redraws every 2s for every player's plot
+task.spawn(function()
+    while true do
+        task.wait(2)
+        for userId, samples in pairs(incomeSamples) do
+            local plot = plotsByUserId[userId]
+            if not plot then continue end
+            local board = plot:FindFirstChild("StatsBoard") :: BasePart?
+            if not board then continue end
+            local sg = board:FindFirstChildWhichIsA("SurfaceGui")
+            if not sg then continue end
+            local frame = sg:FindFirstChildWhichIsA("Frame")
+            if not frame then continue end
+            local chart = buildChart(frame)
+            -- Compute peak in window for normalization
+            local peak = 1
+            for _, v in ipairs(samples) do
+                if v > peak then peak = v end
+            end
+            -- Update each dot height by sample value (most recent on the right)
+            local n = #samples
+            for i = 1, CHART_WINDOW do
+                local dot = chart:FindFirstChild("ChartDot" .. i) :: Frame?
+                if not dot then continue end
+                -- Map dot index to sample index (most recent right-aligned)
+                local sampleIdx = n - (CHART_WINDOW - i)
+                if sampleIdx >= 1 and sampleIdx <= n then
+                    local v = samples[sampleIdx]
+                    local frac = v / peak
+                    local height = 6 + frac * 38  -- 6..44 px tall column
+                    dot.Size = UDim2.new(0, 6, 0, height)
+                    dot.BackgroundTransparency = 0.15
+                else
+                    dot.Size = UDim2.new(0, 4, 0, 4)
+                    dot.BackgroundTransparency = 0.65
+                end
+            end
+        end
+    end
+end)
+
 function PlotAssigner.updateStatsBoard(plot: Model, tier: number, lifetime: number)
     local board = plot:FindFirstChild("StatsBoard") :: BasePart?
     if not board then return end

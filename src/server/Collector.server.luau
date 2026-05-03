@@ -77,6 +77,9 @@ local function onCollect(collector: BasePart, hit: BasePart)
     if plot then
         PlotAssigner.updateStatsBoard(plot, data.upgradeTier, data.lifetimeCoins)
     end
+    -- Feed the rolling-window income chart on the stats board. Drawn
+    -- every 2s by PlotAssigner's chart loop, so per-collect push is cheap.
+    PlotAssigner.recordIncomeSample(ownerUserId, value)
 
     Leaderstats.refresh(ownerUserId)
 
