@@ -3,6 +3,7 @@
 -- weighted-random reward. Server-authoritative -- the segment is rolled
 -- on the server and the client just plays the visual landing animation.
 
+local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -142,6 +143,12 @@ function SpinService.attemptClaim(player: Player): (boolean, string?)
             valueGranted = valueGranted,
             message = message,
         })
+    end)
+    pcall(function()
+        AnalyticsService:LogCustomEvent(
+            player, Constants.ANALYTICS_EVENTS.SPIN_USED, 1,
+            { segment_id = segment.id, was_free = true, value_granted = valueGranted }
+        )
     end)
     -- Achievement scan -- many spin rewards bump lifetime coins
     pcall(function()

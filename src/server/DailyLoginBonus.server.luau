@@ -7,6 +7,7 @@
 -- payout (return-rate weighted higher than CCU). Default escalation: Day 1
 -- = 500, Day 7 = 5000, Day 30 = 50000.
 
+local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -67,6 +68,12 @@ local function grantBonusIfDue(player: Player)
         end)
         pcall(function()
             remotes.DailyBonusGranted:FireClient(player, data.streak, reward)
+        end)
+        pcall(function()
+            AnalyticsService:LogCustomEvent(
+                player, Constants.ANALYTICS_EVENTS.STREAK_CLAIMED, reward,
+                { day = data.streak, streak_total = data.streak }
+            )
         end)
     end
 

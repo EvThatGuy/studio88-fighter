@@ -14,6 +14,7 @@
 -- back to per-server count if MemoryStore is unavailable (Studio playtest,
 -- etc.) so dev workflow doesn't crash.
 
+local AnalyticsService = game:GetService("AnalyticsService")
 local MemoryStoreService = game:GetService("MemoryStoreService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -159,6 +160,12 @@ function CodesService.attemptRedeem(player: Player, rawCode: any): (boolean, str
     end)
     pcall(function()
         remotes.CodeRedeemed:FireClient(player, code, reward)
+    end)
+    pcall(function()
+        AnalyticsService:LogCustomEvent(
+            player, Constants.ANALYTICS_EVENTS.CODE_REDEEMED, reward,
+            { code = code, value = reward }
+        )
     end)
     DailyQuestService.bumpProgress(player.UserId,
         Constants.QUEST_KIND.REDEEM_CODE_TODAY, 1)

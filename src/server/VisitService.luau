@@ -7,6 +7,7 @@
 -- shows you their pet stand, equipped aura, equipped title, and any
 -- crown they're wearing -- the payoff for the whole flex pipeline.
 
+local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -94,6 +95,12 @@ function VisitService.attemptVisit(player: Player, targetUserId: any): (boolean,
     end
     print(string.format("[VisitService] %s -> %s's plot",
         player.Name, target.Name))
+    pcall(function()
+        AnalyticsService:LogCustomEvent(
+            player, Constants.ANALYTICS_EVENTS.PLOT_VISITED, 1,
+            { target_userid = targetUserId }
+        )
+    end)
     return true, nil
 end
 

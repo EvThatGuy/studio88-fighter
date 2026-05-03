@@ -17,6 +17,7 @@
 -- ownership: every multiplier check on the server re-asks
 -- UserOwnsGamePassAsync (cached in CurrencyManager).
 
+local AnalyticsService = game:GetService("AnalyticsService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -74,10 +75,29 @@ MarketplaceService.PromptGamePassPurchaseFinished:Connect(
         pcall(function()
             remotes.PassPurchased:FireClient(player, key, passId)
         end)
+        pcall(function()
+            AnalyticsService:LogCustomEvent(
+                player, Constants.ANALYTICS_EVENTS.PASS_PURCHASED, 1,
+                { pass_key = key, pass_id = passId }
+            )
+        end)
         print(string.format(
             "[GamePassService] %s purchased pass '%s' (id %d)",
             player.Name, key, passId
         ))
+    end
+)
+
+-- Also log purchase ATTEMPTS so we can compute prompt-to-purchase conversion.
+MarketplaceService.PromptGamePassPurchaseFinished:Connect(
+    function(player: Player, passId: number, wasPurchased: boolean)
+        local key = passIdToKey[passId] or "unknown"
+        pcall(function()
+            AnalyticsService:LogCustomEvent(
+                player, Constants.ANALYTICS_EVENTS.PURCHASE_ATTEMPTED, 1,
+                { pass_key = key, pass_id = passId, was_purchased = wasPurchased }
+            )
+        end)
     end
 )
 

@@ -4,8 +4,11 @@
 -- lives in its own module under src/client/UI/ and gets opened/closed via the
 -- `openModal` setter on this component.
 
+local AnalyticsService = game:GetService("AnalyticsService")
+local Players = game:GetService("Players")
 local React = require(game:GetService("ReplicatedStorage").Packages.React)
 
+local Constants = require(game:GetService("ReplicatedStorage").Modules.Constants)
 local Tokens = require(game:GetService("ReplicatedStorage").Modules.UI.Tokens)
 local TestBridge = require(game:GetService("ReplicatedStorage").Modules.UI.TestBridge)
 local Balance = require(script.Parent.Balance)
@@ -44,6 +47,22 @@ local function App()
     local close = React.useCallback(function()
         setOpenModal(nil)
     end, {})
+
+    -- Telemetry: fire MODAL_OPENED whenever openModalId transitions to a
+    -- non-nil value. Roblox's AnalyticsService accepts client-side calls in
+    -- 2024+, so we fire from here directly rather than round-tripping through
+    -- a Remote. pcall'd because Studio non-published places will throw.
+    React.useEffect(function()
+        if openModalId == nil then return end
+        pcall(function()
+            AnalyticsService:LogCustomEvent(
+                Players.LocalPlayer,
+                Constants.ANALYTICS_EVENTS.MODAL_OPENED,
+                1,
+                { modal_id = openModalId }
+            )
+        end)
+    end, { openModalId } :: { any })
 
     return e("Frame", {
         BackgroundTransparency = 1,

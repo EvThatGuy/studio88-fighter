@@ -12,6 +12,7 @@
 -- snapshot is stateless and computed on-demand. Save cost is the same
 -- as a regular tier-up commit.
 
+local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -126,6 +127,12 @@ function HourlyTributeService.attemptClaim(player: Player): (boolean, string?)
     end)
     pcall(function()
         remotes.HourlyTributeClaimed:FireClient(player, stacks, reward)
+    end)
+    pcall(function()
+        AnalyticsService:LogCustomEvent(
+            player, Constants.ANALYTICS_EVENTS.TRIBUTE_CLAIMED, reward,
+            { stacks = stacks, value = reward }
+        )
     end)
     -- Achievement scan -- lifetime coins changed
     pcall(function()

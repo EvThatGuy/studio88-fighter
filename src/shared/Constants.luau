@@ -358,6 +358,16 @@ Constants.ANALYTICS_EVENTS = {
     PASS_PURCHASED = "PassPurchased",
     TIER_UP = "TierUp",
     EVENT_ACTIVE = "EventActive",
+    -- Added 2026-05-02 per tycoon-retention-checklist skill so we can measure
+    -- whether the 24 retention features actually move D1/D7. All fired via
+    -- AnalyticsService:LogCustomEvent. Properties documented in skill.
+    STREAK_CLAIMED = "StreakClaimed",
+    PET_HATCHED = "PetHatched",
+    SPIN_USED = "SpinUsed",
+    TRIBUTE_CLAIMED = "TributeClaimed",
+    PLOT_VISITED = "PlotVisited",
+    MODAL_OPENED = "ModalOpened",
+    PURCHASE_ATTEMPTED = "PurchaseAttempted",
 }
 
 -- Limited-time events. Cross-server consistent via os.time(). Each entry:

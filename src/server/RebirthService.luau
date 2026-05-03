@@ -13,6 +13,7 @@
 -- Eligibility is checked server-side; clients can spam RequestRebirth all
 -- they want. We never trust client-supplied tier/coin values.
 
+local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -85,6 +86,12 @@ function RebirthService.attemptRebirth(player: Player): (boolean, string?)
     local newMult = 1 + data.rebirths * Constants.REBIRTH_BONUS_PER
     pcall(function()
         remotes.RebirthGranted:FireClient(player, data.rebirths, newMult)
+    end)
+    pcall(function()
+        AnalyticsService:LogCustomEvent(
+            player, Constants.ANALYTICS_EVENTS.REBIRTH_GRANTED, data.rebirths,
+            { rebirths_total = data.rebirths, tier_at_rebirth = data.upgradeTier or 1 }
+        )
     end)
     DailyQuestService.bumpProgress(player.UserId,
         Constants.QUEST_KIND.REBIRTH_TODAY, 1)

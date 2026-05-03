@@ -18,6 +18,7 @@
 -- All state is server-authoritative. Client-claimed equips are validated
 -- against the actual inventory before commit.
 
+local AnalyticsService = game:GetService("AnalyticsService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -314,6 +315,12 @@ function PetService.attemptHatch(player: Player, eggId: any): (boolean, string?)
     end)
     pcall(function()
         remotes.PetHatched:FireClient(player, owned, def.name)
+    end)
+    pcall(function()
+        AnalyticsService:LogCustomEvent(
+            player, Constants.ANALYTICS_EVENTS.PET_HATCHED, 1,
+            { rarity = def.rarity, egg_id = eggId, pity_hit = (pity >= Constants.PET_PITY_THRESHOLD), pity_count = pity }
+        )
     end)
     print(string.format("[PetService] %s hatched '%s' (%s) from %s",
         player.Name, def.name, def.rarity, eggId))
