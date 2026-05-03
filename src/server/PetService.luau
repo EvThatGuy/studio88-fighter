@@ -184,20 +184,25 @@ function PetService.attemptBuyBoost(player: Player): (boolean, string?)
         pushBoostReject(player, "no_data")
         return false, "no_data"
     end
-    local cost = Constants.PET_BOOST.COST_PER_TIER[data.upgradeTier]
-    if not cost then
+    local baseCost = Constants.PET_BOOST.COST_PER_TIER[data.upgradeTier]
+    if not baseCost then
         pushBoostReject(player, "no_cost_tier")
         return false, "no_cost_tier"
     end
+    -- Loyalty discount: if a boost is already active when buying again,
+    -- charge 25% less. Rewards engaged players who keep boosting back-to-back
+    -- and reduces the "do I bother re-buying" friction.
+    local now = os.time()
+    local current = data.petBoostExpiresUnix or 0
+    local boostActive = current > now
+    local cost = boostActive and math.floor(baseCost * 0.75) or baseCost
     if data.coins < cost then
         pushBoostReject(player, "insufficient_coins", cost - data.coins)
         return false, "insufficient_coins"
     end
     data.coins -= cost
     -- Extend if already active, else start fresh from now.
-    local now = os.time()
-    local current = data.petBoostExpiresUnix or 0
-    local base = (current > now) and current or now
+    local base = boostActive and current or now
     data.petBoostExpiresUnix = base + Constants.PET_BOOST.DURATION_SEC
     pcall(function()
         remotes.BalanceUpdated:FireClient(player, data.coins, data.lifetimeCoins)
