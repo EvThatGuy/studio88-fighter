@@ -73,6 +73,13 @@ local function multiplierFor(userId: number, data): number
     local passes = getPasses(userId)
     if passes.vip then mult *= Constants.GAME_PASS_MULT.VIP_MULT end
     if passes.premium then mult *= Constants.GAME_PASS_MULT.PREMIUM_MULT end
+    -- Roblox Premium subscribers get +25% income (free Roblox-promoted
+    -- bonus per retention checklist). Read MembershipType off the Player
+    -- — no async / no rate-limit risk like MarketplaceService.
+    local player = Players:GetPlayerByUserId(userId)
+    if player and player.MembershipType == Enum.MembershipType.Premium then
+        mult *= Constants.ROBLOX_PREMIUM_INCOME_MULT
+    end
     -- Starter Pack window
     local sp = data.starterPackPurchasedUnix
     if sp and (os.time() - sp) <= Constants.GAME_PASS_MULT.STARTER_PACK_DURATION_SEC then

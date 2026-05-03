@@ -135,6 +135,12 @@ Constants.GAME_PASS_MULT = {
     PREMIUM_MULT = 3.0,
 }
 
+-- Roblox Premium subscriber bonus (~12% of Roblox DAU has Premium).
+-- Per tycoon-retention-checklist mechanic 7: Roblox actively promotes
+-- Premium-eligible games. Free upside; do NOT gate core gameplay
+-- behind it. Cosmetic + soft income bump only. +25% income perma.
+Constants.ROBLOX_PREMIUM_INCOME_MULT = 1.25
+
 -- Leaderboard refresh interval (server side). Lifetime coins are the metric.
 Constants.LEADERBOARD_REFRESH_SEC = 10
 -- Top-50 (not top-10) per tycoon-retention-checklist: top-10 unreachable
@@ -215,11 +221,15 @@ Constants.REBIRTH_SHOP_ORDER = {"spark", "tempo", "crystal", "studio88", "ascens
 -- Rarity tiers + drop weights (out of 100). Higher rarity = lower drop
 -- chance + higher income multiplier. Each pet adds its multiplier to a
 -- per-player "petBonus" stack in CurrencyManager.multiplierFor().
+-- Tuned 2026-05-03 per retention checklist: shifted 4 weight points from
+-- common/uncommon → rare/epic to soften the rare→epic cliff. Mid-tier
+-- players who hit 5+ commons in a row used to feel stuck. Net legendary
+-- chance unchanged (still 1/100). Net rare+ chance up from 15% to 19%.
 Constants.PET_RARITIES = {
-    common    = { weight = 60, mult = 0.05 }, -- +5%
+    common    = { weight = 55, mult = 0.05 }, -- +5%
     uncommon  = { weight = 25, mult = 0.15 }, -- +15%
-    rare      = { weight = 10, mult = 0.40 }, -- +40%
-    epic      = { weight = 4,  mult = 1.00 }, -- +100%
+    rare      = { weight = 12, mult = 0.40 }, -- +40%
+    epic      = { weight = 7,  mult = 1.00 }, -- +100%
     legendary = { weight = 1,  mult = 2.50 }, -- +250%
 }
 
