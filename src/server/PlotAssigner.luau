@@ -59,6 +59,34 @@ end
 
 local OBELISK_NAME = "ProsperityObelisk"
 
+local UNDERGLOW_NAME = "FoundationUnderglow"
+
+local function repaintUnderglow(plot: Model, tier: number, foundation: BasePart)
+    -- Wider neon disc just below the foundation — reads as ambient floor
+    -- light spilling out from underneath. Tier-color matched. Idempotent:
+    -- destroy any prior disc before spawning a new one.
+    local existing = plot:FindFirstChild(UNDERGLOW_NAME)
+    if existing then existing:Destroy() end
+    local tierObSpec = Constants.TIER_OBELISK[tier] or Constants.TIER_OBELISK[1]
+    local color = (tierObSpec and tierObSpec.color) or Color3.fromRGB(0, 240, 255)
+    local fsize = foundation.Size
+    local fpos = foundation.Position
+    local disc = Instance.new("Part")
+    disc.Name = UNDERGLOW_NAME
+    disc.Size = Vector3.new(fsize.X + 12, 0.2, fsize.Z + 12)
+    disc.Position = fpos + Vector3.new(0, -fsize.Y / 2 - 0.05, 0)
+    disc.Anchored = true
+    disc.Locked = true
+    disc.CanCollide = false
+    disc.CanQuery = false
+    disc.Material = Enum.Material.Neon
+    disc.Color = color
+    disc.Transparency = 0.55
+    disc.TopSurface = Enum.SurfaceType.Smooth
+    disc.BottomSurface = Enum.SurfaceType.Smooth
+    disc.Parent = plot
+end
+
 function PlotAssigner.applyTierArt(plot: Model, tier: number)
     -- Paint the foundation Material + Color to match the tier.
     -- Idempotent: caller can spam this, last write wins.
@@ -127,6 +155,9 @@ function PlotAssigner.applyTierArt(plot: Model, tier: number)
     -- spire, capstone particle ring). Additive — tier 6 includes 2-5.
     local TierPlotDecor = require(script.Parent:WaitForChild("Visuals"):WaitForChild("TierPlotDecor"))
     TierPlotDecor.build(plot, tier)
+
+    -- Wider tier-colored under-glow disc beneath the foundation
+    repaintUnderglow(plot, tier, foundation)
 
     -- Update tier badge on the welcome arch (if present)
     local arch = plot:FindFirstChild("WelcomeArch")
@@ -480,14 +511,23 @@ local function buildWelcomeArch(plot: Model, player: Player)
         Color = STEEL,
     })
     local _ = beam
-    -- Cyan neon underglow on the beam
-    part("ArchUnderglow", {
+    -- Cyan neon underglow on the beam, with subtle breathing pulse so
+    -- the arch reads as alive rather than printed-on
+    local underglow = part("ArchUnderglow", {
         Size = Vector3.new(archWidth, 0.2, 0.4),
         Position = fpos + Vector3.new(0, fsize.Y/2 + pillarH + 0.05, edgeZ - 0.1),
         Material = Enum.Material.Neon,
         Color = CYAN,
         Transparency = 0.2,
     })
+    task.spawn(function()
+        local t = 0
+        while underglow.Parent do
+            t += 0.05
+            underglow.Transparency = 0.3 + math.sin(t * 2.2) * 0.15  -- 0.15..0.45
+            task.wait(0.05)
+        end
+    end)
 
     -- Sign with player name + tier on the front face of the beam.
     -- Layout: TIER X (small, top) over PLAYERNAME (large, bottom).
