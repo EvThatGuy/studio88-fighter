@@ -76,8 +76,9 @@ function PlotAssigner.applyTierArt(plot: Model, tier: number)
         obelisk.Name = OBELISK_NAME
         obelisk.Size = Vector3.new(obSpec.width, obSpec.height, obSpec.width)
         -- Sit on top of foundation: foundation top + half obelisk height
-        obelisk.Position = foundation.Position
+        local basePos = foundation.Position
             + Vector3.new(0, foundation.Size.Y / 2 + obSpec.height / 2, 0)
+        obelisk.Position = basePos
         obelisk.Anchored = true
         obelisk.CanCollide = false
         obelisk.CanQuery = false
@@ -86,6 +87,23 @@ function PlotAssigner.applyTierArt(plot: Model, tier: number)
         obelisk.Color = obSpec.color
         obelisk.Transparency = 0.05
         obelisk.Parent = plot
+
+        -- Gentle pulse: subtle Y-bob + transparency oscillation. No new
+        -- particles or lights, pure server CFrame + property writes — zero
+        -- perf cost beyond the existing 1/0.05s WorldBuilder budget. The
+        -- bob amplitude scales with tier so capstone obelisks feel more
+        -- alive than tier-1 ones.
+        local bobAmp = 0.4 + (tier * 0.15)
+        task.spawn(function()
+            local t = 0
+            while obelisk.Parent do
+                t += 0.05
+                local phase = math.sin(t * 1.6)  -- ~3.9s period
+                obelisk.Position = basePos + Vector3.new(0, phase * bobAmp, 0)
+                obelisk.Transparency = 0.05 + (phase + 1) * 0.06  -- 0.05 .. 0.17
+                task.wait(0.05)
+            end
+        end)
     end
     -- Tier-keyed visual decor (border ring, corner posts, floor panels,
     -- spire, capstone particle ring). Additive — tier 6 includes 2-5.
