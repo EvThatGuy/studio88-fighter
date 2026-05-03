@@ -59,7 +59,10 @@ function TierPlotDecor.build(plot: Model, tier: number)
     local fpos = foundation.Position
     local fsize = foundation.Size  -- 50x1x50
 
-    -- Tier 2+: cyan border ring around the foundation perimeter
+    -- Tier 2+: cyan border ring around the foundation perimeter +
+    -- low decorative walls so the plot reads as "owned territory" from
+    -- across the lobby. Walls are short (1.5 studs) so they don't block
+    -- camera angles, glowing color-matched to tier.
     if tier >= 2 then
         local stripWidth = 0.4
         local stripHeight = 0.3
@@ -79,6 +82,45 @@ function TierPlotDecor.build(plot: Model, tier: number)
                 Material = Enum.Material.Neon,
                 Color = CYAN,
                 Transparency = 0.2,
+            })
+        end
+
+        -- Low decorative walls along each edge (gap in the middle for
+        -- player walk-in). Walls are 1.5 studs tall so the camera can
+        -- see over them. Tier 5+ walls glow brighter (amber).
+        local wallH = 1.5
+        local wallT = 0.3
+        local wallColor = (tier >= 5) and AMBER or CYAN
+        local gap = 12  -- middle gap on each edge for walking in
+        local segLen = (fsize.X - gap) / 2
+        for _, segs in ipairs({
+            -- North edge (z = +25)
+            {pos = Vector3.new(-(gap/2 + segLen/2), fsize.Y/2 + wallH/2,  fsize.Z/2 - wallT/2),
+             size = Vector3.new(segLen, wallH, wallT)},
+            {pos = Vector3.new( (gap/2 + segLen/2), fsize.Y/2 + wallH/2,  fsize.Z/2 - wallT/2),
+             size = Vector3.new(segLen, wallH, wallT)},
+            -- South edge
+            {pos = Vector3.new(-(gap/2 + segLen/2), fsize.Y/2 + wallH/2, -fsize.Z/2 + wallT/2),
+             size = Vector3.new(segLen, wallH, wallT)},
+            {pos = Vector3.new( (gap/2 + segLen/2), fsize.Y/2 + wallH/2, -fsize.Z/2 + wallT/2),
+             size = Vector3.new(segLen, wallH, wallT)},
+            -- East edge
+            {pos = Vector3.new( fsize.X/2 - wallT/2, fsize.Y/2 + wallH/2, -(gap/2 + segLen/2)),
+             size = Vector3.new(wallT, wallH, segLen)},
+            {pos = Vector3.new( fsize.X/2 - wallT/2, fsize.Y/2 + wallH/2,  (gap/2 + segLen/2)),
+             size = Vector3.new(wallT, wallH, segLen)},
+            -- West edge
+            {pos = Vector3.new(-fsize.X/2 + wallT/2, fsize.Y/2 + wallH/2, -(gap/2 + segLen/2)),
+             size = Vector3.new(wallT, wallH, segLen)},
+            {pos = Vector3.new(-fsize.X/2 + wallT/2, fsize.Y/2 + wallH/2,  (gap/2 + segLen/2)),
+             size = Vector3.new(wallT, wallH, segLen)},
+        }) do
+            makePart(folder, "PerimeterWall", {
+                Size = segs.size,
+                Position = fpos + segs.pos,
+                Material = Enum.Material.Neon,
+                Color = wallColor,
+                Transparency = 0.4,
             })
         end
     end

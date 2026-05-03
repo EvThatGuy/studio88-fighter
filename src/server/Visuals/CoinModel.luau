@@ -109,6 +109,21 @@ function CoinModel.build(tier: number): BasePart
     pe.Parent = coin
 
     CollectionService:AddTag(coin, "Studio88Coin")
+
+    -- Tumble while in flight: spin around the cylinder's long axis at
+    -- ~3 rad/s. We use AlignOrientation + AngularVelocity instead of
+    -- CFrame writes because the coin is unanchored (physics-pushed) and
+    -- CFrame writes would fight the collision solver.
+    local spinAttachment = Instance.new("Attachment")
+    spinAttachment.Parent = coin
+
+    local angularVelocity = Instance.new("AngularVelocity")
+    angularVelocity.Attachment0 = spinAttachment
+    angularVelocity.AngularVelocity = Vector3.new(8, 0, 0)  -- spin around X (cylinder long axis)
+    angularVelocity.MaxTorque = math.huge
+    angularVelocity.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
+    angularVelocity.Parent = coin
+
     return coin
 end
 
