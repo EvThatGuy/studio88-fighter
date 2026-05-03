@@ -489,14 +489,57 @@ end
 -- --- Lighting --------------------------------------------------------------
 
 local function tuneLighting()
-    Lighting.Ambient = Color3.fromRGB(8, 5, 13)
-    Lighting.OutdoorAmbient = Color3.fromRGB(28, 18, 40)
-    Lighting.ClockTime = 19.5
-    Lighting.FogColor = Color3.fromRGB(38, 13, 51)
-    Lighting.FogStart = 100
-    Lighting.FogEnd = 600
-    Lighting.Brightness = 1.5
+    -- Daylight tycoon vibe: bright enough to show plot details, with a
+    -- warm-tinted Atmosphere instead of opaque fog so distance reads as
+    -- depth rather than wall.
+    Lighting.Ambient = Color3.fromRGB(70, 65, 80)
+    Lighting.OutdoorAmbient = Color3.fromRGB(140, 130, 155)
+    Lighting.ClockTime = 14
+    Lighting.GeographicLatitude = 30
+    Lighting.Brightness = 2.5
     Lighting.GlobalShadows = true
+    Lighting.EnvironmentDiffuseScale = 0.4
+    Lighting.EnvironmentSpecularScale = 0.4
+    -- Push fog way out — fog was the "trapped at dusk" feeling. Replace
+    -- with Atmosphere haze for a realistic distance falloff.
+    Lighting.FogColor = Color3.fromRGB(180, 175, 200)
+    Lighting.FogStart = 500
+    Lighting.FogEnd = 2500
+
+    -- Atmosphere instance: subtle haze that scatters light, makes the
+    -- baseplate edges feel like distance not abrupt cutoff. Replaces any
+    -- existing one so re-runs are idempotent.
+    local existingAtm = Lighting:FindFirstChildWhichIsA("Atmosphere")
+    if existingAtm then existingAtm:Destroy() end
+    local atm = Instance.new("Atmosphere")
+    atm.Density = 0.3
+    atm.Offset = 0.15
+    atm.Color = Color3.fromRGB(199, 199, 220)
+    atm.Decay = Color3.fromRGB(106, 112, 125)
+    atm.Glare = 0.4
+    atm.Haze = 1.2
+    atm.Parent = Lighting
+
+    -- Subtle vignette for cinematic framing without darkening gameplay
+    local existingCC = Lighting:FindFirstChild("Studio88ColorCorrection")
+    if existingCC then existingCC:Destroy() end
+    local cc = Instance.new("ColorCorrectionEffect")
+    cc.Name = "Studio88ColorCorrection"
+    cc.Brightness = 0.02
+    cc.Contrast = 0.08
+    cc.Saturation = 0.12
+    cc.TintColor = Color3.fromRGB(255, 248, 240)
+    cc.Parent = Lighting
+
+    -- Warm bloom on the neon sources (dropper core, rebirth beam, sign)
+    local existingBloom = Lighting:FindFirstChild("Studio88Bloom")
+    if existingBloom then existingBloom:Destroy() end
+    local bloom = Instance.new("BloomEffect")
+    bloom.Name = "Studio88Bloom"
+    bloom.Intensity = 0.6
+    bloom.Size = 18
+    bloom.Threshold = 1.0
+    bloom.Parent = Lighting
 end
 
 -- --- Marker ---------------------------------------------------------------
