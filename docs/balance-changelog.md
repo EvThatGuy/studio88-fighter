@@ -2,6 +2,63 @@
 
 Per-publish gameplay/balance changes. Visual changes documented separately in `docs/visual-architecture.md`.
 
+## V91 — 2026-05-03
+
+### Pet collection progress in snapshot
+- `PetService.snapshot` now returns `uniquePetCount`, `totalPetCount`, `collectionBonusPct` (50)
+- HUD modal can render "OWNED 7/10 — +50% income when complete" without client-side math
+
+## V90 — 2026-05-03
+
+### Rebirth-ready nudge toast (D1→D7 conversion ceremony)
+- `RebirthPadProxy.server.luau` tracks per-userId `lastEligible` state
+- Fires `RebirthReadyNudge` remote on `false→true` transition
+- New `src/client/RebirthReadyNudge.client.luau` renders center-screen toast
+- First-rebirth: amber accent, "★ REBIRTH UNLOCKED ★", 4.5s hold, actionable copy
+- Subsequent: cyan, "REBIRTH READY", 2.5s, compact
+- Solves "rebirth pad's always-on particle didn't telegraph eligibility flip"
+
+## V89 — 2026-05-03
+
+### Live event timestamps refresh
+- Old `launch_weekend` (May 2025) and `gta6_hype_week` (Nov 2025) were dead
+- New: `launch_weekend` Fri May 8 → Mon May 11 2026, `gta6_hype_week` Nov 12-19 2026
+
+### FTUE first-3 coin auto-credit
+- `Dropper.server.luau` auto-credits first 3 coins per player at dropper position
+- 50 each = 150 free coins + +N text fires immediately
+- Solves "player bounces in <30s before reaching conveyor"
+- Per-player counter, reset on `PlayerRemoving`
+
+### Income mult cap monitoring
+- `CurrencyManager` now logs cap-hits via 60s sweep loop
+- `local capHits = 0` upvalue declared at file scope
+- `warn` if hits > 0 in last 60s + reset counter
+
+## V88 — 2026-05-03
+
+### Anti-AFK on session timer
+- `SessionTimeBonus` rewrote to use `activeSeconds` instead of raw join elapsed
+- 15s tick checks `Humanoid.MoveDirection.Magnitude > 0.05` OR last move within `AFK_THRESHOLD_SEC=60`
+- Standing in lobby for 60s without movement pauses the timer
+- Threshold checks use `activeSeconds`, not wall-clock
+
+### Partner code slots
+- Added `PARTNER_1/2/3` to `Constants.CODES`
+- Each: `reward=5000, expiresUnix=0` (disabled), `maxGlobalRedemptions=5000`
+- Activate by setting `expiresUnix` to a future timestamp
+
+## V87 — 2026-05-03
+
+### `INCOME_MULT_CAP=50000` hard ceiling
+- `CurrencyManager.multiplierFor` clamps mult to 50000
+- Theoretical max for fully-decked player ~72,000x base; cap leaves end-game headroom but bounds exploit damage
+
+### Session-time bonuses
+- `SessionTimeBonus.server.luau` (new) auto-grants 15min/30min/60min bonuses (2K/5K/15K coins)
+- Per-session reset on `PlayerRemoving` (not cumulative across rejoins)
+- Fires `SessionBonusGranted` remote + `LogCustomEvent("SessionTimeBonus", ...)`
+
 ## V86 — 2026-05-03
 
 ### GTA6HYPE expiry fix
