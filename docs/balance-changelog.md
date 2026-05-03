@@ -2,6 +2,56 @@
 
 Per-publish gameplay/balance changes. Visual changes documented separately in `docs/visual-architecture.md`.
 
+## V114 — 2026-05-03
+
+### XP level-up toast + HUD widget
+- `XpLevelToast.client.luau`: centered "★ LEVEL N UNLOCKED ★" card on `XpLeveledUp`, scale-in/fade-out
+- `XpHudWidget.client.luau`: bottom-left 220x50 card with "LEVEL N · X/Y XP" + amber progress bar
+- Refresh on `XpLeveledUp` + 30s loop + `CharacterAdded`
+
+## V113 — 2026-05-03
+
+### Friend code share overlay
+- `FriendCodeOverlay.client.luau`: top-right "👥" button → modal showing player's code in big amber text
+- Uses existing `GetFriendCode` RemoteFunction
+- Read-only TextBox so player can tap-select to copy
+- Referral count displayed
+
+## V112 — 2026-05-03
+
+### Cosmetic XP/level track
+- `Constants.XP_REWARDS`: per-action XP table (coin_collect=1, hatch by rarity 50-2500, tier_up=500, rebirth=5000, raid_kill=1500, daily_login=200, quest_claim=300, code_redeem=100)
+- `Constants.XP_LEVEL_THRESHOLDS`: 15-level curve, doubling after L5 (max 1M XP)
+- `Types.PlayerData.xp?, xpLevel?` cache
+- `XpService.luau` (new): `award(userId, kindKey)`, `snapshot(userId)`, fires `XpLeveledUp` on transition
+- Wired: Collector (per coin), PetService (per hatch by rarity), UpgradeStation (per tier_up), RebirthService (per rebirth)
+- `GetXpSnapshot` RemoteFunction + `XpLeveledUp` RemoteEvent
+
+## V111 — 2026-05-03
+
+### Codes redeem overlay
+- `CodesOverlay.client.luau`: top-right "🎁" button → modal with TextBox + Redeem button
+- Server fires `CodeRedeemed`/`CodeRejected`; client renders inline toast
+
+## V110 — 2026-05-03
+
+### Pet boost loyalty discount
+- `PetService.attemptBuyBoost`: 25% off when boost is already active when re-buying
+- Rewards back-to-back boost engagement
+- Tier-6 base 350K → loyalty 262.5K when re-extending
+
+## V109 — 2026-05-03
+
+### Capstone foundation gold trim
+- `TierPlotDecor.build` tier 6 adds 4 thick gold neon rims around foundation perimeter
+- Capstone plots are visibly luxe from across the lobby
+
+### 60s coin-gain ceiling tracker
+- `CurrencyManager.tick` rolling 60s window per player
+- `expectedMax = floor(BASE_INCOME_PER_TICK * mult * 60 * 1.2 tolerance)`
+- Warn if `totalGain > expectedMax` (5min throttle per player)
+- Catches exploits that bypass `multiplierFor` entirely
+
 ## V108 — 2026-05-03
 
 ### Daily Shop client overlay
