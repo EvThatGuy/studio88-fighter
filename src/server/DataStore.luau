@@ -284,6 +284,8 @@ local function onPlayerRemoving(player: Player)
     local userId = player.UserId
     local data = cache[userId]
     if not data then return end
+    -- Stamp logout time so the next session can compute idle-return bonus
+    data.lastLogoutUnix = os.time()
     local ok = trySave(userId, data)
     cache[userId] = nil
     if not ok then

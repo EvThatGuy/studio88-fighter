@@ -89,6 +89,7 @@ local REMOTE_NAMES = {
     {name = "GetDailyStreakSchedule", class = "RemoteFunction"}, -- HUD modal preview of upcoming days + jackpot tags
     {name = "SessionBonusGranted", class = "RemoteEvent"}, -- 15/30/60min play bonus auto-granted in session
     {name = "RebirthReadyNudge", class = "RemoteEvent"}, -- one-shot toast when rebirth eligibility flips false->true
+    {name = "IdleReturnBonusGranted", class = "RemoteEvent"}, -- one-shot toast on rejoin with offline-earnings bonus
 }
 
 local function ensureFolder(): Folder

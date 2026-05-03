@@ -20,6 +20,7 @@ export type PlayerData = {
     lifetimeCoins: number,          -- never decreases; drives leaderboard
     upgradeTier: number,            -- 1..#Constants.UPGRADE_TIERS
     lastLoginUnix: number,          -- os.time() at last full login
+    lastLogoutUnix: number?,        -- os.time() at last PlayerRemoving (for idle-return bonus)
     streak: number,                 -- consecutive days logged in
     starterPackPurchasedUnix: number?, -- for the 30-min Starter Pack window
     rebirths: number,               -- prestige count; permanent across all sessions
