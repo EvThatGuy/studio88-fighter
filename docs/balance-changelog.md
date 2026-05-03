@@ -2,6 +2,38 @@
 
 Per-publish gameplay/balance changes. Visual changes documented separately in `docs/visual-architecture.md`.
 
+## V95 — 2026-05-03
+
+### Idle return bonus (offline earnings)
+- New `IdleReturnBonus.server.luau` grants offline-earnings bonus on rejoin
+- `data.lastLogoutUnix` stamped in `DataStore.onPlayerRemoving`
+- On rejoin: `bonus = floor(min(now - lastLogoutUnix, 3600) * tierIncomePerSec / 4)`
+- 1/4 reduction so active play stays the path
+- Skip `<60s` (alt-tab) and new-player (no prior logout)
+- Toast: slide-in "WELCOME BACK / Earned $X offline (Ym away)" 4s hold
+- New `IdleReturnBonusGranted` RemoteEvent + `IdleReturnBonusToast.client.luau`
+
+## V94 — 2026-05-03
+
+### Pet stand multiplier label
+- `PetStandService` adds floating "x2.50 PET BOOST" label above the pet stand
+- Computed via sumAdd of equipped pet rarity mults
+- Visible to plot visitors — social proof for the gacha grind
+
+### Visitor reward (both-sides win)
+- `VisitService` now tips BOTH sides of a visit (was owner-only)
+- Visitor gets `Constants.VISIT_VISITOR_REWARD_COINS = 100` flat
+- Flat (not tier-scaled) so tier-1 visitors aren't disadvantaged when visiting tier-6 plots
+- Compounds the social viral loop per checklist mechanic 5
+
+## V92 — 2026-05-03
+
+### Cheat-detection sanity check
+- `CurrencyManager.tick` now sanity-checks `gain == expected` per tick
+- Mismatch logs warn once per 5min per player (`lastCheatWarnAt` throttle)
+- Surfaces future exploit attempts without blocking gameplay
+- Real anti-cheat would need historical-baseline coin/sec ceiling
+
 ## V91 — 2026-05-03
 
 ### Pet collection progress in snapshot
