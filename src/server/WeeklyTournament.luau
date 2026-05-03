@@ -111,12 +111,40 @@ function WeeklyTournament.snapshot(userId: number)
     }
 end
 
--- Wire RemoteFunction so the HUD widget can query
+function WeeklyTournament.topN(n: number)
+    n = math.clamp(n or 50, 1, 100)
+    if not odsStore then return {entries = {}} end
+    local nowKey = weekKey(os.time())
+    local entries = {}
+    pcall(function()
+        local pages = (odsStore :: OrderedDataStore):GetSortedAsync(false, n * 2)
+        local rows = pages:GetCurrentPage()
+        for _, r in ipairs(rows) do
+            local key = tostring(r.key)
+            local userIdStr, wk = key:match("^(%d+)_(.+)$")
+            if userIdStr and wk == nowKey then
+                local userId = tonumber(userIdStr)
+                local name = userId and Players:GetNameFromUserIdAsync(userId) or "?"
+                table.insert(entries, {userId = userId, name = name, weeklyEarned = r.value})
+                if #entries >= n then break end
+            end
+        end
+    end)
+    table.sort(entries, function(a, b) return a.weeklyEarned > b.weeklyEarned end)
+    return {entries = entries, weekKey = nowKey}
+end
+
+-- Wire RemoteFunctions so the HUD widget + modal can query
 local Remotes = require(game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Remotes"))
 local remotes = Remotes.get()
 if remotes.GetWeeklyTournament then
     remotes.GetWeeklyTournament.OnServerInvoke = function(player: Player)
         return WeeklyTournament.snapshot(player.UserId)
+    end
+end
+if remotes.GetWeeklyTournamentTopN then
+    remotes.GetWeeklyTournamentTopN.OnServerInvoke = function(_player: Player, n: any)
+        return WeeklyTournament.topN(tonumber(n) or 50)
     end
 end
 

@@ -91,6 +91,7 @@ local REMOTE_NAMES = {
     {name = "RebirthReadyNudge", class = "RemoteEvent"}, -- one-shot toast when rebirth eligibility flips false->true
     {name = "IdleReturnBonusGranted", class = "RemoteEvent"}, -- one-shot toast on rejoin with offline-earnings bonus
     {name = "GetWeeklyTournament", class = "RemoteFunction"}, -- HUD widget: "MY WEEK $X (rank Y)" current week status
+    {name = "GetWeeklyTournamentTopN", class = "RemoteFunction"}, -- modal: top N {userId, name, weeklyEarned} for current week
 }
 
 local function ensureFolder(): Folder
