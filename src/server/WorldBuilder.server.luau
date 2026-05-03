@@ -24,6 +24,7 @@ local CYAN = Color3.fromRGB(0, 240, 255)
 local DARK = Color3.fromRGB(8, 7, 13)
 local SURFACE = Color3.fromRGB(20, 17, 31)
 local AMBER = Color3.fromRGB(255, 176, 0)
+local STEEL = Color3.fromRGB(60, 65, 78)
 
 local function setProps(inst: Instance, props: {[string]: any})
     for k, v in pairs(props) do
@@ -413,24 +414,111 @@ local function buildLeaderboardSign()
     local existing = Workspace:FindFirstChild("Studio88LeaderboardSign")
     if existing then existing:Destroy() end
 
-    local pole = part("Studio88LeaderboardSign", Workspace, {
-        Size = Vector3.new(2, 30, 2),
-        Position = Vector3.new(0, 15, -50),
-        Anchored = true,
-        Material = Enum.Material.Metal,
-        Color = DARK,
-        Locked = true,
-    })
+    -- Twin support poles instead of one center pole — reads as a real
+    -- arcade marquee structure rather than a popsicle stick
+    local container = Instance.new("Folder")
+    container.Name = "Studio88LeaderboardSign"
+    container.Parent = Workspace
 
-    local panel = part("Panel", pole, {
-        Size = Vector3.new(20, 12, 1),
-        Position = Vector3.new(0, 30, -50),
+    for _, dx in ipairs({-9, 9}) do
+        part("Pole", container, {
+            Size = Vector3.new(1.5, 30, 1.5),
+            Position = Vector3.new(dx, 15, -50),
+            Anchored = true,
+            Material = Enum.Material.Metal,
+            Color = STEEL,
+            Locked = true,
+        })
+    end
+
+    -- Steel frame around the panel (top + bottom + sides)
+    for _, frame in ipairs({
+        {pos = Vector3.new(0, 36.6, -50), size = Vector3.new(22, 1.2, 1.2)},  -- top
+        {pos = Vector3.new(0, 23.4, -50), size = Vector3.new(22, 1.2, 1.2)},  -- bottom
+        {pos = Vector3.new(-10.5, 30, -50), size = Vector3.new(1, 14, 1.2)},   -- left
+        {pos = Vector3.new( 10.5, 30, -50), size = Vector3.new(1, 14, 1.2)},   -- right
+    }) do
+        part("Frame", container, {
+            Size = frame.size,
+            Position = frame.pos,
+            Anchored = true,
+            Material = Enum.Material.Metal,
+            Color = STEEL,
+            Locked = true,
+        })
+    end
+
+    -- Corner marquee bulbs (4 glowing balls at the panel corners)
+    for _, corner in ipairs({
+        Vector3.new(-10.5, 36.6, -50),
+        Vector3.new( 10.5, 36.6, -50),
+        Vector3.new(-10.5, 23.4, -50),
+        Vector3.new( 10.5, 23.4, -50),
+    }) do
+        local bulb = part("MarqueeBulb", container, {
+            Size = Vector3.new(1.6, 1.6, 1.6),
+            Position = corner,
+            Anchored = true,
+            Material = Enum.Material.Neon,
+            Color = AMBER,
+            Shape = Enum.PartType.Ball,
+            Locked = true,
+        })
+        local pl = Instance.new("PointLight")
+        pl.Brightness = 1.5
+        pl.Range = 6
+        pl.Color = AMBER
+        pl.Parent = bulb
+    end
+
+    -- The actual sign panel (carries Studio88LeaderboardPanel tag for
+    -- Leaderboard.server.luau to find + populate)
+    local panel = part("Panel", container, {
+        Size = Vector3.new(20, 12, 0.4),
+        Position = Vector3.new(0, 30, -49.7),
         Anchored = true,
         Material = Enum.Material.SmoothPlastic,
         Color = SURFACE,
         Locked = true,
     })
     CollectionService:AddTag(panel, "Studio88LeaderboardPanel")
+
+    -- Animated marquee scroll strip beneath the panel ("LIVE LEADERBOARD")
+    local marquee = part("MarqueeStrip", container, {
+        Size = Vector3.new(20, 1.6, 0.4),
+        Position = Vector3.new(0, 22.4, -49.7),
+        Anchored = true,
+        Material = Enum.Material.Neon,
+        Color = PINK,
+        Locked = true,
+    })
+    local marqueeSg = Instance.new("SurfaceGui")
+    marqueeSg.Adornee = marquee
+    marqueeSg.Face = Enum.NormalId.Front
+    marqueeSg.CanvasSize = Vector2.new(600, 60)
+    marqueeSg.LightInfluence = 0
+    marqueeSg.Parent = marquee
+    local marqueeLbl = Instance.new("TextLabel")
+    marqueeLbl.Size = UDim2.new(2, 0, 1, 0)  -- 2x width to allow scroll
+    marqueeLbl.BackgroundTransparency = 1
+    marqueeLbl.Text = "LIVE LEADERBOARD  ·  LIVE LEADERBOARD  ·  LIVE LEADERBOARD"
+    marqueeLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+    marqueeLbl.TextStrokeTransparency = 0.2
+    marqueeLbl.TextStrokeColor3 = DARK
+    marqueeLbl.Font = Enum.Font.GothamBold
+    marqueeLbl.TextScaled = true
+    marqueeLbl.TextXAlignment = Enum.TextXAlignment.Left
+    marqueeLbl.Parent = marqueeSg
+    -- Scroll loop: shift label left, wrap at -50%
+    task.spawn(function()
+        local pos = 0
+        while marqueeLbl.Parent do
+            pos = pos - 0.005
+            if pos <= -0.5 then pos = 0 end
+            marqueeLbl.Position = UDim2.new(pos, 0, 0, 0)
+            task.wait(0.05)
+        end
+    end)
 
     local sg = Instance.new("SurfaceGui")
     sg.Adornee = panel

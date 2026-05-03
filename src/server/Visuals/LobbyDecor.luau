@@ -75,6 +75,64 @@ function LobbyDecor.build()
         mesh.Parent = ring
     end
 
+    -- Brand decal on the very top of the pedestal — players see this when
+    -- they spawn and look down. SurfaceGui on the pink top tier with
+    -- "STUDIO 88 / TYCOON" stacked text + neon accent ring inside the GUI.
+    local topTier = container:FindFirstChild("Tier3")
+    if topTier then
+        local sg = Instance.new("SurfaceGui")
+        sg.Adornee = topTier
+        sg.Face = Enum.NormalId.Top
+        sg.CanvasSize = Vector2.new(640, 640)
+        sg.LightInfluence = 0
+        sg.AlwaysOnTop = false
+        sg.Parent = topTier
+
+        -- Outer accent ring (rendered as 0px-stroke text for circular feel
+        -- via UICorner trick — using an empty TextButton with UICorner)
+        local outerRing = Instance.new("Frame")
+        outerRing.Size = UDim2.new(0.9, 0, 0.9, 0)
+        outerRing.Position = UDim2.new(0.05, 0, 0.05, 0)
+        outerRing.BackgroundTransparency = 1
+        outerRing.Parent = sg
+
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = CYAN
+        stroke.Thickness = 6
+        stroke.Transparency = 0.2
+        stroke.Parent = outerRing
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0.5, 0)  -- circle
+        corner.Parent = outerRing
+
+        -- Brand stacked text
+        local title = Instance.new("TextLabel")
+        title.Size = UDim2.new(1, 0, 0.45, 0)
+        title.Position = UDim2.new(0, 0, 0.15, 0)
+        title.BackgroundTransparency = 1
+        title.Text = "STUDIO 88"
+        title.TextColor3 = Color3.fromRGB(255, 255, 255)
+        title.TextStrokeTransparency = 0
+        title.TextStrokeColor3 = DARK
+        title.Font = Enum.Font.GothamBold
+        title.TextScaled = true
+        title.Rotation = -90  -- so it reads correctly when looking down at the pedestal
+        title.Parent = sg
+
+        local sub = Instance.new("TextLabel")
+        sub.Size = UDim2.new(1, 0, 0.25, 0)
+        sub.Position = UDim2.new(0, 0, 0.6, 0)
+        sub.BackgroundTransparency = 1
+        sub.Text = "TYCOON"
+        sub.TextColor3 = CYAN
+        sub.TextStrokeTransparency = 0.2
+        sub.TextStrokeColor3 = DARK
+        sub.Font = Enum.Font.Code
+        sub.TextScaled = true
+        sub.Rotation = -90
+        sub.Parent = sg
+    end
+
     -- Floating "TYCOON v1" rotating sign tower
     local pole = part("SignPole", container, {
         Size = Vector3.new(1, 14, 1),
