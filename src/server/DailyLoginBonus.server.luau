@@ -169,4 +169,32 @@ remotes.GetDailyStreakSchedule.OnServerInvoke = function(player: Player)
     }
 end
 
-print("[DailyLoginBonus] armed (schedule preview live)")
+-- Streak-risk warning. Players with 3+ day streak who haven't claimed
+-- today by 22:00 UTC get a "your streak resets in Xh" toast. Surfaces
+-- the loss-aversion that drives streak retention.
+task.spawn(function()
+    while true do
+        task.wait(300)  -- check every 5min
+        local t = os.date("!*t") :: any
+        if t.hour < 22 then continue end  -- only fire after 22:00 UTC
+        for _, p in ipairs(Players:GetPlayers()) do
+            local d = DataStore.getCached(p.UserId)
+            if not d then continue end
+            local streak = d.streak or 0
+            if streak < 3 then continue end
+            local todayStart = startOfUTCDay(os.time())
+            local lastStart = startOfUTCDay(d.lastLoginUnix or 0)
+            if todayStart == lastStart then continue end  -- already claimed today
+            local hoursLeft = 24 - t.hour
+            pcall(function()
+                remotes.NotificationToast:FireClient(p, {
+                    kind = "streak_risk",
+                    title = "⚠️ STREAK AT RISK",
+                    body = string.format("Your %d-day streak resets in %dh — claim today's reward!", streak, hoursLeft),
+                })
+            end)
+        end
+    end
+end)
+
+print("[DailyLoginBonus] armed (schedule preview live + streak-risk warning)")

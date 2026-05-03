@@ -81,6 +81,25 @@ function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
                 local DiscordHook = require(script.Parent:WaitForChild("DiscordHook"))
                 DiscordHook.publishCapstoneReach(player.Name, data.rebirths or 0)
             end)
+            -- Server-wide chat announce so other players see social proof.
+            -- Throttled to 1/min globally so a busy server doesn't spam
+            -- (lastCapstoneAnnounceAt is a file-scope counter declared
+            -- below in the require chain so all UpgradeStation calls share it).
+            pcall(function()
+                local TextChatService = game:GetService("TextChatService")
+                local ch = TextChatService.TextChannels:FindFirstChild("RBXSystem")
+                    or TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+                if ch and ch:IsA("TextChannel") then
+                    local now = os.time()
+                    if (now - (_G.Studio88LastCapstoneAnnounceAt or 0)) >= 60 then
+                        _G.Studio88LastCapstoneAnnounceAt = now
+                        ch:DisplaySystemMessage(string.format(
+                            "🏆 %s reached the capstone tier (rebirth #%d)!",
+                            player.Name, data.rebirths or 0
+                        ))
+                    end
+                end
+            end)
             local foundation = plot:FindFirstChild("Foundation") :: BasePart?
             if foundation then
                 pcall(function()

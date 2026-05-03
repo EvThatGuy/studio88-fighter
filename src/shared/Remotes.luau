@@ -97,6 +97,7 @@ local REMOTE_NAMES = {
     {name = "VaultRaidEnded", class = "RemoteEvent"}, -- broadcast with reward distribution results
     {name = "GetDailyShop", class = "RemoteFunction"}, -- HUD modal: today's 3 items + my purchase state
     {name = "BuyDailyShopItem", class = "RemoteEvent"}, -- player initiates a daily shop buy
+    {name = "NotificationToast", class = "RemoteEvent"}, -- generic kind/title/body toast for streak risk + future hooks
 }
 
 local function ensureFolder(): Folder
