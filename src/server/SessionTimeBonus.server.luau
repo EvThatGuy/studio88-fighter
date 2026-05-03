@@ -23,8 +23,20 @@ local Leaderstats = require(script.Parent:WaitForChild("Leaderstats"))
 
 local remotes = Remotes.get()
 
--- userId -> { joinedAt = unix, claimed = {[tierIndex]=true} }
-local sessions: {[number]: {joinedAt: number, claimed: {[number]: boolean}}} = {}
+-- userId -> {
+--   activeSeconds = number   -- play time (excluding AFK)
+--   claimed = {[tierIdx]=true}
+--   lastMoveAt = unix        -- last time HRP moved >0.5 stud
+--   lastTickAt = unix        -- last anti-AFK tick
+-- }
+type Session = {
+    activeSeconds: number,
+    claimed: {[number]: boolean},
+    lastMoveAt: number,
+    lastTickAt: number,
+}
+local sessions: {[number]: Session} = {}
+local AFK_THRESHOLD_SEC = 60  -- no movement in 60s = AFK; pause timer
 
 local function granted(player: Player, tierIdx: number, def: any)
     local data = DataStore.getCached(player.UserId)
@@ -53,16 +65,35 @@ local function granted(player: Player, tierIdx: number, def: any)
         player.Name, tierIdx, def.reward, def.seconds))
 end
 
+-- Anti-AFK: only advance activeSeconds if the player has moved their
+-- HumanoidRootPart in the last AFK_THRESHOLD_SEC. Stops AFK farming.
+local function isActive(player: Player, sess: Session, now: number): boolean
+    local char = player.Character
+    if not char then return false end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then return false end
+    if hum.MoveDirection.Magnitude > 0.05 then
+        sess.lastMoveAt = now
+        return true
+    end
+    return (now - sess.lastMoveAt) <= AFK_THRESHOLD_SEC
+end
+
 local function tick()
     while true do
-        task.wait(15)  -- check every 15s; threshold granularity is fine
+        task.wait(15)  -- 15s cadence; threshold granularity is fine
         local now = os.time()
         for userId, sess in pairs(sessions) do
             local player = Players:GetPlayerByUserId(userId)
             if not player then continue end
-            local elapsed = now - sess.joinedAt
+            local delta = now - sess.lastTickAt
+            sess.lastTickAt = now
+            -- Only credit elapsed time if player wasn't AFK for the window
+            if isActive(player, sess, now) then
+                sess.activeSeconds += delta
+            end
             for i, def in ipairs(Constants.SESSION_TIME_BONUSES) do
-                if elapsed >= def.seconds and not sess.claimed[i] then
+                if sess.activeSeconds >= def.seconds and not sess.claimed[i] then
                     sess.claimed[i] = true
                     granted(player, i, def)
                 end
@@ -71,8 +102,13 @@ local function tick()
     end
 end
 
+local function newSession(): Session
+    local now = os.time()
+    return {activeSeconds = 0, claimed = {}, lastMoveAt = now, lastTickAt = now}
+end
+
 Players.PlayerAdded:Connect(function(player)
-    sessions[player.UserId] = {joinedAt = os.time(), claimed = {}}
+    sessions[player.UserId] = newSession()
 end)
 Players.PlayerRemoving:Connect(function(player)
     sessions[player.UserId] = nil
@@ -80,7 +116,7 @@ end)
 -- Cover players already present
 for _, p in ipairs(Players:GetPlayers()) do
     if not sessions[p.UserId] then
-        sessions[p.UserId] = {joinedAt = os.time(), claimed = {}}
+        sessions[p.UserId] = newSession()
     end
 end
 

@@ -362,6 +362,26 @@ Constants.CODES = {
         expiresUnix = nil,
         maxGlobalRedemptions = 1000,               -- first 1000 only; FOMO ramp
     },
+    -- Partner creator slots — preconfigured but disabled (expiresUnix=0
+    -- = invalid forever until activated). When a creator partnership
+    -- locks in, set expiresUnix to a real future timestamp + share the
+    -- code text. maxGlobalRedemptions=5000 caps each partner channel
+    -- so they prove conversion without unbounded coin drain.
+    PARTNER_1 = {
+        reward = 5000,
+        expiresUnix = 0,                           -- inactive; activate when partner signs
+        maxGlobalRedemptions = 5000,
+    },
+    PARTNER_2 = {
+        reward = 5000,
+        expiresUnix = 0,
+        maxGlobalRedemptions = 5000,
+    },
+    PARTNER_3 = {
+        reward = 5000,
+        expiresUnix = 0,
+        maxGlobalRedemptions = 5000,
+    },
 }
 
 -- Per-player input rate limit on RequestRedeemCode (anti-spam).
