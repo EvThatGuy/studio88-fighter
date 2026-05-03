@@ -21,7 +21,7 @@ local SOUND_PATHS = {
     ambient    = "rbxasset://sounds/uuhhh.mp3",                      -- ambient hum (Roblox built-in)
     coin       = "rbxasset://sounds/electronicpingshort.wav",        -- coin pickup
     tier_up    = "rbxasset://sounds/action_get_up.mp3",              -- tier-up celebrate
-    purchase   = "rbxasset://sounds/bell.mp3",                       -- successful purchase
+    purchase   = "rbxasset://sounds/electronicpingshort.wav",        -- successful purchase (bell.mp3 not shipped)
     fail       = "rbxasset://sounds/clickfast.mp3",                  -- rejection
     rebirth    = "rbxasset://sounds/action_jump.mp3",                -- prestige fanfare
 }
