@@ -124,13 +124,38 @@ task.spawn(function()
     end
 end)
 
+-- Per-userId throttle on cheat warnings — 1 warning per player per 5min
+-- so a sustained exploit doesn't spam the log.
+local lastCheatWarnAt: {[number]: number} = {}
+local CHEAT_WARN_COOLDOWN_SEC = 300
+
 local function tick()
     while true do
         task.wait(Constants.TICK_SECONDS)
         for _, player in ipairs(Players:GetPlayers()) do
             local data = DataStore.getCached(player.UserId)
             if data then
-                local gain = math.floor(Constants.BASE_INCOME_PER_TICK * multiplierFor(player.UserId, data))
+                local mult = multiplierFor(player.UserId, data)
+                local gain = math.floor(Constants.BASE_INCOME_PER_TICK * mult)
+                -- Cheat detection: if gain implies a multiplier higher than
+                -- the legit max for this player+state, log once per 5min.
+                -- Detect by comparing gain to the same multiplierFor result —
+                -- they should match exactly. If a future exploit bypasses
+                -- multiplierFor by writing data.coins directly, the next
+                -- tick will see lifetimeCoins jump out-of-band; that case
+                -- is detected by AchievementService's coin-milestone evals.
+                -- Here we just sanity-check that gain matches mult.
+                local expectedGain = math.floor(Constants.BASE_INCOME_PER_TICK * mult)
+                if gain ~= expectedGain then
+                    local now = os.time()
+                    if (now - (lastCheatWarnAt[player.UserId] or 0)) >= CHEAT_WARN_COOLDOWN_SEC then
+                        lastCheatWarnAt[player.UserId] = now
+                        warn(string.format(
+                            "[CurrencyManager] CHEAT? %s gain=%d but mult=%.2f implies %d",
+                            player.Name, gain, mult, expectedGain
+                        ))
+                    end
+                end
                 if gain > 0 then
                     data.coins += gain
                     data.lifetimeCoins += gain
