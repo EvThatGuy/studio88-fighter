@@ -80,13 +80,44 @@ end
 
 function WeeklyTournament.snapshot(userId: number)
     local data = DataStore.getCached(userId)
-    if not data then return {weeklyEarned = 0, weekStart = startOfUTCWeek(os.time())} end
+    if not data then return {weeklyEarned = 0, weekStart = startOfUTCWeek(os.time()), rank = nil} end
     rolloverIfStale(data, os.time())
+    local now = os.time()
+    local wk = weekKey(now)
+    local myEarned = data.weeklyEarnedCoins or 0
+    -- Compute rank: count how many in OrderedDataStore for this week
+    -- have score >= mine. Best-effort, rank is nil on DataStore failure.
+    local rank: number? = nil
+    if odsStore and myEarned > 0 then
+        pcall(function()
+            local pages = (odsStore :: OrderedDataStore):GetSortedAsync(false, 100)
+            local rows = pages:GetCurrentPage()
+            local count = 0
+            for _, r in ipairs(rows) do
+                local key = tostring(r.key)
+                local userIdStr, rwk = key:match("^(%d+)_(.+)$")
+                if userIdStr and rwk == wk and r.value > myEarned then
+                    count += 1
+                end
+            end
+            rank = count + 1
+        end)
+    end
     return {
-        weeklyEarned = data.weeklyEarnedCoins or 0,
-        weekStart = data.weeklyResetUnix or startOfUTCWeek(os.time()),
-        weekKey = weekKey(os.time()),
+        weeklyEarned = myEarned,
+        weekStart = data.weeklyResetUnix or startOfUTCWeek(now),
+        weekKey = wk,
+        rank = rank,
     }
+end
+
+-- Wire RemoteFunction so the HUD widget can query
+local Remotes = require(game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Remotes"))
+local remotes = Remotes.get()
+if remotes.GetWeeklyTournament then
+    remotes.GetWeeklyTournament.OnServerInvoke = function(player: Player)
+        return WeeklyTournament.snapshot(player.UserId)
+    end
 end
 
 -- ---- Weekly reward distribution ----------------------------------------

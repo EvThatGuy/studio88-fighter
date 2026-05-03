@@ -90,6 +90,7 @@ local REMOTE_NAMES = {
     {name = "SessionBonusGranted", class = "RemoteEvent"}, -- 15/30/60min play bonus auto-granted in session
     {name = "RebirthReadyNudge", class = "RemoteEvent"}, -- one-shot toast when rebirth eligibility flips false->true
     {name = "IdleReturnBonusGranted", class = "RemoteEvent"}, -- one-shot toast on rejoin with offline-earnings bonus
+    {name = "GetWeeklyTournament", class = "RemoteFunction"}, -- HUD widget: "MY WEEK $X (rank Y)" current week status
 }
 
 local function ensureFolder(): Folder
