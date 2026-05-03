@@ -65,9 +65,24 @@ function PlotAssigner.applyTierArt(plot: Model, tier: number)
     local foundation = plot:FindFirstChild("Foundation") :: BasePart?
     if not foundation then return end
     local spec = Constants.TIER_PLOT_ART[tier] or Constants.TIER_PLOT_ART[1]
+    -- Detect a real tier change (vs initial paint on assignment) — only
+    -- flash when CurrentTier is set and changed.
+    local prevTier = plot:GetAttribute("CurrentTier")
     foundation.Material = spec.material
     foundation.Color = spec.color
     plot:SetAttribute("CurrentTier", tier)
+    -- Tier-up flash: briefly switch foundation to Neon before settling
+    -- back to the tier material. 0.6s pulse, color stays the tier color
+    -- so eye reads "your plot just leveled up".
+    if prevTier and prevTier ~= tier then
+        local origMaterial = spec.material
+        foundation.Material = Enum.Material.Neon
+        task.delay(0.6, function()
+            if foundation.Parent then
+                foundation.Material = origMaterial
+            end
+        end)
+    end
     -- Build / replace the prosperity obelisk: a vertical glowing pillar
     -- positioned on the foundation that grows + brightens per tier. Visible
     -- from far across the map; the visual carrot for tier-up.
@@ -553,6 +568,17 @@ local function assign(player: Player)
             rebirths = rebirths,
             isReturning = (data and data.streakDay or 0) > 1 or rebirths > 0 or lifetime > 0,
         })
+    end)
+
+    -- Spatial join chime at the spawn position so the join has audio +
+    -- visual feedback. Played from the foundation so other players hear
+    -- it from the relevant spot rather than across the map.
+    pcall(function()
+        local AmbientAudio = require(script.Parent:WaitForChild("AmbientAudio"))
+        local foundation = clone:FindFirstChild("Foundation") :: BasePart?
+        if foundation then
+            AmbientAudio.playSpatial("purchase", foundation, 0.25, 1.3)
+        end
     end)
 
     -- FTUE step 1: plot assigned. Players who already past this step are
