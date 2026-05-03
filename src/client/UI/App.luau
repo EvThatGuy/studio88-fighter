@@ -7,6 +7,7 @@
 local React = require(game:GetService("ReplicatedStorage").Packages.React)
 
 local Tokens = require(game:GetService("ReplicatedStorage").Modules.UI.Tokens)
+local TestBridge = require(game:GetService("ReplicatedStorage").Modules.UI.TestBridge)
 local Balance = require(script.Parent.Balance)
 local ButtonStack = require(script.Parent.ButtonStack)
 local PetsModal = require(script.Parent.PetsModal)
@@ -23,6 +24,22 @@ export type ModalId = "pets" | "auras" | "achievements" | "quests" | "tribute" |
 
 local function App()
     local openModalId, setOpenModal = React.useState(nil :: ModalId)
+
+    -- Bridge external setOpenModal callers (AutoTest, Roblox signals) through
+    -- a BindableEvent so the connect callback runs in the standard Roblox
+    -- event context where setState batches+flushes correctly. Direct calls
+    -- to setOpenModal from outside React's event flow get silently dropped.
+    React.useEffect(function()
+        local conn = TestBridge.changed.Event:Connect(function(next: any)
+            setOpenModal(next)
+        end)
+        return function() conn:Disconnect() end
+    end, {})
+
+    local function exposedSetter(next: ModalId)
+        TestBridge.changed:Fire(next)
+    end
+    TestBridge.setModal = exposedSetter :: any
 
     local close = React.useCallback(function()
         setOpenModal(nil)
@@ -42,7 +59,7 @@ local function App()
         Balance = e(Balance, {}),
 
         ButtonStack = e(ButtonStack, {
-            onOpen = setOpenModal,
+            onOpen = exposedSetter,
             activeId = openModalId,
         }),
 

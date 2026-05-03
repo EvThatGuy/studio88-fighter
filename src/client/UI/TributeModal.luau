@@ -42,18 +42,12 @@ local function TributeModal(props: TributeModalProps)
     end, {})
 
     React.useEffect(function()
-        refresh()
-        local remotes = Remotes.waitFor(15)
-        local conns = {
-            remotes.HourlyTributeClaimed.OnClientEvent:Connect(function() refresh() end),
-            remotes.HourlyTributeRejected.OnClientEvent:Connect(function() refresh() end),
-        }
+        local conns: { RBXScriptConnection } = {}
+        local cancelled = false
         local tickThread = task.spawn(function()
             while true do
                 task.wait(1)
                 setNow(os.time())
-                -- Re-fetch once a minute so the countdown stays in sync after
-                -- long client clocks drift.
             end
         end)
         local refetchThread = task.spawn(function()
@@ -62,7 +56,16 @@ local function TributeModal(props: TributeModalProps)
                 refresh()
             end
         end)
+        task.spawn(function()
+            refresh()
+            if cancelled then return end
+            local remotes = Remotes.waitFor(15)
+            if cancelled then return end
+            table.insert(conns, remotes.HourlyTributeClaimed.OnClientEvent:Connect(function() refresh() end))
+            table.insert(conns, remotes.HourlyTributeRejected.OnClientEvent:Connect(function() refresh() end))
+        end)
         return function()
+            cancelled = true
             for _, c in conns do c:Disconnect() end
             task.cancel(tickThread)
             task.cancel(refetchThread)

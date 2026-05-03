@@ -52,19 +52,24 @@ local function SpinModal(props: SpinModalProps)
     end, {})
 
     React.useEffect(function()
-        refresh()
-        local remotes = Remotes.waitFor(15)
-        local conns = {
-            remotes.SpinResult.OnClientEvent:Connect(function() refresh() end),
-            remotes.SpinRejected.OnClientEvent:Connect(function() refresh() end),
-        }
+        local conns: { RBXScriptConnection } = {}
+        local cancelled = false
         local tickThread = task.spawn(function()
             while true do
                 task.wait(1)
                 setNow(os.time())
             end
         end)
+        task.spawn(function()
+            refresh()
+            if cancelled then return end
+            local remotes = Remotes.waitFor(15)
+            if cancelled then return end
+            table.insert(conns, remotes.SpinResult.OnClientEvent:Connect(function() refresh() end))
+            table.insert(conns, remotes.SpinRejected.OnClientEvent:Connect(function() refresh() end))
+        end)
         return function()
+            cancelled = true
             for _, c in conns do c:Disconnect() end
             task.cancel(tickThread)
         end

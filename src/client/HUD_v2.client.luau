@@ -63,7 +63,13 @@ if workspace.CurrentCamera then
     workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(recomputeScale)
 end
 
-local root = ReactRoblox.createRoot(scaleHolder)
+-- LegacyRoot (synchronous render+effect commit). ConcurrentRoot was deferring
+-- effects in a way that interacted badly with sibling effects that yielded
+-- via Remotes.waitFor / RemoteFunction:InvokeServer -- a yielding useEffect
+-- callback breaks the commit chain and silently kills downstream effects.
+-- All effects in src/client/UI/* must wrap yields in task.spawn + cancelled
+-- flag so the returned cleanup is synchronous.
+local root = ReactRoblox.createLegacyRoot(scaleHolder)
 root:render(React.createElement(App))
 
 print("[HUD_v2] mounted")

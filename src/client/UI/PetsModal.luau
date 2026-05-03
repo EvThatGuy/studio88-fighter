@@ -60,13 +60,16 @@ local function PetsModal(props: PetsModalProps)
     end, {})
 
     React.useEffect(function()
-        refresh()
-
-        local remotes = Remotes.waitFor(15)
-        local conns = {
-            remotes.PetHatched.OnClientEvent:Connect(function() refresh() end),
-            remotes.PetEquipChanged.OnClientEvent:Connect(function() refresh() end),
-            remotes.BalanceUpdated.OnClientEvent:Connect(function(coinsArg: number, _lifetime: number?)
+        local conns: { RBXScriptConnection } = {}
+        local cancelled = false
+        task.spawn(function()
+            refresh()
+            if cancelled then return end
+            local remotes = Remotes.waitFor(15)
+            if cancelled then return end
+            table.insert(conns, remotes.PetHatched.OnClientEvent:Connect(function() refresh() end))
+            table.insert(conns, remotes.PetEquipChanged.OnClientEvent:Connect(function() refresh() end))
+            table.insert(conns, remotes.BalanceUpdated.OnClientEvent:Connect(function(coinsArg: number, _lifetime: number?)
                 if typeof(coinsArg) ~= "number" then return end
                 setSnap(function(prev)
                     if prev == nil then return prev end
@@ -81,10 +84,10 @@ local function PetsModal(props: PetsModalProps)
                         pityThreshold = prev.pityThreshold,
                     } :: Snapshot
                 end)
-            end),
-        }
-
+            end))
+        end)
         return function()
+            cancelled = true
             for _, c in conns do c:Disconnect() end
         end
     end, { refresh } :: { any })

@@ -17,31 +17,39 @@ local function Balance()
     local rebirths, setRebirths = React.useState(0)
 
     React.useEffect(function()
-        local remotes = Remotes.waitFor(15)
+        -- All work that yields (Remotes.waitFor, InvokeServer) MUST run inside
+        -- task.spawn so this effect callback returns synchronously. Yielding
+        -- here breaks React's commit chain and silently kills sibling effects
+        -- (cost us 4hrs of debugging via Studio 88 v51-v59).
+        local conns: { RBXScriptConnection } = {}
+        local cancelled = false
 
-        -- Hydrate from server. GetBalance returns
-        -- { coins, lifetimeCoins, upgradeTier, rebirths }.
-        local ok, snap = pcall(function() return remotes.GetBalance:InvokeServer() end)
-        if ok and snap then
-            setCoins(snap.coins or 0)
-            setTier(snap.upgradeTier or 1)
-            setRebirths(snap.rebirths or 0)
-        end
+        task.spawn(function()
+            local remotes = Remotes.waitFor(15)
+            if cancelled then return end
 
-        -- All three remotes fire with positional args, not a table.
-        local conns = {
-            remotes.BalanceUpdated.OnClientEvent:Connect(function(coinsArg: number, _lifetime: number?)
+            local ok, snap = pcall(function() return remotes.GetBalance:InvokeServer() end)
+            if cancelled then return end
+            if ok and snap then
+                setCoins(snap.coins or 0)
+                setTier(snap.upgradeTier or 1)
+                setRebirths(snap.rebirths or 0)
+            end
+
+            -- Positional args, not a table payload.
+            table.insert(conns, remotes.BalanceUpdated.OnClientEvent:Connect(function(coinsArg: number, _lifetime: number?)
                 if typeof(coinsArg) == "number" then setCoins(coinsArg) end
-            end),
-            remotes.TierUpgraded.OnClientEvent:Connect(function(nextTier: number, _mult: number?)
+            end))
+            table.insert(conns, remotes.TierUpgraded.OnClientEvent:Connect(function(nextTier: number, _mult: number?)
                 if typeof(nextTier) == "number" then setTier(nextTier) end
-            end),
-            remotes.RebirthGranted.OnClientEvent:Connect(function(nextRebirths: number, _mult: number?)
+            end))
+            table.insert(conns, remotes.RebirthGranted.OnClientEvent:Connect(function(nextRebirths: number, _mult: number?)
                 if typeof(nextRebirths) == "number" then setRebirths(nextRebirths) end
-            end),
-        }
+            end))
+        end)
 
         return function()
+            cancelled = true
             for _, c in conns do c:Disconnect() end
         end
     end, {})

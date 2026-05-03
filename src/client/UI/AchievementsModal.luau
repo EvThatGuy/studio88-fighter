@@ -43,10 +43,19 @@ local function AchievementsModal(props: AchievementsModalProps)
     end, {})
 
     React.useEffect(function()
-        refresh()
-        local remotes = Remotes.waitFor(15)
-        local conn = remotes.AchievementUnlocked.OnClientEvent:Connect(function() refresh() end)
-        return function() conn:Disconnect() end
+        local conns: { RBXScriptConnection } = {}
+        local cancelled = false
+        task.spawn(function()
+            refresh()
+            if cancelled then return end
+            local remotes = Remotes.waitFor(15)
+            if cancelled then return end
+            table.insert(conns, remotes.AchievementUnlocked.OnClientEvent:Connect(function() refresh() end))
+        end)
+        return function()
+            cancelled = true
+            for _, c in conns do c:Disconnect() end
+        end
     end, { refresh } :: { any })
 
     local body: any

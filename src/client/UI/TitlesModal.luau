@@ -56,13 +56,18 @@ local function TitlesModal(props: TitlesModalProps)
     end, {})
 
     React.useEffect(function()
-        refresh()
-        local remotes = Remotes.waitFor(15)
-        local conns = {
-            remotes.TitleReplicate.OnClientEvent:Connect(function() refresh() end),
-            remotes.TitleRejected.OnClientEvent:Connect(function() refresh() end),
-        }
+        local conns: { RBXScriptConnection } = {}
+        local cancelled = false
+        task.spawn(function()
+            refresh()
+            if cancelled then return end
+            local remotes = Remotes.waitFor(15)
+            if cancelled then return end
+            table.insert(conns, remotes.TitleReplicate.OnClientEvent:Connect(function() refresh() end))
+            table.insert(conns, remotes.TitleRejected.OnClientEvent:Connect(function() refresh() end))
+        end)
         return function()
+            cancelled = true
             for _, c in conns do c:Disconnect() end
         end
     end, { refresh } :: { any })

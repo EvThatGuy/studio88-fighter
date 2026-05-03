@@ -50,13 +50,18 @@ local function AurasModal(props: AurasModalProps)
     end, {})
 
     React.useEffect(function()
-        refresh()
-        local remotes = Remotes.waitFor(15)
-        local conns = {
-            remotes.AuraReplicate.OnClientEvent:Connect(function() refresh() end),
-            remotes.AuraRejected.OnClientEvent:Connect(function() refresh() end),
-        }
+        local conns: { RBXScriptConnection } = {}
+        local cancelled = false
+        task.spawn(function()
+            refresh()
+            if cancelled then return end
+            local remotes = Remotes.waitFor(15)
+            if cancelled then return end
+            table.insert(conns, remotes.AuraReplicate.OnClientEvent:Connect(function() refresh() end))
+            table.insert(conns, remotes.AuraRejected.OnClientEvent:Connect(function() refresh() end))
+        end)
         return function()
+            cancelled = true
             for _, c in conns do c:Disconnect() end
         end
     end, { refresh } :: { any })

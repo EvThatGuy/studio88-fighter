@@ -41,14 +41,19 @@ local function QuestsModal(props: QuestsModalProps)
     end, {})
 
     React.useEffect(function()
-        refresh()
-        local remotes = Remotes.waitFor(15)
-        local conns = {
-            remotes.QuestProgressed.OnClientEvent:Connect(function() refresh() end),
-            remotes.QuestClaimed.OnClientEvent:Connect(function() refresh() end),
-            remotes.QuestRejected.OnClientEvent:Connect(function() refresh() end),
-        }
+        local conns: { RBXScriptConnection } = {}
+        local cancelled = false
+        task.spawn(function()
+            refresh()
+            if cancelled then return end
+            local remotes = Remotes.waitFor(15)
+            if cancelled then return end
+            table.insert(conns, remotes.QuestProgressed.OnClientEvent:Connect(function() refresh() end))
+            table.insert(conns, remotes.QuestClaimed.OnClientEvent:Connect(function() refresh() end))
+            table.insert(conns, remotes.QuestRejected.OnClientEvent:Connect(function() refresh() end))
+        end)
         return function()
+            cancelled = true
             for _, c in conns do c:Disconnect() end
         end
     end, { refresh } :: { any })
