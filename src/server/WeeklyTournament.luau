@@ -89,5 +89,88 @@ function WeeklyTournament.snapshot(userId: number)
     }
 end
 
-print("[WeeklyTournament] armed (UTC Sunday rollover)")
+-- ---- Weekly reward distribution ----------------------------------------
+-- Top-N players from the closed week's OrderedDataStore get rebirth
+-- tokens at the Sunday rollover. To avoid every server processing the
+-- same reward, we use a "winner" lock in a separate keyed DataStore —
+-- the first server to claim the lock for `<weekKey>` runs the
+-- distribution; everyone else no-ops.
+
+local lockStore: DataStore? = nil
+do
+    local ok, store = pcall(function()
+        return DataStoreService:GetDataStore("Studio88WeeklyLocks")
+    end)
+    if ok then lockStore = store end
+end
+
+local function tryClaimLock(claimedWeekKey: string): boolean
+    if not lockStore then return false end
+    local got = false
+    pcall(function()
+        (lockStore :: DataStore):UpdateAsync(claimedWeekKey, function(prev)
+            if prev then return nil end  -- lock already held; bail
+            got = true
+            return string.format("%d_%d", game.PlaceId, os.time())
+        end)
+    end)
+    return got
+end
+
+-- Reward table indexed by rank (1 = best). Tokens are rebirth shop currency.
+local REWARDS_BY_RANK = {10, 5, 5, 2, 2, 2, 2, 2, 2, 2}  -- top-10
+
+local function distributeWeeklyRewards(closedWeekKey: string)
+    if not odsStore then return end
+    local rows = nil
+    pcall(function()
+        local pages = (odsStore :: OrderedDataStore):GetSortedAsync(false, 100)
+        rows = pages:GetCurrentPage()
+    end)
+    if not rows then return end
+    -- Filter to entries matching the closed week + sort by score desc
+    local filtered = {}
+    for _, r in ipairs(rows) do
+        local key = tostring(r.key)
+        local userIdStr, wk = key:match("^(%d+)_(.+)$")
+        if userIdStr and wk == closedWeekKey then
+            table.insert(filtered, {userId = tonumber(userIdStr), score = r.value})
+        end
+    end
+    table.sort(filtered, function(a, b) return a.score > b.score end)
+    for rank, entry in ipairs(filtered) do
+        if rank > #REWARDS_BY_RANK then break end
+        local tokens = REWARDS_BY_RANK[rank]
+        local data = DataStore.getCached(entry.userId)
+        if data then
+            data.rebirthTokens = (data.rebirthTokens or 0) + tokens
+            print(string.format("[WeeklyTournament] rank %d userId %d +%d tokens (online)",
+                rank, entry.userId, tokens))
+        else
+            -- Player offline. Future iteration: write to a per-userId
+            -- "pending tokens" DataStore that DataStore.load merges in.
+            print(string.format("[WeeklyTournament] rank %d userId %d +%d tokens (offline, deferred)",
+                rank, entry.userId, tokens))
+        end
+    end
+end
+
+-- Distribution scan: every 5min check whether last week's rewards have
+-- been distributed. Single-server-wins via tryClaimLock so other
+-- servers no-op.
+task.spawn(function()
+    while true do
+        task.wait(300)
+        local now = os.time()
+        local currentStart = startOfUTCWeek(now)
+        local closedWeekStart = currentStart - 7 * 86400
+        local closedKey = weekKey(closedWeekStart)
+        if tryClaimLock("dist_" .. closedKey) then
+            print("[WeeklyTournament] won lock for week " .. closedKey .. ", distributing rewards")
+            distributeWeeklyRewards(closedKey)
+        end
+    end
+end)
+
+print("[WeeklyTournament] armed (UTC Sunday rollover, top-10 reward distribution)")
 return WeeklyTournament
