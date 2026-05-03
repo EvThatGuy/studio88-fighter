@@ -2,6 +2,17 @@
 
 Per-publish gameplay/balance changes. Visual changes documented separately in `docs/visual-architecture.md`.
 
+## V96 — 2026-05-03
+
+### WeeklyTournament foundation
+- New `WeeklyTournament.luau` ModuleScript tracks per-player weekly earned coins with UTC Sunday rollover
+- `recordEarn(userId, value)` called by `Collector.server.luau` on every credit (lazy-required to avoid load cycle)
+- `snapshot(userId)` returns `{weeklyEarned, weekStart, weekKey}` for HUD rendering
+- Best-effort OrderedDataStore persist keyed by `<userId>_<weekKey>` for cross-server top-N
+- Foundation only — reward distribution at week reset is future iteration
+- `Types.PlayerData`: `weeklyEarnedCoins?`, `weeklyResetUnix?`
+- `Bootstrap.server.luau`: load early so Collector's lazy require resolves
+
 ## V95 — 2026-05-03
 
 ### Idle return bonus (offline earnings)
