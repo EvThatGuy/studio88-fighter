@@ -2,6 +2,56 @@
 
 Per-publish gameplay/balance changes. Visual changes documented separately in `docs/visual-architecture.md`.
 
+## V105 — 2026-05-03
+
+### TradeService scaffold (DISABLED feature flag)
+- Per checklist mechanic 6: trading is THE D30 lever; DEFER until stable
+- `Constants.TRADING.ENABLED=false` (flip to activate)
+- Anti-scam guards: 15s confirm hold, double confirm, value mismatch tolerance 1.5x, equipped-pet block, ownership check, 10s cooldown between trades
+- `TradeService.luau` (new module): attemptInitiate, attemptCommit, cancel, estimateValue, validateOffer
+
+## V104 — 2026-05-03
+
+### Discord webhook integration
+- `DiscordHook.luau` (new module): server-side `HttpService:PostAsync` to Discord channel webhook
+- 4 publish functions: `publishLegendaryHatch`, `publishCapstoneReach`, `publishRaidKill`, `publishWeeklyWinners`
+- Per-event throttle (legendary 30s, capstone 60s, raid 120s, weekly 3600s)
+- Async POST via `task.spawn` so slow Discord doesn't tank server tick
+- `WEBHOOK_URL = ""` placeholder; David sets in Discord channel Integrations → Webhooks → Copy URL
+- Wired: `PetService.attemptHatch` (legendary), `UpgradeStation.attemptPurchase` (tier 6), `VaultRaidEvent.endRaid` (kill)
+
+## V103 — 2026-05-03
+
+### VaultRaid client toasts
+- `VaultRaidToast.client.luau`: spawn toast (amber 6s), end toast with my share (amber 4s) or summary (cyan 4s)
+
+## V102 — 2026-05-03
+
+### VaultRaid in-server boss event
+- Per checklist: in-server raids drive social play
+- `Constants.VAULT_RAID`: interval 1800s, timeout 60s, kill_tags 3, pool 50K coins, spawn at lobby pedestal (0,8,0)
+- `VaultRaidEvent.server.luau` (new): boss model spawns at interval, players touch to tag, kills at 3 distinct taggers OR 60s timeout, pool splits proportional to tag count
+- Boss billboard updates "N players tagging!" as taggers join
+- Tag cooldown 1s per player anti-spam
+- No PvP, additive only
+
+## V101 — 2026-05-03
+
+### Monetization tune (gamepasses + dev products)
+- Gamepass prices retuned: STARTER 75→99R, VIP 250→199R, PREMIUM 600→499R (median tycoon range)
+- `Constants.DEV_PRODUCTS`: 4 consumable Robux items
+  - COIN_PACK_SMALL  99R → 10K coins
+  - COIN_PACK_MEDIUM 299R → 50K coins
+  - COIN_PACK_LARGE  999R → 250K coins
+  - REBIRTH_TOKEN_PACK 199R → 1 token
+- `DevProductService.luau` (new module): `MarketplaceService.ProcessReceipt` wired
+  - Idempotency via `data.redeemedDevProducts[PurchaseId]`
+  - Returns `NotProcessedYet` on missing player/data so Roblox retries
+  - `applyReward` credits coins/tokens, fires `BalanceUpdated`, refreshes leaderstats, logs `PURCHASE_COMPLETED`
+  - `snapshot()` returns catalog for HUD shop modal
+- `Types.PlayerData.redeemedDevProducts?` added
+- All productIds default 0; David sets in Creator Hub then patches Constants
+
 ## V99 — 2026-05-03
 
 ### Tournament top-50 modal
