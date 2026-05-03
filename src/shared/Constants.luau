@@ -479,13 +479,18 @@ Constants.ANALYTICS_EVENTS = {
 --
 -- Times are UTC. Weekend = Fri 16:00 UTC -> Mon 04:00 UTC (covers all
 -- timezones for both Friday-evening US and Sunday-evening AU windows).
+-- Live events refreshed 2026-05-03 — old timestamps were 2025 (already
+-- past). New schedule: this weekend (Fri May 8 → Mon May 11) for the
+-- first launch event, then GTA6 hype week (Nov 12-19, 2026, week before
+-- actual launch on Nov 19). Future events should be added with
+-- startUnix > os.time() ahead of activation.
 Constants.LIVE_EVENTS = {
-    -- launch weekend (placeholder — actual launch date TBD)
+    -- This-weekend launch event (Fri May 8 16:00 UTC -> Mon May 11 04:00 UTC)
     { id = "launch_weekend", name = "LAUNCH 2X", sub = "double income all weekend",
-      multiplier = 2.0, startUnix = 1746115200, endUnix = 1746374400, color = "pink" },
-    -- GTA6 hype week (one week before launch)
+      multiplier = 2.0, startUnix = 1778256000, endUnix = 1778472000, color = "pink" },
+    -- GTA6 hype week (Nov 12 -> Nov 19 2026, week before actual GTA6 launch)
     { id = "gta6_hype_week", name = "GTA6 HYPE WEEK", sub = "3x income leading to launch",
-      multiplier = 3.0, startUnix = 1762905600, endUnix = 1763510400, color = "amber" },
+      multiplier = 3.0, startUnix = 1794441600, endUnix = 1795046400, color = "amber" },
 }
 
 -- How often the EventService scans for active events. 30s is plenty —

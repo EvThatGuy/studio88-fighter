@@ -18,6 +18,16 @@ local DataStore = require(script.Parent:WaitForChild("DataStore"))
 local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
 local CoinModel = require(script.Parent:WaitForChild("Visuals"):WaitForChild("CoinModel"))
 
+-- Per-player counter of how many of their first-3 coins have been
+-- auto-credited (without the player needing to walk to the conveyor).
+-- Cleared on PlayerRemoving so re-joins re-trigger the FTUE assist.
+-- Solves the D1 hook problem where new players bounce in <30s before
+-- their first coin reaches the collector naturally.
+local FTUE_AUTO_COLLECT_COUNT = 3
+local FTUE_AUTO_COLLECT_VALUE = 50  -- credit a slightly-bigger first coin so the +N feels noticeable
+local autoCollected: {[number]: number} = {}
+Players.PlayerRemoving:Connect(function(p) autoCollected[p.UserId] = nil end)
+
 local COIN_LIFETIME_SEC = 30  -- safety despawn if it slides off
 local COIN_VALUE_BY_TIER = {1, 2, 5, 12, 30, 80}  -- mirrors UPGRADE_TIERS incomeMult
 
@@ -79,6 +89,30 @@ local function loop()
                     if emitter then
                         spawnCoin(emitter, player.UserId, data.upgradeTier)
                         TutorialService.advance(player.UserId, "02_first_coin_spawned")
+                        -- FTUE D1 hook: auto-credit the player's first 3
+                        -- coins so they see the +N text + balance increment
+                        -- without needing to reach the conveyor. New players
+                        -- bounce in <30s on average; manually walking 18
+                        -- studs from spawn to conveyor is ~6 of those seconds.
+                        local count = autoCollected[player.UserId] or 0
+                        if count < FTUE_AUTO_COLLECT_COUNT then
+                            autoCollected[player.UserId] = count + 1
+                            data.coins += FTUE_AUTO_COLLECT_VALUE
+                            data.lifetimeCoins += FTUE_AUTO_COLLECT_VALUE
+                            -- Push balance update + use the existing
+                            -- CoinCollectedFx so the floating "+N" plays
+                            -- at the dropper position
+                            local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
+                            local remotes = Remotes.get()
+                            pcall(function()
+                                remotes.BalanceUpdated:FireClient(player, data.coins, data.lifetimeCoins)
+                                remotes.CoinCollectedFx:FireClient(player, {
+                                    value = FTUE_AUTO_COLLECT_VALUE,
+                                    tier = data.upgradeTier,
+                                    worldPos = dropper.Position,
+                                })
+                            end)
+                        end
                     end
                 end
             end

@@ -26,6 +26,11 @@ local passCache: {[number]: PassState} = {}
 
 local PASS_CACHE_TTL_SEC = 60
 
+-- INCOME_MULT_CAP hit counter, swept + logged every 60s by the monitor
+-- task at the bottom of multiplierFor's neighborhood. Forward-declared
+-- here so the multiplierFor branch + the sweep loop both see the upvalue.
+local capHits = 0
+
 local function ownsPass(userId: number, passId: number): boolean
     if passId == 0 then return false end -- unset placeholder
     local ok, owns = pcall(function()
@@ -100,10 +105,24 @@ local function multiplierFor(userId: number, data): number
     -- × premium 1.25 × event 2 × pets ~10). 50,000x cap leaves comfortable
     -- end-game headroom while bounding economy damage from any single bug.
     if mult > Constants.INCOME_MULT_CAP then
+        capHits += 1  -- file-scope counter, sweep loop logs every 60s
         mult = Constants.INCOME_MULT_CAP
     end
     return mult
 end
+
+-- Cap-hit monitoring: every 60s log how many ticks hit the ceiling.
+-- If non-zero, surfaces that we have a player legitimately at end-game
+-- OR a mult-stacking bug. Counter resets after each log.
+task.spawn(function()
+    while true do
+        task.wait(60)
+        if capHits > 0 then
+            warn(string.format("[CurrencyManager] INCOME_MULT_CAP hit %d times in last 60s", capHits))
+            capHits = 0
+        end
+    end
+end)
 
 local function tick()
     while true do
