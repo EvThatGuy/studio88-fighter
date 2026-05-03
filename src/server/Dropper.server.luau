@@ -16,37 +16,20 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local DataStore = require(script.Parent:WaitForChild("DataStore"))
 local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
+local CoinModel = require(script.Parent:WaitForChild("Visuals"):WaitForChild("CoinModel"))
 
 local COIN_LIFETIME_SEC = 30  -- safety despawn if it slides off
 local COIN_VALUE_BY_TIER = {1, 2, 5, 12, 30, 80}  -- mirrors UPGRADE_TIERS incomeMult
 
-local CYAN = Color3.fromRGB(0, 240, 255)
-local AMBER = Color3.fromRGB(255, 176, 0)
-local PINK = Color3.fromRGB(255, 46, 136)
-local GOLD = Color3.fromRGB(255, 215, 0)
-
-local function colorForTier(tier: number): Color3
-    if tier >= 5 then return GOLD
-    elseif tier >= 4 then return PINK
-    elseif tier >= 3 then return AMBER
-    else return CYAN end
-end
-
 local function spawnCoin(emitter: BasePart, ownerUserId: number, tier: number)
-    local coin = Instance.new("Part")
-    coin.Name = "Studio88Coin"
-    coin.Shape = Enum.PartType.Ball
-    coin.Size = Vector3.new(1.2, 1.2, 1.2)
+    -- CoinModel.build returns a coin Part already tagged Studio88Coin and
+    -- styled per tier (cylinder disc + glowing rim + sparkle). We attach
+    -- ownership + value attributes here; collector logic stays unchanged.
+    local coin = CoinModel.build(tier)
     coin.Position = emitter.Position
-    coin.Material = Enum.Material.Neon
-    coin.Color = colorForTier(tier)
-    coin.TopSurface = Enum.SurfaceType.Smooth
-    coin.BottomSurface = Enum.SurfaceType.Smooth
-    coin.CanCollide = true
     coin:SetAttribute("OwnerUserId", ownerUserId)
     coin:SetAttribute("Value", COIN_VALUE_BY_TIER[math.clamp(tier, 1, #COIN_VALUE_BY_TIER)])
     coin:SetAttribute("Tier", tier)
-    CollectionService:AddTag(coin, "Studio88Coin")
 
     -- Kick it forward so it rides the conveyor's surface velocity
     local push = Instance.new("BodyVelocity")

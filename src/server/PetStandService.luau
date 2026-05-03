@@ -18,6 +18,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local DataStore = require(script.Parent:WaitForChild("DataStore"))
 local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner"))
+local PetModel = require(script.Parent:WaitForChild("Visuals"):WaitForChild("PetModel"))
 
 local PetStandService = {}
 
@@ -115,16 +116,50 @@ function PetStandService.refreshFor(userId: number)
 
     for i, entry in ipairs(active) do
         local rcolor = Constants.PET_RARITY_COLORS[entry.rarity] or {200, 200, 200}
-        local part = buildBadge(stand, entry.def, rcolor)
-        part.Position = center + Vector3.new(startX + (i - 1) * BADGE_SPACING, 0, 0)
-        -- Spin via SpinningPart attribute that a client can read, OR use
-        -- BodyAngularVelocity. Anchored parts can't have BAV, so we tween
-        -- via a coroutine on the server. Keep cheap: 0.5 rad/s.
+        local color = Color3.fromRGB(rcolor[1], rcolor[2], rcolor[3])
+        local pos = center + Vector3.new(startX + (i - 1) * BADGE_SPACING, 0, 0)
+        -- Procedural per-rarity model: common = single orb; legendary =
+        -- multi-part body + horns + dual aura + light. Eye reads rarity
+        -- from silhouette across the plot.
+        local model = PetModel.build(entry.rarity, color, pos, stand)
+        -- Floating name + rarity label above the model
+        local body = model.PrimaryPart
+        if body then
+            local bb = Instance.new("BillboardGui")
+            bb.Adornee = body
+            bb.Size = UDim2.new(0, 160, 0, 50)
+            bb.StudsOffset = Vector3.new(0, 2.5, 0)
+            bb.AlwaysOnTop = false
+            bb.Parent = body
+            local nameL = Instance.new("TextLabel")
+            nameL.Size = UDim2.new(1, 0, 0, 22)
+            nameL.BackgroundTransparency = 1
+            nameL.Text = entry.def.name
+            nameL.TextColor3 = color
+            nameL.Font = Enum.Font.GothamBold
+            nameL.TextStrokeTransparency = 0.3
+            nameL.TextScaled = true
+            nameL.Parent = bb
+            local rarL = Instance.new("TextLabel")
+            rarL.Size = UDim2.new(1, 0, 0, 18)
+            rarL.Position = UDim2.new(0, 0, 0, 24)
+            rarL.BackgroundTransparency = 1
+            rarL.Text = string.upper(entry.rarity)
+            rarL.TextColor3 = Color3.fromRGB(248, 248, 242)
+            rarL.Font = Enum.Font.Code
+            rarL.TextStrokeTransparency = 0.5
+            rarL.TextScaled = true
+            rarL.TextTransparency = 0.2
+            rarL.Parent = bb
+        end
+        -- Slow rotation around vertical axis so the eye catches the model
         task.spawn(function()
             local angle = 0
-            while part.Parent do
+            while model.Parent do
                 angle += 0.04
-                part.CFrame = CFrame.new(part.Position) * CFrame.Angles(0, angle, 0)
+                if model.PrimaryPart then
+                    model:PivotTo(CFrame.new(pos) * CFrame.Angles(0, angle, 0))
+                end
                 task.wait(0.05)
             end
         end)

@@ -199,29 +199,19 @@ local function buildPlotTemplate()
     })
     plot.PrimaryPart = foundation
 
-    -- Dropper -- emits coins
-    local dropper = part("Dropper", plot, {
-        Size = Vector3.new(6, 8, 6),
-        Position = Vector3.new(-18, 5, 0),
-        Anchored = true,
-        Material = Enum.Material.Neon,
-        Color = CYAN,
-        Locked = true,
-    })
-    CollectionService:AddTag(dropper, "Studio88Dropper")
-    -- Cyan sparkle drift telling the eye "this thing is producing"
-    makeParticle(dropper, {
-        Color = ColorSequence.new(CYAN, PINK),
-        Rate = 6,
-        Speed = NumberRange.new(0.5, 1.5),
-        SpreadAngle = Vector2.new(20, 20),
-        Acceleration = Vector3.new(0, 2, 0),
-    })
+    -- Dropper -- emits coins. Use the procedural model (vending-machine
+    -- chassis with glass front, marquee, output spout) instead of a bare
+    -- cube. The model's Body part inherits the Studio88Dropper tag so the
+    -- existing tag-driven Dropper.server.luau loop still finds it.
+    local DropperModel = require(script.Parent:WaitForChild("Visuals"):WaitForChild("DropperModel"))
+    local dropperModel = DropperModel.build(Vector3.new(-18, 5, 0), plot)
+    local _ = dropperModel
 
-    -- Spawn point for emitted coins (small marker invisible)
+    -- Spawn point for emitted coins (small invisible marker, just below
+    -- the dropper's spout so coins exit there)
     local emitter = part("Emitter", plot, {
         Size = Vector3.new(1, 1, 1),
-        Position = Vector3.new(-18, 9, 0),
+        Position = Vector3.new(-15.5, 1.5, 0),
         Anchored = true,
         Transparency = 1,
         CanCollide = false,
@@ -266,32 +256,12 @@ local function buildPlotTemplate()
     belt.Value = Vector3.new(8, 0, 0)
     belt.Parent = conveyor
 
-    -- Upgrade button (next-tier purchase)
-    local btn = part("UpgradeButton", plot, {
-        Size = Vector3.new(4, 4, 4),
-        Position = Vector3.new(0, 2, -16),
-        Anchored = true,
-        Material = Enum.Material.Neon,
-        Color = AMBER,
-        Locked = true,
-    })
-    CollectionService:AddTag(btn, "Studio88UpgradeButton")
-    -- Slow amber drift saying "come buy me"; UpgradeStation bursts on success
-    local btnFX = makeParticle(btn, {
-        Color = ColorSequence.new(AMBER),
-        Rate = 3,
-        Speed = NumberRange.new(0.5, 1.5),
-        Acceleration = Vector3.new(0, 3, 0),
-    })
-    btnFX.Name = "UpgradeFX"
-
-    local prompt = Instance.new("ProximityPrompt")
-    prompt.Name = "UpgradePrompt"
-    prompt.ActionText = "Upgrade"
-    prompt.ObjectText = "Studio 88 Tier"
-    prompt.HoldDuration = 0.2
-    prompt.MaxActivationDistance = 8
-    prompt.Parent = btn
+    -- Upgrade button (next-tier purchase). Use the arcade-button model:
+    -- pedestal + dome with embedded ProximityPrompt. The Dome part is
+    -- tagged Studio88UpgradeButton so existing tag-driven code resolves it.
+    local UpgradeButtonModel = require(script.Parent:WaitForChild("Visuals"):WaitForChild("UpgradeButtonModel"))
+    local upgradeBtn = UpgradeButtonModel.build(Vector3.new(0, 2, -16), plot)
+    local _ = upgradeBtn
 
     -- Per-plot stats board: tier + income/sec, big and visible across the lot
     local board = part("StatsBoard", plot, {
@@ -373,49 +343,14 @@ local function buildPlotTemplate()
     lbl.Name = "Label"
     lbl.Parent = lbBg
 
-    -- Rebirth pad. Glowing cyan disc on the corner of the foundation, opposite
-    -- the upgrade button so players naturally sweep past it on the climb. Pad
-    -- is always present; ProximityPrompt's enabled state is toggled by
-    -- RebirthPadProxy when the player hits the eligibility window. Hit-test
-    -- always routes through RebirthService.attemptRebirth which validates
-    -- server-side regardless of the prompt's visual state.
-    local rebirthPad = part("RebirthPad", plot, {
-        Size = Vector3.new(8, 0.5, 8),
-        Position = Vector3.new(0, 1, 16),         -- mirror of upgrade button on opposite edge
-        Anchored = true,
-        Material = Enum.Material.Neon,
-        Color = CYAN,
-        Transparency = 0.25,
-        Locked = true,
-    })
-    CollectionService:AddTag(rebirthPad, "Studio88RebirthPad")
-    -- Cylindrical pad shape via Mesh
-    local mesh = Instance.new("CylinderMesh")
-    mesh.Scale = Vector3.new(1, 1, 1)
-    mesh.Parent = rebirthPad
-    -- Subtle upward sparkle so the eye catches it from across the plot
-    local rebirthFX = makeParticle(rebirthPad, {
-        Color = ColorSequence.new(CYAN, PINK),
-        Rate = 8,
-        Speed = NumberRange.new(2, 4),
-        Lifetime = NumberRange.new(0.8, 1.6),
-        Acceleration = Vector3.new(0, 4, 0),
-        SpreadAngle = Vector2.new(15, 15),
-        Size = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.5),
-            NumberSequenceKeypoint.new(1, 1.5),
-        }),
-    })
-    rebirthFX.Name = "RebirthFX"
-
-    local rebirthPrompt = Instance.new("ProximityPrompt")
-    rebirthPrompt.Name = "RebirthPrompt"
-    rebirthPrompt.ActionText = "Rebirth"
-    rebirthPrompt.ObjectText = "Studio 88 Prestige"
-    rebirthPrompt.HoldDuration = 0.5                -- slightly longer hold = "are you sure"
-    rebirthPrompt.MaxActivationDistance = 8
-    rebirthPrompt.Enabled = false                   -- proxy enables when eligible
-    rebirthPrompt.Parent = rebirthPad
+    -- Rebirth pad. Use the prestige portal model: glowing base pad with
+    -- ascending light rings and central beam, visible across the plot as
+    -- the endgame goal. The Pad child carries the Studio88RebirthPad tag
+    -- and its ProximityPrompt is wired identically (Enabled=false until
+    -- RebirthPadProxy enables it on eligibility).
+    local RebirthPortalModel = require(script.Parent:WaitForChild("Visuals"):WaitForChild("RebirthPortalModel"))
+    local rebirthPortal = RebirthPortalModel.build(Vector3.new(0, 1, 16), plot)
+    local _ = rebirthPortal
 
     -- Floating label above the pad: "REBIRTH" / "Reach Tier N first" etc.
     local rebirthLabelRoot = part("RebirthLabelRoot", plot, {
