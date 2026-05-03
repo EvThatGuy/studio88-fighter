@@ -480,6 +480,20 @@ local function buildPlotAnchors()
         -- Rotate path to point from spawn to plot
         pathPart.CFrame = CFrame.new(Vector3.new(pathMidX, 0.15, pathMidZ),
                                      Vector3.new(x, 0.15, z))
+
+        -- Beacon visibility wired to anchor ownership: when a player
+        -- claims this plot, hide the beacon + cap + particle. When they
+        -- leave, restore them. The hidden marker carries OwnerUserId so
+        -- we listen via GetAttributeChangedSignal.
+        local function refreshBeacon()
+            local owned = marker:GetAttribute("OwnerUserId") ~= nil
+            beacon.Transparency = owned and 1 or 0.25
+            cap.Transparency = owned and 1 or 0
+            light.Enabled = not owned
+            pe.Enabled = not owned
+            pathPart.Transparency = owned and 1 or 0.5
+        end
+        marker:GetAttributeChangedSignal("OwnerUserId"):Connect(refreshBeacon)
     end
 end
 

@@ -20,6 +20,16 @@ local SOUND_PATHS = {
     rebirth    = "rbxasset://sounds/action_jump.mp3",                -- prestige fanfare
 }
 
+-- Lobby ambient music rotation. We cycle through these every 90s so the
+-- soundscape doesn't feel like a stuck loop. All paths are rbxasset://
+-- verified loadable in V62 smoke (electronic, action, get_up confirmed
+-- IsLoaded=true).
+local AMBIENT_ROTATION = {
+    "rbxasset://sounds/uuhhh.mp3",                -- "ambient hum" — primary
+    "rbxasset://sounds/electronicpingshort.wav",  -- subtle electronic ticks
+    "rbxasset://sounds/action_get_up.mp3",        -- low motion vibe
+}
+
 local AmbientAudio = {}
 
 local function makeSound(name: string, soundPath: string, volume: number, looped: boolean): Sound
@@ -35,9 +45,23 @@ end
 function AmbientAudio.startAmbient()
     local existing = SoundService:FindFirstChild("LobbyAmbient")
     if existing then existing:Destroy() end
-    local s = makeSound("LobbyAmbient", SOUND_PATHS.ambient, 0.15, true)
+    local s = makeSound("LobbyAmbient", AMBIENT_ROTATION[1], 0.15, true)
     s.Parent = SoundService
     s:Play()
+
+    -- Rotate the SoundId every 90s. The Sound stays the same instance so
+    -- existing references keep working — we just swap SoundId + restart.
+    task.spawn(function()
+        local idx = 1
+        while s.Parent do
+            task.wait(90)
+            if not s.Parent then break end
+            idx = (idx % #AMBIENT_ROTATION) + 1
+            s.SoundId = AMBIENT_ROTATION[idx]
+            s.TimePosition = 0
+            s:Play()
+        end
+    end)
 end
 
 function AmbientAudio.ensureUiPings()

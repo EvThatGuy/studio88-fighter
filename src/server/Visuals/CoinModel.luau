@@ -82,14 +82,20 @@ function CoinModel.build(tier: number): BasePart
     -- baseline of ~8 from world fixtures.
 
     -- Subtle glow trail so the coin reads as moving even on low-end clients
-    -- where conveyor velocity is barely visible.
+    -- where conveyor velocity is barely visible. Rate scales with tier: low
+    -- tier = 2/sec to keep early grind quiet, high tier = 8/sec for premium
+    -- signal.
+    local sparkleRate
+    if tier >= 5 then sparkleRate = 8
+    elseif tier >= 3 then sparkleRate = 5
+    else sparkleRate = 2 end
     local pe = Instance.new("ParticleEmitter")
     pe.Name = "Sparkle"
     pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
     pe.LightEmission = 1
     pe.Color = ColorSequence.new(color)
     pe.Lifetime = NumberRange.new(0.3, 0.6)
-    pe.Rate = 4
+    pe.Rate = sparkleRate
     pe.Speed = NumberRange.new(0)
     pe.Size = NumberSequence.new({
         NumberSequenceKeypoint.new(0, 0.4),
