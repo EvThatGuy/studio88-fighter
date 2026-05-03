@@ -2,6 +2,31 @@
 
 Per-publish gameplay/balance changes. Visual changes documented separately in `docs/visual-architecture.md`.
 
+## V99 — 2026-05-03
+
+### Tournament top-50 modal
+- New `GetWeeklyTournamentTopN(n)` RemoteFunction
+- `WeeklyTournament.topN(n)`: GetSortedAsync top n*2, filter by current week, resolve userId→name, sort desc
+- `WeeklyTournamentWidget.client.luau` openModal: full-screen backdrop + scrolling top-50 list
+- Click the "★ THIS WEEK" widget card to open
+- Rank 1 amber, 2-3 pink, 4+ cyan
+
+## V98 — 2026-05-03
+
+### Tournament HUD widget
+- `WeeklyTournament.snapshot` now includes computed rank (count + 1 of entries with score > mine)
+- `GetWeeklyTournament` RemoteFunction wires server-side
+- `WeeklyTournamentWidget.client.luau` (new): top-left "★ THIS WEEK / $X (rank Y)" 200x56 card, refreshes every 30s
+
+## V97 — 2026-05-03
+
+### WeeklyTournament reward distribution (top-10 cron)
+- `tryClaimLock(weekKey)`: first server claims `dist_<weekKey>` lock in Studio88WeeklyLocks DataStore, others no-op
+- `distributeWeeklyRewards`: GetSortedAsync top-100, filter by closed week, sort by score desc
+- Rewards by rank: 1→10 tokens, 2-3→5, 4-10→2
+- 5-min scan loop checks for last-week distribution
+- Online players get `data.rebirthTokens +=` immediately; offline logged for future pending-tokens DataStore
+
 ## V96 — 2026-05-03
 
 ### WeeklyTournament foundation
