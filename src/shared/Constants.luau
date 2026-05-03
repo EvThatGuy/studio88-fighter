@@ -282,6 +282,45 @@ Constants.DAILY_SHOP_POOL = {
 }
 Constants.DAILY_SHOP_SLOT_COUNT = 3
 
+-- XP track. Cosmetic progression separate from the income/tier loop.
+-- Players outside the gacha grind get a parallel sense of advancement.
+-- XP awarded by XpService.award(userId, "kind", value).
+Constants.XP_REWARDS = {
+    coin_collect       = 1,    -- 1 XP per coin collected (tiny but constant)
+    pet_hatch_common   = 50,
+    pet_hatch_uncommon = 100,
+    pet_hatch_rare     = 250,
+    pet_hatch_epic     = 750,
+    pet_hatch_legendary = 2500,
+    tier_up            = 500,
+    rebirth            = 5000,
+    raid_kill          = 1500,
+    daily_login        = 200,
+    quest_claim        = 300,
+    code_redeem        = 100,
+}
+
+-- XP per level. Index = level. xp[1]=0 (level 1 baseline), xp[2]=100, etc.
+-- Curve: 100, 250, 500, 1000, 2000, 4000, 8000, 16000... (doubling for
+-- prestige feel after L5).
+Constants.XP_LEVEL_THRESHOLDS = {
+    [1]  = 0,
+    [2]  = 100,
+    [3]  = 250,
+    [4]  = 500,
+    [5]  = 1000,
+    [6]  = 2000,
+    [7]  = 4000,
+    [8]  = 8000,
+    [9]  = 16000,
+    [10] = 32000,
+    [11] = 64000,
+    [12] = 128000,
+    [13] = 256000,
+    [14] = 512000,
+    [15] = 1000000,
+}
+
 -- Rebirth shop. Per /research-engineer brief #5: rebirth needs a SINK
 -- to drive long-tail D30 retention -- otherwise rebirth #4 feels
 -- identical to rebirth #1 and the dopamine curve flat-lines. Players

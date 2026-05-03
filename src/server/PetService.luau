@@ -362,6 +362,11 @@ function PetService.attemptHatch(player: Player, eggId: any): (boolean, string?)
         local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
         TutorialService.advance(userId, "07_first_egg_hatched")
     end)
+    -- XP award keyed by rarity
+    pcall(function()
+        local XpService = require(script.Parent:WaitForChild("XpService"))
+        XpService.award(userId, "pet_hatch_" .. def.rarity)
+    end)
     return true, nil
 end
 

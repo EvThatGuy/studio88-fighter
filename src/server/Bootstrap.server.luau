@@ -49,6 +49,7 @@ load("WeeklyTournament")
 -- registered before any player can trigger a receipt.
 load("DevProductService")
 load("DailyShopService")
+load("XpService")
 
 -- Plot infrastructure: must exist before tutorial / collectibles can react.
 load("PlotAssigner")

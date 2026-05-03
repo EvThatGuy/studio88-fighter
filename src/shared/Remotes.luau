@@ -98,6 +98,8 @@ local REMOTE_NAMES = {
     {name = "GetDailyShop", class = "RemoteFunction"}, -- HUD modal: today's 3 items + my purchase state
     {name = "BuyDailyShopItem", class = "RemoteEvent"}, -- player initiates a daily shop buy
     {name = "NotificationToast", class = "RemoteEvent"}, -- generic kind/title/body toast for streak risk + future hooks
+    {name = "XpLeveledUp", class = "RemoteEvent"}, -- player crossed a level threshold; client renders level-up toast
+    {name = "GetXpSnapshot", class = "RemoteFunction"}, -- HUD widget: current XP + level + thresholds
 }
 
 local function ensureFolder(): Folder

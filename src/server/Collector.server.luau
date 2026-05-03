@@ -86,6 +86,11 @@ local function onCollect(collector: BasePart, hit: BasePart)
         local WeeklyTournament = require(script.Parent:WaitForChild("WeeklyTournament"))
         WeeklyTournament.recordEarn(ownerUserId, value)
     end)
+    -- XP: 1 XP per coin collected (tiny but constant, drives level loop)
+    pcall(function()
+        local XpService = require(script.Parent:WaitForChild("XpService"))
+        XpService.award(ownerUserId, "coin_collect")
+    end)
 
     Leaderstats.refresh(ownerUserId)
 

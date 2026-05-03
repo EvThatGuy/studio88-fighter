@@ -26,6 +26,8 @@ export type PlayerData = {
     redeemedDevProducts: {[string]: boolean}?, -- {[PurchaseId]=true} idempotency ledger for ProcessReceipt
     dailyShopBought: {[string]: boolean}?,    -- {[itemId]=true} per-day daily-shop one-shot ledger
     dailyShopDateKey: string?,                -- "YYYY-MM-DD" UTC of the dailyShopBought set; reset on rollover
+    xp: number?,                              -- cosmetic XP track; grows from any positive action; level derived
+    xpLevel: number?,                         -- last computed level (cached so we know when to fire LevelUp toast)
     streak: number,                 -- consecutive days logged in
     starterPackPurchasedUnix: number?, -- for the 30-min Starter Pack window
     rebirths: number,               -- prestige count; permanent across all sessions
