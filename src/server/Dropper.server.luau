@@ -64,8 +64,12 @@ local function loop()
             if player then
                 local data = DataStore.getCached(player.UserId)
                 if data then
-                    -- Find the emitter sibling of this dropper
-                    local plot = dropper.Parent
+                    -- Walk up to the Plot model (named "Plot_<userId>"). In V62
+                    -- the dropper Body is nested in a Dropper Model, so Emitter
+                    -- is a grandparent-sibling, not a direct sibling. Use
+                    -- FindFirstAncestor on the player's plot to be robust to
+                    -- either nesting depth.
+                    local plot = dropper:FindFirstAncestor("Plot_" .. player.UserId)
                     local emitter = plot and plot:FindFirstChild("Emitter") :: BasePart?
                     if emitter then
                         spawnCoin(emitter, player.UserId, data.upgradeTier)

@@ -16,6 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local DataStore = require(script.Parent:WaitForChild("DataStore"))
 local RebirthService = require(script.Parent:WaitForChild("RebirthService"))
+local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner"))
 
 local function findPrompt(pad: Instance): ProximityPrompt?
     for _, child in ipairs(pad:GetChildren()) do
@@ -25,7 +26,21 @@ local function findPrompt(pad: Instance): ProximityPrompt?
 end
 
 local function findLabel(pad: Instance): TextLabel?
-    local plot = pad.Parent
+    -- V62: pad is now nested inside a RebirthPortal Model, so pad.Parent is
+    -- the Model not the Plot. Resolve plot via the authoritative owner
+    -- lookup; falls back to ancestor scan if owner attribute hasn't been
+    -- stamped yet.
+    local ownerUserId = pad:GetAttribute("OwnerUserId") :: number?
+    local plot: Instance? = nil
+    if ownerUserId then
+        plot = PlotAssigner.getPlotFor(ownerUserId)
+    end
+    if not plot then
+        plot = pad:FindFirstAncestorOfClass("Model")
+        while plot and not plot.Name:match("^Plot_%d+$") do
+            plot = plot.Parent and plot.Parent:FindFirstAncestorOfClass("Model")
+        end
+    end
     if not plot then return nil end
     local labelRoot = plot:FindFirstChild("RebirthLabelRoot")
     if not labelRoot then return nil end

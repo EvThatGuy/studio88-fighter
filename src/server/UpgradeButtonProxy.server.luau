@@ -11,6 +11,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local DataStore = require(script.Parent:WaitForChild("DataStore"))
 local UpgradeStation = require(script.Parent:WaitForChild("UpgradeStation"))
+local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner"))
 
 local function findPrompt(button: Instance): ProximityPrompt?
     for _, child in ipairs(button:GetChildren()) do
@@ -20,7 +21,20 @@ local function findPrompt(button: Instance): ProximityPrompt?
 end
 
 local function refreshLabel(button: Instance, ownerUserId: number?)
-    local plot = button.Parent
+    -- V62: button is now a Dome part nested inside an UpgradeButton Model,
+    -- so button.Parent is the Model, not the Plot. Resolve plot via the
+    -- authoritative owner lookup; falls back to ancestor scan if owner
+    -- attribute hasn't been stamped yet.
+    local plot: Instance? = nil
+    if ownerUserId then
+        plot = PlotAssigner.getPlotFor(ownerUserId)
+    end
+    if not plot then
+        plot = button:FindFirstAncestorOfClass("Model")
+        while plot and not plot.Name:match("^Plot_%d+$") do
+            plot = plot.Parent and plot.Parent:FindFirstAncestorOfClass("Model")
+        end
+    end
     if not plot then return end
     local labelRoot = plot:FindFirstChild("UpgradeLabelRoot")
     if not labelRoot then return end
