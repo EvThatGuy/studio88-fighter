@@ -147,6 +147,20 @@ local function openModal()
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = card
 
+    -- Reward tooltip — players need to know what they're racing for.
+    -- Sits below the title, before the scrolling list.
+    local rewardHint = Instance.new("TextLabel")
+    rewardHint.Size = UDim2.new(1, -32, 0, 26)
+    rewardHint.Position = UDim2.new(0, 16, 0, 50)
+    rewardHint.BackgroundTransparency = 1
+    rewardHint.Text = "REWARDS:  1st = 10 tokens   2-3 = 5   4-10 = 2"
+    rewardHint.TextColor3 = Color3.fromRGB(180, 180, 180)
+    rewardHint.TextStrokeTransparency = 0.5
+    rewardHint.Font = Enum.Font.Code
+    rewardHint.TextScaled = true
+    rewardHint.TextXAlignment = Enum.TextXAlignment.Left
+    rewardHint.Parent = card
+
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 36, 0, 36)
     closeBtn.Position = UDim2.new(1, -50, 0, 16)
@@ -161,10 +175,10 @@ local function openModal()
     Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0.5, 0)
     closeBtn.MouseButton1Click:Connect(function() modalSg:Destroy() end)
 
-    -- Scrolling list
+    -- Scrolling list (pushed down to make room for reward hint)
     local scroll = Instance.new("ScrollingFrame")
-    scroll.Size = UDim2.new(1, -32, 1, -88)
-    scroll.Position = UDim2.new(0, 16, 0, 72)
+    scroll.Size = UDim2.new(1, -32, 1, -114)
+    scroll.Position = UDim2.new(0, 16, 0, 98)
     scroll.BackgroundTransparency = 1
     scroll.BorderSizePixel = 0
     scroll.ScrollBarThickness = 6
