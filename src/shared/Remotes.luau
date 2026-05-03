@@ -92,6 +92,7 @@ local REMOTE_NAMES = {
     {name = "IdleReturnBonusGranted", class = "RemoteEvent"}, -- one-shot toast on rejoin with offline-earnings bonus
     {name = "GetWeeklyTournament", class = "RemoteFunction"}, -- HUD widget: "MY WEEK $X (rank Y)" current week status
     {name = "GetWeeklyTournamentTopN", class = "RemoteFunction"}, -- modal: top N {userId, name, weeklyEarned} for current week
+    {name = "GetDevProducts", class = "RemoteFunction"}, -- HUD shop: returns dev product catalog with productIds
 }
 
 local function ensureFolder(): Folder

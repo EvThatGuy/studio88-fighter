@@ -110,31 +110,47 @@ Constants.GAME_PASSES = {
 
 -- Display metadata for the in-game Passes shop modal. Keys MUST match the
 -- keys in GAME_PASSES above. Suggested R$ prices are the *target* — set
--- the real price when creating the Pass in Creator Hub. Suggested mapping
--- per @starmexxx Apr 26 playbook.
+-- the real price when creating the Pass in Creator Hub.
+-- Tuned 2026-05-03 per Roblox marketplace data: median tycoon STARTER 99R,
+-- VIP 199R, PREMIUM 499R. Prior 75/250/600 was over-priced on STARTER/VIP
+-- (kills D1→D7 conversion) and under on PREMIUM (leaves Robux on table).
 Constants.GAME_PASS_DISPLAY = {
     STARTER_PACK = {
         title = "STARTER PACK",
         accent = "amber",
-        priceRobux = 75,
+        priceRobux = 99,
         copy = "2x income for 30 minutes",
         sub = "best for new players catching up to friends",
     },
     VIP = {
         title = "VIP",
         accent = "pink",
-        priceRobux = 250,
+        priceRobux = 199,
         copy = "1.5x income forever",
         sub = "stacks with all other multipliers",
     },
     PREMIUM = {
         title = "PREMIUM",
         accent = "cyan",
-        priceRobux = 600,
+        priceRobux = 499,
         copy = "3x income forever + AFK auto-collect",
         sub = "earn while logged out -- the no-brainer for daily players",
     },
 }
+
+-- Dev products (consumable Robux items, repeatable revenue). Per
+-- monetization audit: gamepasses are one-shot, dev products are the
+-- recurring revenue lever. Players who already own all gamepasses still
+-- buy coin packs.
+-- Set the real DevProductId in Creator Hub then patch productId here.
+-- DevProductService.processReceipt reads from this table by productId.
+Constants.DEV_PRODUCTS = {
+    COIN_PACK_SMALL  = {productId = 0, priceRobux = 99,  coinAmount = 10000,  title = "10K COINS",  sub = "small coin pack"},
+    COIN_PACK_MEDIUM = {productId = 0, priceRobux = 299, coinAmount = 50000,  title = "50K COINS",  sub = "medium coin pack"},
+    COIN_PACK_LARGE  = {productId = 0, priceRobux = 999, coinAmount = 250000, title = "250K COINS", sub = "large coin pack"},
+    REBIRTH_TOKEN_PACK = {productId = 0, priceRobux = 199, tokenAmount = 1, title = "1 REBIRTH TOKEN", sub = "skip the rebirth grind"},
+}
+Constants.DEV_PRODUCT_ORDER = {"COIN_PACK_SMALL", "COIN_PACK_MEDIUM", "COIN_PACK_LARGE", "REBIRTH_TOKEN_PACK"}
 
 -- Display order in the Passes modal. Cheapest first so the eye scans cost
 -- before commitment.

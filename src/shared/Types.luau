@@ -23,6 +23,7 @@ export type PlayerData = {
     lastLogoutUnix: number?,        -- os.time() at last PlayerRemoving (for idle-return bonus)
     weeklyEarnedCoins: number?,     -- coins earned this UTC-week (Sun 00:00 reset); WeeklyTournament metric
     weeklyResetUnix: number?,       -- start of current tracked week, unix; reset on Sunday rollover
+    redeemedDevProducts: {[string]: boolean}?, -- {[PurchaseId]=true} idempotency ledger for ProcessReceipt
     streak: number,                 -- consecutive days logged in
     starterPackPurchasedUnix: number?, -- for the 30-min Starter Pack window
     rebirths: number,               -- prestige count; permanent across all sessions

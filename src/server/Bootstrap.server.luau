@@ -44,6 +44,10 @@ load("AmbientAudio")
 -- server tournament leaderboard. Required by Collector + DailyLoginBonus
 -- + HourlyTribute via WeeklyTournament.recordEarn(userId, value).
 load("WeeklyTournament")
+-- DevProductService wires MarketplaceService.ProcessReceipt for
+-- consumable Robux purchases. Loads after WeeklyTournament so it's
+-- registered before any player can trigger a receipt.
+load("DevProductService")
 
 -- Plot infrastructure: must exist before tutorial / collectibles can react.
 load("PlotAssigner")
