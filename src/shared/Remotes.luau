@@ -88,6 +88,7 @@ local REMOTE_NAMES = {
     {name = "CoinCollectedFx", class = "RemoteEvent"}, -- floating "+N" text at collector position on every collect
     {name = "GetDailyStreakSchedule", class = "RemoteFunction"}, -- HUD modal preview of upcoming days + jackpot tags
     {name = "SessionBonusGranted", class = "RemoteEvent"}, -- 15/30/60min play bonus auto-granted in session
+    {name = "RebirthReadyNudge", class = "RemoteEvent"}, -- one-shot toast when rebirth eligibility flips false->true
 }
 
 local function ensureFolder(): Folder

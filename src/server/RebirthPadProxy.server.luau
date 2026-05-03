@@ -14,9 +14,16 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore"))
 local RebirthService = require(script.Parent:WaitForChild("RebirthService"))
 local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner"))
+
+local remotes = Remotes.get()
+-- Per-userId previous eligibility, used to fire RebirthReadyNudge on
+-- the false->true transition (one-shot toast at the conversion moment).
+local lastEligible: {[number]: boolean} = {}
+Players.PlayerRemoving:Connect(function(p) lastEligible[p.UserId] = nil end)
 
 local function findPrompt(pad: Instance): ProximityPrompt?
     for _, child in ipairs(pad:GetChildren()) do
@@ -68,6 +75,25 @@ local function refreshPad(pad: BasePart)
     local rb = (data and data.rebirths) or 0
     local atMaxRebirths = rb >= Constants.REBIRTH_MAX
     local eligible, reason, needed = RebirthService.checkEligibility(ownerUserId)
+    -- One-shot nudge on false->true transition: fires a client toast at
+    -- the D1->D7 conversion moment (esp for first rebirth which now fires
+    -- at 10-15min per V82). Don't nudge if at max rebirths (player
+    -- already engaged enough).
+    if eligible and not atMaxRebirths and lastEligible[ownerUserId] ~= true then
+        lastEligible[ownerUserId] = true
+        local p = Players:GetPlayerByUserId(ownerUserId)
+        if p then
+            pcall(function()
+                remotes.RebirthReadyNudge:FireClient(p, {
+                    rebirths = rb,
+                    isFirst = rb == 0,
+                    nextMult = 1 + (rb + 1) * Constants.REBIRTH_BONUS_PER,
+                })
+            end)
+        end
+    elseif (not eligible) and lastEligible[ownerUserId] then
+        lastEligible[ownerUserId] = false  -- reset so re-eligibility re-nudges
+    end
     if prompt then
         prompt.Enabled = eligible == true
         if eligible then
