@@ -152,6 +152,21 @@ Constants.DEV_PRODUCTS = {
 }
 Constants.DEV_PRODUCT_ORDER = {"COIN_PACK_SMALL", "COIN_PACK_MEDIUM", "COIN_PACK_LARGE", "REBIRTH_TOKEN_PACK"}
 
+-- Vault Raid event. Periodic in-server boss spawn at lobby center;
+-- players touch it to "tag", boss times out after RAID_TIMEOUT_SEC OR
+-- when ≥ RAID_KILL_TAGS distinct players have tagged it. Coin pool is
+-- split among taggers proportional to tag count. Drives social play
+-- (tag the boss together) without PvP between players.
+Constants.VAULT_RAID = {
+    INTERVAL_SEC = 1800,           -- 30 minutes between spawns
+    TIMEOUT_SEC = 60,              -- boss despawns after 60s if not killed
+    KILL_TAGS = 3,                 -- N distinct players tag = early kill
+    COIN_POOL = 50000,             -- total coins split among taggers
+    SPAWN_POSITION = Vector3.new(0, 8, 0),  -- above lobby pedestal
+    BOSS_HEIGHT = 10,
+    TAG_COOLDOWN_SEC = 1,          -- per-player anti-spam
+}
+
 -- Display order in the Passes modal. Cheapest first so the eye scans cost
 -- before commitment.
 Constants.GAME_PASS_ORDER = { "STARTER_PACK", "VIP", "PREMIUM" }

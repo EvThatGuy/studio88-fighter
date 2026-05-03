@@ -93,6 +93,8 @@ local REMOTE_NAMES = {
     {name = "GetWeeklyTournament", class = "RemoteFunction"}, -- HUD widget: "MY WEEK $X (rank Y)" current week status
     {name = "GetWeeklyTournamentTopN", class = "RemoteFunction"}, -- modal: top N {userId, name, weeklyEarned} for current week
     {name = "GetDevProducts", class = "RemoteFunction"}, -- HUD shop: returns dev product catalog with productIds
+    {name = "VaultRaidSpawned", class = "RemoteEvent"}, -- broadcast when raid boss spawns
+    {name = "VaultRaidEnded", class = "RemoteEvent"}, -- broadcast with reward distribution results
 }
 
 local function ensureFolder(): Folder
