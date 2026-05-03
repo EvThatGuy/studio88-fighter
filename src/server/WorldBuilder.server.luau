@@ -172,6 +172,32 @@ local function buildPlotTemplate()
     })
     plot.PrimaryPart = foundation
 
+    -- Subtle perimeter glow accent: 4 thin cyan strips just above the
+    -- foundation top edge. Different from the tier-2 BorderStrip walls —
+    -- these are 0.05 stud thick, sit flush with the surface, and are
+    -- present at every tier (tier 1 included) so the plot has a defined
+    -- edge silhouette from day one.
+    local stripT = 0.05
+    local stripH = 0.08
+    for _, side in ipairs({
+        {pos = Vector3.new(0, 1.04,  24.97), size = Vector3.new(50, stripH, stripT)},
+        {pos = Vector3.new(0, 1.04, -24.97), size = Vector3.new(50, stripH, stripT)},
+        {pos = Vector3.new( 24.97, 1.04, 0), size = Vector3.new(stripT, stripH, 50)},
+        {pos = Vector3.new(-24.97, 1.04, 0), size = Vector3.new(stripT, stripH, 50)},
+    }) do
+        part("FoundationEdgeGlow", plot, {
+            Size = side.size,
+            Position = side.pos,
+            Anchored = true,
+            Material = Enum.Material.Neon,
+            Color = CYAN,
+            Transparency = 0.45,
+            CanCollide = false,
+            CanQuery = false,
+            Locked = true,
+        })
+    end
+
     -- Dropper -- emits coins. Use the procedural model (vending-machine
     -- chassis with glass front, marquee, output spout) instead of a bare
     -- cube. The model's Body part inherits the Studio88Dropper tag so the

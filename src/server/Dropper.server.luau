@@ -42,9 +42,14 @@ local function spawnCoin(emitter: BasePart, ownerUserId: number, tier: number)
 
     -- Velocity assist for ~1s, then let physics take over
     task.delay(1, function() if push.Parent then push:Destroy() end end)
-    -- Safety despawn
+    -- Safety despawn with a brief poof so unclaimed coins fade visibly
+    -- instead of vanishing silently. Keeps animation cost minimal: 1
+    -- particle Emit() then GC.
     task.delay(COIN_LIFETIME_SEC, function()
-        if coin.Parent then coin:Destroy() end
+        if not coin.Parent then return end
+        local sparkle = coin:FindFirstChildWhichIsA("ParticleEmitter")
+        if sparkle then pcall(function() sparkle:Emit(8) end) end
+        task.delay(0.4, function() if coin.Parent then coin:Destroy() end end)
     end)
 end
 
