@@ -77,12 +77,31 @@ function RebirthService.attemptRebirth(player: Player): (boolean, string?)
         pushReject(player, "no_data")
         return false, "no_data"
     end
+    -- Detect first rebirth BEFORE we increment so we can fire the
+    -- one-time celebration jackpot
+    local isFirstRebirth = (data.rebirths or 0) == 0
     -- Apply the prestige reset
     data.coins = 0
     data.upgradeTier = 1
     data.rebirths = (data.rebirths or 0) + 1
     -- Rebirth shop currency: 1 token per rebirth (Constants-tunable)
     data.rebirthTokens = (data.rebirthTokens or 0) + Constants.REBIRTH_TOKEN_PER_REBIRTH
+    -- First-rebirth jackpot: 5000 starter coins + 1 free luxury_egg pet
+    -- hatch. THE D1→D7 conversion moment per checklist — make it
+    -- memorable so players want to pursue more rebirths.
+    if isFirstRebirth then
+        data.coins += Constants.FIRST_REBIRTH_BONUS_COINS or 5000
+        data.lifetimeCoins += Constants.FIRST_REBIRTH_BONUS_COINS or 5000
+        pcall(function()
+            local PetService = require(script.Parent:WaitForChild("PetService"))
+            local owned, def = PetService.grantPetFromEgg(player, "luxury_egg")
+            if owned and def then
+                pcall(function()
+                    remotes.PetHatched:FireClient(player, owned, def.name)
+                end)
+            end
+        end)
+    end
     -- Repaint the plot back to tier-1 art so the visual matches
     local plot = PlotAssigner.getPlotFor(userId)
     if plot then

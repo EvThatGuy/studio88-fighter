@@ -48,6 +48,7 @@ load("WeeklyTournament")
 -- consumable Robux purchases. Loads after WeeklyTournament so it's
 -- registered before any player can trigger a receipt.
 load("DevProductService")
+load("DailyShopService")
 
 -- Plot infrastructure: must exist before tutorial / collectibles can react.
 load("PlotAssigner")

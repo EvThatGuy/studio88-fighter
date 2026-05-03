@@ -258,6 +258,29 @@ Constants.REBIRTH_FIRST_MIN_LIFETIME_COINS = 1500  -- first rebirth: ~10-15min o
 Constants.REBIRTH_MIN_LIFETIME_COINS = 100000  -- subsequent: tier-6 capstone earnings tier
 Constants.REBIRTH_BONUS_PER = 0.10             -- +10% perma per rebirth
 Constants.REBIRTH_MAX = 50                     -- soft cap so the formula doesn't blow up
+-- First-rebirth jackpot per checklist: D1→D7 conversion moment.
+-- Make it memorable so players pursue more rebirths.
+Constants.FIRST_REBIRTH_BONUS_COINS = 5000     -- + 1 free luxury_egg hatch (granted via PetService)
+
+-- Daily Shop. Coin sink for accumulated wealth — wealthy players get
+-- a meaningful spend that scales with progress. Items rotate per UTC
+-- day (deterministic via dateKey hash). 3 items per day.
+--
+-- Each item: {id, kind, label, price, payload}
+--   kind="coins":      payload = N coins reward
+--   kind="boost_sec":  payload = pet boost seconds (free)
+--   kind="rebirth_token": payload = token count
+--   kind="random_pet": payload = eggId to grant from
+Constants.DAILY_SHOP_POOL = {
+    {id = "boost_30m_5k",     kind = "boost_sec",     label = "30m Pet Boost",  price = 5000,  payload = 1800},
+    {id = "boost_15m_3k",     kind = "boost_sec",     label = "15m Pet Boost",  price = 3000,  payload = 900},
+    {id = "starter_egg_2k",   kind = "random_pet",    label = "Starter Egg",     price = 2000,  payload = "starter_egg"},
+    {id = "standard_egg_8k",  kind = "random_pet",    label = "Standard Egg",   price = 8000,  payload = "standard_egg"},
+    {id = "luxury_egg_40k",   kind = "random_pet",    label = "Luxury Egg",     price = 40000, payload = "luxury_egg"},
+    {id = "token_75k",        kind = "rebirth_token", label = "1 Rebirth Token",price = 75000, payload = 1},
+    {id = "boost_60m_18k",    kind = "boost_sec",     label = "1hr Pet Boost",  price = 18000, payload = 3600},
+}
+Constants.DAILY_SHOP_SLOT_COUNT = 3
 
 -- Rebirth shop. Per /research-engineer brief #5: rebirth needs a SINK
 -- to drive long-tail D30 retention -- otherwise rebirth #4 feels

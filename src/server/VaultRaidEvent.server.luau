@@ -219,6 +219,19 @@ local function startRaid()
     end
     print(string.format("[VaultRaid] SPAWNED (pool %d, timeout %ds)",
         Constants.VAULT_RAID.COIN_POOL, Constants.VAULT_RAID.TIMEOUT_SEC))
+    -- System chat broadcast so players away from the lobby know to come.
+    -- TextChatService is the modern API; falls back to legacy chat if disabled.
+    pcall(function()
+        local TextChatService = game:GetService("TextChatService")
+        local generalChannel = TextChatService.TextChannels:FindFirstChild("RBXSystem")
+            or TextChatService.TextChannels:FindFirstChild("RBXGeneral")
+        if generalChannel and generalChannel:IsA("TextChannel") then
+            generalChannel:DisplaySystemMessage(string.format(
+                "★ A Vault Raider has appeared at the lobby! Tag for $%d pool (%ds)",
+                Constants.VAULT_RAID.COIN_POOL, Constants.VAULT_RAID.TIMEOUT_SEC
+            ))
+        end
+    end)
     task.delay(Constants.VAULT_RAID.TIMEOUT_SEC, function()
         if activeBoss then endRaid("timeout") end
     end)

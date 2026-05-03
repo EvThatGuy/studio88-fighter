@@ -95,6 +95,8 @@ local REMOTE_NAMES = {
     {name = "GetDevProducts", class = "RemoteFunction"}, -- HUD shop: returns dev product catalog with productIds
     {name = "VaultRaidSpawned", class = "RemoteEvent"}, -- broadcast when raid boss spawns
     {name = "VaultRaidEnded", class = "RemoteEvent"}, -- broadcast with reward distribution results
+    {name = "GetDailyShop", class = "RemoteFunction"}, -- HUD modal: today's 3 items + my purchase state
+    {name = "BuyDailyShopItem", class = "RemoteEvent"}, -- player initiates a daily shop buy
 }
 
 local function ensureFolder(): Folder
