@@ -14,8 +14,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
-local RebirthService = require(script.Parent:WaitForChild("RebirthService.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
+local RebirthService = require(script.Parent:WaitForChild("RebirthService"))
 
 local function findPrompt(pad: Instance): ProximityPrompt?
     for _, child in ipairs(pad:GetChildren()) do

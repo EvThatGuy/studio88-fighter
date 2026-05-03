@@ -14,21 +14,31 @@ local RunService = game:GetService("RunService")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
 
 local remotes = Remotes.get()
 
 local LB_KEY = "LifetimeCoins_" .. Constants.DATASTORE_VERSION
-local odsStore = DataStoreService:GetOrderedDataStore(LB_KEY)
+-- Studio publish-gate guard. Same pattern as DataStore.luau.
+local odsStore: OrderedDataStore? = nil
+do
+    local ok, result = pcall(function()
+        return DataStoreService:GetOrderedDataStore(LB_KEY)
+    end)
+    if ok then
+        odsStore = result
+    else
+        warn("[Leaderboard] disabled in this place -- " .. tostring(result))
+    end
+end
 
 local function publishCurrentPlayers()
-    -- Push every active player's lifetime coins to the OrderedDataStore so
-    -- they show up on the global leaderboard.
+    if not odsStore then return end -- Studio without API access
     for _, player in ipairs(Players:GetPlayers()) do
         local data = DataStore.getCached(player.UserId)
         if data then
             local ok, err = pcall(function()
-                odsStore:SetAsync(tostring(player.UserId), data.lifetimeCoins)
+                (odsStore :: OrderedDataStore):SetAsync(tostring(player.UserId), data.lifetimeCoins)
             end)
             if not ok then
                 warn("[Leaderboard] SetAsync failed for " .. player.Name .. ": " .. tostring(err))
@@ -39,8 +49,9 @@ end
 
 local function fetchTopN(): {{userId: number, name: string, lifetimeCoins: number}}
     local out = {}
+    if not odsStore then return out end -- Studio without API access
     local ok, page = pcall(function()
-        return odsStore:GetSortedAsync(false, Constants.LEADERBOARD_TOP_N)
+        return (odsStore :: OrderedDataStore):GetSortedAsync(false, Constants.LEADERBOARD_TOP_N)
     end)
     if not ok or not page then
         warn("[Leaderboard] GetSortedAsync failed: " .. tostring(page))

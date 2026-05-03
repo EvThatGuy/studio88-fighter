@@ -20,9 +20,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
-local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
-local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
+local Leaderstats = require(script.Parent:WaitForChild("Leaderstats"))
+local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService"))
 
 local remotes = Remotes.get()
 
@@ -99,7 +99,7 @@ function CodesService.attemptRedeem(player: Player, rawCode: any): (boolean, str
         -- so we just translate its rejection reasons back to the codes
         -- modal for unified UX.
         local ok, ReferralService = pcall(function()
-            return require(script.Parent:WaitForChild("ReferralService.server"))
+            return require(script.Parent:WaitForChild("ReferralService"))
         end)
         if ok and ReferralService and ReferralService.isFriendCode(code) then
             local fok, freason = ReferralService.attemptRedeem(player, code)
@@ -163,7 +163,7 @@ function CodesService.attemptRedeem(player: Player, rawCode: any): (boolean, str
     DailyQuestService.bumpProgress(player.UserId,
         Constants.QUEST_KIND.REDEEM_CODE_TODAY, 1)
     pcall(function()
-        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(player.UserId)
     end)
     print(string.format("[CodesService] %s redeemed '%s' for %d coins",

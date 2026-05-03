@@ -25,9 +25,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
-local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
-local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
+local Leaderstats = require(script.Parent:WaitForChild("Leaderstats"))
+local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService"))
 
 local remotes = Remotes.get()
 

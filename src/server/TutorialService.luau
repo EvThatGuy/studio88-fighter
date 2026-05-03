@@ -21,7 +21,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
 
 local remotes = Remotes.get()
 

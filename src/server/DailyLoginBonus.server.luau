@@ -12,8 +12,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
-local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
+local Leaderstats = require(script.Parent:WaitForChild("Leaderstats"))
 
 local remotes = Remotes.get()
 
@@ -72,7 +72,7 @@ local function grantBonusIfDue(player: Player)
 
     data.lastLoginUnix = now
     pcall(function()
-        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(player.UserId)
     end)
     -- Streak egg grant: at threshold streak days, the player ALSO gets a
@@ -81,7 +81,7 @@ local function grantBonusIfDue(player: Player)
     local eggId = Constants.STREAK_EGG_GRANTS[data.streak]
     if eggId then
         pcall(function()
-            local PetService = require(script.Parent:WaitForChild("PetService.server"))
+            local PetService = require(script.Parent:WaitForChild("PetService"))
             local owned, def, reason = PetService.grantPetFromEgg(player, eggId)
             if owned and def then
                 pcall(function()

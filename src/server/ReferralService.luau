@@ -15,11 +15,24 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local Types = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Types"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
 
 local remotes = Remotes.get()
 
-local registry = DataStoreService:GetDataStore(Constants.FRIEND_CODE_REGISTRY_NAME)
+-- Same Studio-publish gate as DataStore.luau. Degrade to nil registry; the
+-- pcall'd registry callsites below will silently no-op locally, and the
+-- module still returns its public API so consumers can require successfully.
+local registry: DataStore? = nil
+do
+    local ok, result = pcall(function()
+        return DataStoreService:GetDataStore(Constants.FRIEND_CODE_REGISTRY_NAME)
+    end)
+    if ok then
+        registry = result
+    else
+        warn("[ReferralService] registry disabled in this place -- " .. tostring(result))
+    end
+end
 
 local ReferralService = {}
 

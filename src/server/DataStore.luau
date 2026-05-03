@@ -17,7 +17,21 @@ local RunService = game:GetService("RunService")
 local Constants = require(game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Constants"))
 local Types = require(game:GetService("ReplicatedStorage"):WaitForChild("Modules"):WaitForChild("Types"))
 
-local store = DataStoreService:GetDataStore(Constants.DATASTORE_NAME)
+-- GetDataStore throws in unpublished Studio places ("must publish to access
+-- DataStore"). Crashing the module load there cascades through every consumer
+-- via Bootstrap, so degrade to nil + run cache-only. Production places (where
+-- the universe is published) keep the real store.
+local store: DataStore? = nil
+do
+    local ok, result = pcall(function()
+        return DataStoreService:GetDataStore(Constants.DATASTORE_NAME)
+    end)
+    if ok then
+        store = result
+    else
+        warn("[DataStore] running cache-only -- " .. tostring(result))
+    end
+end
 
 local DataStore = {}
 
@@ -208,11 +222,12 @@ local function migrate(raw: any): Types.PlayerData
 end
 
 local function tryGet(userId: number): Types.PlayerData
+    if not store then return migrate(nil) end
     local raw
     local lastErr
     for attempt = 1, SAVE_RETRY_BUDGET do
         local ok, result = pcall(function()
-            return store:GetAsync(tostring(userId))
+            return (store :: DataStore):GetAsync(tostring(userId))
         end)
         if ok then
             raw = result
@@ -228,9 +243,10 @@ local function tryGet(userId: number): Types.PlayerData
 end
 
 local function trySave(userId: number, data: Types.PlayerData): boolean
+    if not store then return true end
     for attempt = 1, SAVE_RETRY_BUDGET do
         local ok, err = pcall(function()
-            store:SetAsync(tostring(userId), data)
+            (store :: DataStore):SetAsync(tostring(userId), data)
         end)
         if ok then return true end
         warn(string.format("[DataStore] SetAsync attempt %d failed for %d: %s",

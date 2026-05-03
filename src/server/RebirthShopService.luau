@@ -16,7 +16,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
 
 local remotes = Remotes.get()
 
@@ -90,7 +90,7 @@ function RebirthShopService.attemptPurchase(player: Player, itemId: any): (boole
         remotes.RebirthShopPurchased:FireClient(player, itemId, data.rebirthTokens)
     end)
     pcall(function()
-        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(player.UserId)
     end)
     print(string.format("[RebirthShopService] %s bought '%s' for %d tokens (remaining %d)",

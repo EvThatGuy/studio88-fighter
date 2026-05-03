@@ -15,8 +15,8 @@ local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
-local TutorialService = require(script.Parent:WaitForChild("TutorialService.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
+local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
 
 local PlotAssigner = {}
 
@@ -183,23 +183,36 @@ local function assign(player: Player)
         player.Name, tostring(anchor:GetAttribute("PlotIndex"))))
 
     -- Teleport the player onto their plot so they land in front of the
-    -- machines instead of stuck on the spawn platform with nothing to do.
-    -- Wait for the character to exist (they might join before the avatar
-    -- spawns) then PivotTo above the foundation.
+    -- machines instead of stuck on the spawn platform. Both PivotTo +
+    -- HumanoidRootPart.CFrame are written so whichever Roblox honours
+    -- after its own spawn-positioning races ours wins. Re-applies on
+    -- every CharacterAdded so respawns also land here.
     task.spawn(function()
         local foundation = clone:FindFirstChild("Foundation") :: BasePart?
         if not foundation then return end
-        local landing = foundation.Position + Vector3.new(0, 6, 0)
+        local landing = CFrame.new(foundation.Position + Vector3.new(0, 8, 0))
+
         local function teleport(char: Model)
-            local hrp = char:FindFirstChild("HumanoidRootPart") :: BasePart?
-            if hrp then char:PivotTo(CFrame.new(landing)) end
+            -- Wait until HRP exists and humanoid is alive, otherwise CFrame
+            -- writes get clobbered by the spawn pipeline.
+            local hrp: BasePart? = char:FindFirstChild("HumanoidRootPart") :: any
+            local hum: Humanoid? = char:FindFirstChildOfClass("Humanoid")
+            local deadline = os.clock() + 5
+            while (not hrp or not hum) and os.clock() < deadline do
+                task.wait(0.1)
+                hrp = char:FindFirstChild("HumanoidRootPart") :: any
+                hum = char:FindFirstChildOfClass("Humanoid")
+            end
+            if not hrp then return end
+            local hrpPart: BasePart = hrp
+            -- Settle so Roblox finishes its own spawn placement first.
+            task.wait(1.0)
+            char:PivotTo(landing)
+            hrpPart.CFrame = landing
         end
+
         if player.Character then teleport(player.Character) end
-        player.CharacterAdded:Connect(function(char)
-            -- Tiny wait so the avatar finishes loading before we move it.
-            task.wait(0.5)
-            teleport(char)
-        end)
+        player.CharacterAdded:Connect(teleport)
     end)
 end
 

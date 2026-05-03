@@ -14,8 +14,8 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
-local TutorialService = require(script.Parent:WaitForChild("TutorialService.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
+local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
 
 local COIN_LIFETIME_SEC = 30  -- safety despawn if it slides off
 local COIN_VALUE_BY_TIER = {1, 2, 5, 12, 30, 80}  -- mirrors UPGRADE_TIERS incomeMult

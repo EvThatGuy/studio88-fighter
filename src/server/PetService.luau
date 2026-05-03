@@ -24,7 +24,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local Types = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Types"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
 
 local remotes = Remotes.get()
 
@@ -321,7 +321,7 @@ function PetService.attemptHatch(player: Player, eggId: any): (boolean, string?)
     -- broadcast cross-server. Common hatches would spam.
     if def.rarity == "legendary" then
         pcall(function()
-            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService"))
             ActivityFeedService.post(player, "hatch_legendary", "hatched " .. def.name)
         end)
     end
@@ -329,7 +329,7 @@ function PetService.attemptHatch(player: Player, eggId: any): (boolean, string?)
     -- coins (if achievements credit coins back). Lazy require to dodge a
     -- circular require chain at script-init time.
     pcall(function()
-        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(userId)
     end)
     return true, nil
@@ -367,7 +367,7 @@ function PetService.attemptEquip(player: Player, uid: any): (boolean, string?)
     table.insert(data.equippedPetIds, uid)
     pushEquipChanged(player, data.equippedPetIds)
     pcall(function()
-        local PetStandService = require(script.Parent:WaitForChild("PetStandService.server"))
+        local PetStandService = require(script.Parent:WaitForChild("PetStandService"))
         PetStandService.refreshFor(userId)
     end)
     return true, nil
@@ -383,7 +383,7 @@ function PetService.attemptUnequip(player: Player, uid: any): (boolean, string?)
             table.remove(data.equippedPetIds, i)
             pushEquipChanged(player, data.equippedPetIds)
             pcall(function()
-                local PetStandService = require(script.Parent:WaitForChild("PetStandService.server"))
+                local PetStandService = require(script.Parent:WaitForChild("PetStandService"))
                 PetStandService.refreshFor(userId)
             end)
             return true, nil
@@ -475,18 +475,18 @@ function PetService.attemptFuse(player: Player, rarity: any): (boolean, string?)
     -- fuses are routine.
     if def.rarity == "legendary" then
         pcall(function()
-            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService"))
             ActivityFeedService.post(player, "hatch_legendary", "fused into " .. def.name)
         end)
     end
     -- Achievement scan -- this changes #data.pets and could change collection
     -- completion, so re-evaluate.
     pcall(function()
-        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(userId)
     end)
     pcall(function()
-        local PetStandService = require(script.Parent:WaitForChild("PetStandService.server"))
+        local PetStandService = require(script.Parent:WaitForChild("PetStandService"))
         PetStandService.refreshFor(userId)
     end)
     return true, nil
@@ -555,12 +555,12 @@ function PetService.grantPetFromEgg(player: Player, eggId: string): (Types.Owned
     }
     table.insert(data.pets, owned)
     pcall(function()
-        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(userId)
     end)
     if def.rarity == "legendary" then
         pcall(function()
-            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService"))
             ActivityFeedService.post(player, "hatch_legendary", "got " .. def.name .. " from a free grant")
         end)
     end
@@ -605,7 +605,7 @@ function PetService.attemptAutoEquip(player: Player): (boolean, string?)
     data.equippedPetIds = newEquipped
     pushEquipChanged(player, data.equippedPetIds)
     pcall(function()
-        local PetStandService = require(script.Parent:WaitForChild("PetStandService.server"))
+        local PetStandService = require(script.Parent:WaitForChild("PetStandService"))
         PetStandService.refreshFor(userId)
     end)
     print(string.format("[PetService] %s auto-equipped %d pets", player.Name, #newEquipped))

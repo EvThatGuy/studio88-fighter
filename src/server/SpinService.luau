@@ -9,7 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local Types = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Types"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
 
 local remotes = Remotes.get()
 
@@ -92,7 +92,7 @@ local function grantReward(player: Player, data: Types.PlayerData, segment: any)
         local mins = math.floor(value / 60)
         return value, string.format("+%dm pet boost", mins)
     elseif kind == "free_egg" then
-        local PetService = require(script.Parent:WaitForChild("PetService.server"))
+        local PetService = require(script.Parent:WaitForChild("PetService"))
         local owned, def, reason = PetService.grantPetFromEgg(player, value)
         if owned and def then
             pcall(function()
@@ -145,7 +145,7 @@ function SpinService.attemptClaim(player: Player): (boolean, string?)
     end)
     -- Achievement scan -- many spin rewards bump lifetime coins
     pcall(function()
-        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(userId)
     end)
     print(string.format("[SpinService] %s spun and got '%s' (%s)",

@@ -23,7 +23,19 @@ local remotes = Remotes.get()
 
 local ActivityFeedService = {}
 
-local feed = MemoryStoreService:GetSortedMap(Constants.ACTIVITY_FEED.SORTED_MAP_KEY)
+-- MemoryStoreService throws in unpublished Studio places. Degrade to nil + the
+-- service runs as a no-op locally so Bootstrap can still complete its load.
+local feed: MemoryStoreSortedMap? = nil
+do
+    local ok, result = pcall(function()
+        return MemoryStoreService:GetSortedMap(Constants.ACTIVITY_FEED.SORTED_MAP_KEY)
+    end)
+    if ok then
+        feed = result
+    else
+        warn("[ActivityFeed] disabled in this place -- " .. tostring(result))
+    end
+end
 
 -- ---- Cache ---------------------------------------------------------------
 -- Latest read from MemoryStore. Pushed to clients when it changes.

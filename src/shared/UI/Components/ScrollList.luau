@@ -20,6 +20,28 @@ local function ScrollList(props: ScrollListProps)
     local maxHeight = props.maxHeight or 480
     local horizontal = props.horizontal == true
 
+    -- Build children inline: spread the caller's children dict instead of
+    -- nesting it under a "Content" key. React-Lua treats the "Content" key
+    -- as a text node when its value is a children dict (vs a React element)
+    -- and emits "UNIMPLEMENTED ERROR: createTextInstance" -- caused a single
+    -- noisy stack on every PetsModal mount before this fix.
+    local children: { [any]: any } = {
+        Layout = e("UIListLayout", {
+            FillDirection = if horizontal then Enum.FillDirection.Horizontal else Enum.FillDirection.Vertical,
+            Padding = UDim.new(0, pad),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+        }),
+        Padding = e("UIPadding", {
+            PaddingTop = UDim.new(0, Tokens.space[1]),
+            PaddingBottom = UDim.new(0, Tokens.space[1]),
+            PaddingLeft = UDim.new(0, Tokens.space[1]),
+            PaddingRight = UDim.new(0, Tokens.space[2]),
+        }),
+    }
+    if typeof(props.children) == "table" then
+        for k, v in props.children do children[k] = v end
+    end
+
     return e("ScrollingFrame", {
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
@@ -32,20 +54,7 @@ local function ScrollList(props: ScrollListProps)
         ScrollingDirection = if horizontal then Enum.ScrollingDirection.X else Enum.ScrollingDirection.Y,
         ClipsDescendants = true,
         LayoutOrder = props.layoutOrder,
-    }, {
-        Layout = e("UIListLayout", {
-            FillDirection = if horizontal then Enum.FillDirection.Horizontal else Enum.FillDirection.Vertical,
-            Padding = UDim.new(0, pad),
-            SortOrder = Enum.SortOrder.LayoutOrder,
-        }),
-        Padding = e("UIPadding", {
-            PaddingTop = UDim.new(0, Tokens.space[1]),
-            PaddingBottom = UDim.new(0, Tokens.space[1]),
-            PaddingLeft = UDim.new(0, Tokens.space[1]),
-            PaddingRight = UDim.new(0, Tokens.space[2]),
-        }),
-        Content = props.children,
-    })
+    }, children)
 end
 
 return ScrollList

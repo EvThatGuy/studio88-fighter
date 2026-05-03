@@ -14,7 +14,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local Types = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Types"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
 
 local remotes = Remotes.get()
 
@@ -149,7 +149,7 @@ function AuraService.attemptEquip(player: Player, auraId: any): (boolean, string
     -- broadcast. Common/rare/epic equips are private.
     if aura.rarity == "legendary" then
         pcall(function()
-            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService"))
             ActivityFeedService.post(player, "aura_unlock", "equipped " .. aura.name .. " aura")
         end)
     end

@@ -18,10 +18,10 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
-local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
-local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
-local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
+local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner"))
+local Leaderstats = require(script.Parent:WaitForChild("Leaderstats"))
+local DailyQuestService = require(script.Parent:WaitForChild("DailyQuestService"))
 
 local remotes = Remotes.get()
 
@@ -89,7 +89,7 @@ function RebirthService.attemptRebirth(player: Player): (boolean, string?)
     DailyQuestService.bumpProgress(player.UserId,
         Constants.QUEST_KIND.REBIRTH_TODAY, 1)
     pcall(function()
-        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(player.UserId)
     end)
     -- Activity feed: only milestones (1, 5, 10, 25, 50, 100). A noisy
@@ -102,7 +102,7 @@ function RebirthService.attemptRebirth(player: Player): (boolean, string?)
         end
         if hit then
             pcall(function()
-                local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+                local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService"))
                 ActivityFeedService.post(player, "rebirth_milestone",
                     "hit rebirth #" .. tostring(data.rebirths))
             end)

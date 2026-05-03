@@ -9,8 +9,8 @@ local CollectionService = game:GetService("CollectionService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
-local UpgradeStation = require(script.Parent:WaitForChild("UpgradeStation.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
+local UpgradeStation = require(script.Parent:WaitForChild("UpgradeStation"))
 
 local function findPrompt(button: Instance): ProximityPrompt?
     for _, child in ipairs(button:GetChildren()) do

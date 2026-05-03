@@ -25,7 +25,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local Types = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Types"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
 
 local remotes = Remotes.get()
 
@@ -146,7 +146,7 @@ local function unlock(player: Player, data: Types.PlayerData, achievement: Achie
     end)
     if FEED_WORTHY_ACHIEVEMENTS[achievement.id] then
         pcall(function()
-            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService.server"))
+            local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService"))
             ActivityFeedService.post(player, "achievement_legendary",
                 "earned the " .. achievement.name .. " trophy")
         end)

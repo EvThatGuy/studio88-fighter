@@ -16,8 +16,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
-local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
+local PlotAssigner = require(script.Parent:WaitForChild("PlotAssigner"))
 
 local PetStandService = {}
 

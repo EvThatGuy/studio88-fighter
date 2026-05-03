@@ -19,8 +19,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local Types = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Types"))
-local DataStore = require(script.Parent:WaitForChild("DataStore.server"))
-local Leaderstats = require(script.Parent:WaitForChild("Leaderstats.server"))
+local DataStore = require(script.Parent:WaitForChild("DataStore"))
+local Leaderstats = require(script.Parent:WaitForChild("Leaderstats"))
 
 local remotes = Remotes.get()
 
@@ -199,7 +199,7 @@ function DailyQuestService.attemptClaim(player: Player, questId: any): (boolean,
         })
     end)
     pcall(function()
-        local AchievementService = require(script.Parent:WaitForChild("AchievementService.server"))
+        local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(player.UserId)
     end)
     print(string.format("[DailyQuestService] %s claimed '%s' for %d coins",
