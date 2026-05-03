@@ -93,6 +93,34 @@ function CoinModel.build(tier: number): BasePart
     })
     pe.Parent = coin
 
+    -- Light streak Trail — gives coins a comet tail along the conveyor.
+    -- Higher tiers get longer/brighter trails so the eye reads "this is a
+    -- premium coin" before it lands. Trail attaches to two attachments
+    -- spanning the cylinder length so it traces the disc edge as it tumbles.
+    local a0 = Instance.new("Attachment")
+    a0.Position = Vector3.new(0,  1.0, 0)
+    a0.Parent = coin
+    local a1 = Instance.new("Attachment")
+    a1.Position = Vector3.new(0, -1.0, 0)
+    a1.Parent = coin
+    local trail = Instance.new("Trail")
+    trail.Attachment0 = a0
+    trail.Attachment1 = a1
+    trail.Color = ColorSequence.new(color)
+    trail.Transparency = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 0.35),
+        NumberSequenceKeypoint.new(1, 1),
+    })
+    trail.Lifetime = (tier >= 5) and 0.45 or 0.25
+    trail.LightEmission = 1
+    trail.LightInfluence = 0
+    trail.MinLength = 0
+    trail.WidthScale = NumberSequence.new({
+        NumberSequenceKeypoint.new(0, 1),
+        NumberSequenceKeypoint.new(1, 0.2),
+    })
+    trail.Parent = coin
+
     CollectionService:AddTag(coin, "Studio88Coin")
 
     -- Tumble while in flight: spin around the cylinder's long axis at

@@ -84,6 +84,7 @@ local REMOTE_NAMES = {
     {name = "VisitRejected", class = "RemoteEvent"},
     {name = "VisitedByPlayer", class = "RemoteEvent"},
     {name = "GetPlayerStats", class = "RemoteFunction"},
+    {name = "WelcomeBanner", class = "RemoteEvent"},  -- 3s join banner with player + tier + lifetime coins
 }
 
 local function ensureFolder(): Folder

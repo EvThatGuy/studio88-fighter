@@ -15,8 +15,11 @@ local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
 
 local Constants = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Constants"))
+local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local DataStore = require(script.Parent:WaitForChild("DataStore"))
 local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
+
+local remotes = Remotes.get()
 
 local PlotAssigner = {}
 
@@ -109,6 +112,21 @@ function PlotAssigner.applyTierArt(plot: Model, tier: number)
     -- spire, capstone particle ring). Additive — tier 6 includes 2-5.
     local TierPlotDecor = require(script.Parent:WaitForChild("Visuals"):WaitForChild("TierPlotDecor"))
     TierPlotDecor.build(plot, tier)
+
+    -- Update tier badge on the welcome arch (if present)
+    local arch = plot:FindFirstChild("WelcomeArch")
+    if arch then
+        local beam = arch:FindFirstChild("ArchBeam") :: BasePart?
+        if beam then
+            local sg = beam:FindFirstChildWhichIsA("SurfaceGui")
+            if sg then
+                local tierLbl = sg:FindFirstChild("TierLabel") :: TextLabel?
+                if tierLbl then
+                    tierLbl.Text = "TIER " .. tier
+                end
+            end
+        end
+    end
 end
 
 local function fmtCoins(n: number): string
@@ -231,15 +249,31 @@ local function buildWelcomeArch(plot: Model, player: Player)
         Transparency = 0.2,
     })
 
-    -- Sign with player name on the front face of the beam (looking south)
+    -- Sign with player name + tier on the front face of the beam.
+    -- Layout: TIER X (small, top) over PLAYERNAME (large, bottom).
+    -- The tier label is named "TierLabel" so applyTierArt can find +
+    -- update it on tier-up without rebuilding the whole arch.
     local sg = Instance.new("SurfaceGui")
     sg.Adornee = beam
     sg.Face = Enum.NormalId.Front
-    sg.CanvasSize = Vector2.new(560, 60)
+    sg.CanvasSize = Vector2.new(560, 80)
     sg.LightInfluence = 0
     sg.Parent = beam
+    local tierLbl = Instance.new("TextLabel")
+    tierLbl.Name = "TierLabel"
+    tierLbl.Size = UDim2.new(1, 0, 0.35, 0)
+    tierLbl.Position = UDim2.new(0, 0, 0, 0)
+    tierLbl.BackgroundTransparency = 1
+    tierLbl.Text = "TIER 1"
+    tierLbl.TextColor3 = Color3.fromRGB(255, 176, 0)  -- amber to read as "rank"
+    tierLbl.TextStrokeTransparency = 0.3
+    tierLbl.TextStrokeColor3 = DARK
+    tierLbl.Font = Enum.Font.Code
+    tierLbl.TextScaled = true
+    tierLbl.Parent = sg
     local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, 0, 1, 0)
+    lbl.Size = UDim2.new(1, 0, 0.65, 0)
+    lbl.Position = UDim2.new(0, 0, 0.35, 0)
     lbl.BackgroundTransparency = 1
     lbl.Text = string.upper(player.Name)
     lbl.TextColor3 = CYAN
@@ -280,6 +314,20 @@ local function assign(player: Player)
     local lifetime = (data and data.lifetimeCoins) or 0
     PlotAssigner.applyTierArt(clone, tier)
     PlotAssigner.updateStatsBoard(clone, tier, lifetime)
+
+    -- Welcome banner: brief 3s flash showing the player's tier + lifetime
+    -- coins so returning players see "your progress is intact" right after
+    -- spawn. Sent via dedicated remote; client-side renderer fades in/out.
+    pcall(function()
+        local rebirths = (data and data.rebirths) or 0
+        remotes.WelcomeBanner:FireClient(player, {
+            playerName = player.Name,
+            tier = tier,
+            lifetimeCoins = lifetime,
+            rebirths = rebirths,
+            isReturning = (data and data.streakDay or 0) > 1 or rebirths > 0 or lifetime > 0,
+        })
+    end)
 
     -- FTUE step 1: plot assigned. Players who already past this step are
     -- no-op'd inside TutorialService.advance (highest-step-wins).
