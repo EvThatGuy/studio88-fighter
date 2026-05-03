@@ -77,6 +77,10 @@ function UpgradeStation.attemptPurchase(player: Player): (boolean, string?)
         -- Capstone fireworks: tier 6 = the visual peak. Spawn 5 short-lived
         -- particle bursts arrayed around the foundation, GC after 3.5s.
         if nextTier >= #Constants.UPGRADE_TIERS then
+            pcall(function()
+                local DiscordHook = require(script.Parent:WaitForChild("DiscordHook"))
+                DiscordHook.publishCapstoneReach(player.Name, data.rebirths or 0)
+            end)
             local foundation = plot:FindFirstChild("Foundation") :: BasePart?
             if foundation then
                 pcall(function()

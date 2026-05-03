@@ -338,6 +338,10 @@ function PetService.attemptHatch(player: Player, eggId: any): (boolean, string?)
             local ActivityFeedService = require(script.Parent:WaitForChild("ActivityFeedService"))
             ActivityFeedService.post(player, "hatch_legendary", "hatched " .. def.name)
         end)
+        pcall(function()
+            local DiscordHook = require(script.Parent:WaitForChild("DiscordHook"))
+            DiscordHook.publishLegendaryHatch(player.Name, def.name, eggId)
+        end)
     end
     -- Achievement hook: pets_owned + pets_collection_complete + lifetime
     -- coins (if achievements credit coins back). Lazy require to dodge a

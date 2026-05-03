@@ -159,6 +159,14 @@ local function endRaid(reason: string)
     print(string.format("[VaultRaid] ended: %s (%d unique taggers, %ds duration)",
         reason, distinct, os.time() - raidStartedAt))
     distributeRewards()
+    if reason ~= "timeout" then
+        local totalTags = 0
+        for _, n in pairs(tagCounts) do totalTags += n end
+        pcall(function()
+            local DiscordHook = require(script.Parent:WaitForChild("DiscordHook"))
+            DiscordHook.publishRaidKill(distinct, totalTags, Constants.VAULT_RAID.COIN_POOL)
+        end)
+    end
     if activeBoss.Parent then activeBoss:Destroy() end
     activeBoss = nil
     tagCounts = {}
