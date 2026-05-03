@@ -336,7 +336,7 @@ Constants.CODES = {
     },
     GTA6HYPE = {
         reward = 7500,
-        expiresUnix = 1763510400,                  -- 2025-11-18 (day before GTA6)
+        expiresUnix = 1795046400,                  -- 2026-11-18 (day before GTA6 launch Nov 19 2026)
         maxGlobalRedemptions = nil,
     },
     THANKYOU = {
@@ -457,12 +457,18 @@ Constants.EVENT_SCAN_INTERVAL_SEC = 30
 -- FTUE step ids. Server tracks these via AnalyticsService:LogOnboardingFunnelStepEvent
 -- (Roblox creator-docs analytics/retention.md names FTUE as one of the
 -- three D1 levers). Order matters; client only highlights the next step.
+-- FTUE funnel extended 2026-05-03 per retention checklist: first_rebirth
+-- (conversion moment) + first_egg_hatched (gacha entry) added so the D1
+-- funnel measures the full hook. Roblox dashboard will report per-step
+-- drop-off so we can see which step bleeds the cohort.
 Constants.FTUE_STEPS = {
     "01_arrived_at_plot",
     "02_first_coin_spawned",
     "03_first_coin_collected",
     "04_first_upgrade",
     "05_eligible_for_rebirth",
+    "06_first_rebirth",         -- THE D1→D7 conversion moment
+    "07_first_egg_hatched",     -- gacha entry point
 }
 
 -- AFK auto-collect sweep interval (Premium pass perk). Coin lifetime is

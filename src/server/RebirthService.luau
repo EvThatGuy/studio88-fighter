@@ -106,6 +106,12 @@ function RebirthService.attemptRebirth(player: Player): (boolean, string?)
     end)
     DailyQuestService.bumpProgress(player.UserId,
         Constants.QUEST_KIND.REBIRTH_TODAY, 1)
+    -- FTUE funnel step 6: first_rebirth — the D1→D7 conversion moment.
+    -- TutorialService.advance is highest-step-wins so a 2nd rebirth no-ops.
+    pcall(function()
+        local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
+        TutorialService.advance(player.UserId, "06_first_rebirth")
+    end)
     pcall(function()
         local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(player.UserId)

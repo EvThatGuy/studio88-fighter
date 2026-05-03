@@ -339,6 +339,13 @@ function PetService.attemptHatch(player: Player, eggId: any): (boolean, string?)
         local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(userId)
     end)
+    -- FTUE funnel step 7: first_egg_hatched — gacha entry point.
+    -- TutorialService.advance is highest-step-wins so subsequent hatches
+    -- no-op (cheap noop call cost is fine).
+    pcall(function()
+        local TutorialService = require(script.Parent:WaitForChild("TutorialService"))
+        TutorialService.advance(userId, "07_first_egg_hatched")
+    end)
     return true, nil
 end
 
