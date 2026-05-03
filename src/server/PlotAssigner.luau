@@ -135,6 +135,10 @@ local function fmtCoins(n: number): string
     return string.format("%.2fM", n / 1000000)
 end
 
+-- Per-board state for income count-up animation. Keyed by board part so
+-- multiple plots can animate independently without state collision.
+local incomeAnimState: {[BasePart]: number} = {}
+
 function PlotAssigner.updateStatsBoard(plot: Model, tier: number, lifetime: number)
     local board = plot:FindFirstChild("StatsBoard") :: BasePart?
     if not board then return end
@@ -148,7 +152,33 @@ function PlotAssigner.updateStatsBoard(plot: Model, tier: number, lifetime: numb
     local tierSpec = Constants.UPGRADE_TIERS[tier] or Constants.UPGRADE_TIERS[1]
     local perSec = (Constants.BASE_INCOME_PER_TICK * tierSpec.incomeMult) / Constants.TICK_SECONDS
     if tierLbl then tierLbl.Text = "TIER " .. tier end
-    if incomeLbl then incomeLbl.Text = string.format("+%s / sec", fmtCoins(math.floor(perSec))) end
+    -- Animate income count-up from previous to new perSec value over 1s.
+    -- First call snaps to value (no anim).
+    if incomeLbl then
+        local prev = incomeAnimState[board]
+        if prev == nil or prev == perSec then
+            incomeLbl.Text = string.format("+%s / sec", fmtCoins(math.floor(perSec)))
+            incomeAnimState[board] = perSec
+        else
+            local from = prev
+            local to = perSec
+            incomeAnimState[board] = perSec
+            task.spawn(function()
+                local startT = os.clock()
+                while os.clock() - startT < 1.0 do
+                    if not incomeLbl.Parent or incomeAnimState[board] ~= to then return end
+                    local t = (os.clock() - startT) / 1.0
+                    local eased = 1 - (1 - t) * (1 - t)  -- ease-out quad
+                    local v = from + (to - from) * eased
+                    incomeLbl.Text = string.format("+%s / sec", fmtCoins(math.floor(v)))
+                    task.wait(0.05)
+                end
+                if incomeLbl.Parent then
+                    incomeLbl.Text = string.format("+%s / sec", fmtCoins(math.floor(to)))
+                end
+            end)
+        end
+    end
     if lifetimeLbl then lifetimeLbl.Text = "lifetime: " .. fmtCoins(lifetime) end
 
     -- Tier rank pips: ●●○○○○ visual badge so the eye reads tier without

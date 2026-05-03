@@ -223,6 +223,52 @@ function LobbyDecor.build()
     pl.Color = PINK
     pl.Parent = sign
 
+    -- Crystal centerpiece: stacked octahedron-shaped clusters above the
+    -- pedestal. Three diamonds stacked vertically, slow-rotating around Y,
+    -- alternating cyan/pink. Pure server CFrame loop — no extra particles
+    -- or lights, just visual focal point.
+    local crystalRoot = part("CrystalRoot", container, {
+        Size = Vector3.new(0.1, 0.1, 0.1),
+        Position = Vector3.new(0, 7, 0),
+        Transparency = 1,
+        CanCollide = false,
+    })
+    local crystals = {}
+    local crystalSpecs = {
+        {y = 0,    size = 1.6, color = CYAN,    angle = 0},
+        {y = 1.4,  size = 2.2, color = PINK,    angle = math.pi/4},
+        {y = 3.4,  size = 1.4, color = CYAN,    angle = math.pi/8},
+    }
+    for i, spec in ipairs(crystalSpecs) do
+        local crystal = part("Crystal" .. i, container, {
+            Size = Vector3.new(spec.size, spec.size * 1.4, spec.size),
+            Position = Vector3.new(0, 7 + spec.y, 0),
+            Material = Enum.Material.Neon,
+            Color = spec.color,
+            Transparency = 0.1,
+            CanCollide = false,
+        })
+        -- Diamond shape via DoubleSidedSlope-ish rotation: easier path is
+        -- a Block rotated 45deg on two axes for a diamond silhouette
+        crystal.CFrame = CFrame.new(crystal.Position) *
+            CFrame.Angles(0, spec.angle, 0) *
+            CFrame.Angles(math.rad(45), 0, math.rad(45))
+        table.insert(crystals, {part = crystal, basePos = crystal.Position, baseAngle = spec.angle, speed = 0.02 + i * 0.005})
+    end
+    -- Slow rotation
+    task.spawn(function()
+        while crystalRoot.Parent do
+            for _, c in ipairs(crystals) do
+                c.baseAngle = c.baseAngle + c.speed
+                c.part.CFrame = CFrame.new(c.basePos) *
+                    CFrame.Angles(0, c.baseAngle, 0) *
+                    CFrame.Angles(math.rad(45), 0, math.rad(45))
+            end
+            task.wait(0.05)
+        end
+    end)
+    local _ = crystalRoot
+
     -- Stairs: 4 cardinal-direction stair sets descending from pedestal top
     -- (y=2.6, the top tier surface) to the baseplate (y=0). 4 steps each,
     -- 0.65-stud rise per step, with cyan neon edge lighting.
