@@ -149,6 +149,89 @@ local function paintPlotName(plot: Model, player: Player)
     lbl.Parent = bg
 end
 
+-- Build the player-name welcome arch over the south walk-in gap. The
+-- foundation is 50x50 centered at plot origin, walls have a 12-stud
+-- middle gap, and the arch sits ~7 studs above the foundation with the
+-- player's name on a SurfaceGui — reads like a real shop entrance.
+local function buildWelcomeArch(plot: Model, player: Player)
+    local foundation = plot:FindFirstChild("Foundation") :: BasePart?
+    if not foundation then return end
+    local fpos = foundation.Position
+    local fsize = foundation.Size
+    local existing = plot:FindFirstChild("WelcomeArch")
+    if existing then existing:Destroy() end
+    local arch = Instance.new("Folder")
+    arch.Name = "WelcomeArch"
+    arch.Parent = plot
+
+    local function part(name: string, props: {[string]: any}): BasePart
+        local p = Instance.new("Part")
+        p.Name = name
+        for k, v in pairs(props) do (p :: any)[k] = v end
+        p.Anchored = true
+        p.Locked = true
+        p.CanCollide = false
+        p.CanQuery = false
+        p.TopSurface = Enum.SurfaceType.Smooth
+        p.BottomSurface = Enum.SurfaceType.Smooth
+        p.Parent = arch
+        return p
+    end
+
+    -- South-facing arch over the walk-in gap (-Z edge of foundation)
+    local edgeZ = -fsize.Z / 2
+    local archHeight = 8
+    local archWidth = 14   -- straddles the 12-stud gap with 1 stud overhang each side
+    local pillarH = archHeight - 1.2
+    local CYAN = Color3.fromRGB(0, 240, 255)
+    local STEEL = Color3.fromRGB(60, 65, 78)
+    local DARK = Color3.fromRGB(8, 7, 13)
+
+    -- Two side pillars
+    for _, signX in ipairs({-1, 1}) do
+        part("ArchPillar", {
+            Size = Vector3.new(0.8, pillarH, 0.8),
+            Position = fpos + Vector3.new(signX * archWidth/2, fsize.Y/2 + pillarH/2, edgeZ),
+            Material = Enum.Material.Metal,
+            Color = STEEL,
+        })
+    end
+    -- Cross beam on top
+    local beam = part("ArchBeam", {
+        Size = Vector3.new(archWidth + 1, 1.2, 1),
+        Position = fpos + Vector3.new(0, fsize.Y/2 + pillarH + 0.6, edgeZ),
+        Material = Enum.Material.Metal,
+        Color = STEEL,
+    })
+    local _ = beam
+    -- Cyan neon underglow on the beam
+    part("ArchUnderglow", {
+        Size = Vector3.new(archWidth, 0.2, 0.4),
+        Position = fpos + Vector3.new(0, fsize.Y/2 + pillarH + 0.05, edgeZ - 0.1),
+        Material = Enum.Material.Neon,
+        Color = CYAN,
+        Transparency = 0.2,
+    })
+
+    -- Sign with player name on the front face of the beam (looking south)
+    local sg = Instance.new("SurfaceGui")
+    sg.Adornee = beam
+    sg.Face = Enum.NormalId.Front
+    sg.CanvasSize = Vector2.new(560, 60)
+    sg.LightInfluence = 0
+    sg.Parent = beam
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, 0, 1, 0)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = string.upper(player.Name)
+    lbl.TextColor3 = CYAN
+    lbl.TextStrokeTransparency = 0.2
+    lbl.TextStrokeColor3 = DARK
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextScaled = true
+    lbl.Parent = sg
+end
+
 local function assign(player: Player)
     local template = plotTemplate or getTemplate()
     local anchor = findFreeAnchor()
@@ -168,6 +251,7 @@ local function assign(player: Player)
     clone.Parent = Workspace
     stampOwner(clone, player.UserId)
     paintPlotName(clone, player)
+    buildWelcomeArch(clone, player)
     plotsByUserId[player.UserId] = clone
 
     -- Apply tier art at assignment so returning players land on the right

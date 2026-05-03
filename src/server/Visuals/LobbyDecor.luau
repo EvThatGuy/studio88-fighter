@@ -223,6 +223,52 @@ function LobbyDecor.build()
     pl.Color = PINK
     pl.Parent = sign
 
+    -- Stairs: 4 cardinal-direction stair sets descending from pedestal top
+    -- (y=2.6, the top tier surface) to the baseplate (y=0). 4 steps each,
+    -- 0.65-stud rise per step, with cyan neon edge lighting.
+    local stepHeight = 0.65
+    local stepDepth = 1.6
+    local stepWidth = 6
+    local stepCount = 4
+    local pedestalRadius = 11  -- top tier radius is 11 (diameter 22)
+    for _, dir in ipairs({
+        {x = 1, z = 0, rot = 0},     -- east
+        {x = -1, z = 0, rot = 0},    -- west
+        {x = 0, z = 1, rot = math.pi/2},     -- north
+        {x = 0, z = -1, rot = math.pi/2},    -- south
+    }) do
+        for i = 1, stepCount do
+            -- Each step descends as we move outward from the pedestal
+            local outwardOffset = pedestalRadius + (i - 0.5) * stepDepth
+            local stepY = 2.6 - (i - 0.5) * stepHeight
+            local pos = Vector3.new(dir.x * outwardOffset, stepY, dir.z * outwardOffset)
+            local sizeX = (dir.x ~= 0) and stepDepth or stepWidth
+            local sizeZ = (dir.z ~= 0) and stepDepth or stepWidth
+            part("Step", container, {
+                Size = Vector3.new(sizeX, stepHeight, sizeZ),
+                Position = pos,
+                Material = Enum.Material.Metal,
+                Color = STEEL,
+            })
+            -- Cyan neon edge strip on the leading edge of each step
+            local edgeSizeX = (dir.x ~= 0) and 0.2 or stepWidth
+            local edgeSizeZ = (dir.z ~= 0) and 0.2 or stepWidth
+            local edgePos = Vector3.new(
+                pos.X + dir.x * (sizeX/2 - 0.1),
+                pos.Y + stepHeight/2 + 0.05,
+                pos.Z + dir.z * (sizeZ/2 - 0.1)
+            )
+            part("StepEdge", container, {
+                Size = Vector3.new(edgeSizeX, 0.1, edgeSizeZ),
+                Position = edgePos,
+                Material = Enum.Material.Neon,
+                Color = CYAN,
+                Transparency = 0.3,
+                CanCollide = false,
+            })
+        end
+    end
+
     -- 6 directional pillars at the lobby perimeter, each subtly indicating
     -- which way a plot anchor sits. Placed on the same 110-stud radius the
     -- plot anchors use, but at half-height with a small cap so they don't

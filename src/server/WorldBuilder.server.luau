@@ -614,6 +614,30 @@ local function tuneLighting()
     bloom.Size = 18
     bloom.Threshold = 1.0
     bloom.Parent = Lighting
+
+    -- Custom skybox: brand-tinted color rather than the default Roblox
+    -- blue. Use the built-in cubemap face textures with cyan-pink tinting
+    -- via SunAngularSize + SkyboxColors via... hm Sky doesn't accept
+    -- Color3 — it uses 6 face image assets. Ship with built-in
+    -- rbxasset:// purple-night cubemap which works in any place.
+    local existingSky = Lighting:FindFirstChildOfClass("Sky")
+    if existingSky then existingSky:Destroy() end
+    local sky = Instance.new("Sky")
+    sky.Name = "Studio88Sky"
+    -- Roblox built-in night skybox textures (ship in every client)
+    sky.SkyboxBk = "rbxasset://textures/sky/sky512_bk.tex"
+    sky.SkyboxDn = "rbxasset://textures/sky/sky512_dn.tex"
+    sky.SkyboxFt = "rbxasset://textures/sky/sky512_ft.tex"
+    sky.SkyboxLf = "rbxasset://textures/sky/sky512_lf.tex"
+    sky.SkyboxRt = "rbxasset://textures/sky/sky512_rt.tex"
+    sky.SkyboxUp = "rbxasset://textures/sky/sky512_up.tex"
+    sky.CelestialBodiesShown = true
+    sky.SunAngularSize = 21
+    sky.MoonAngularSize = 11
+    sky.SunTextureId = "rbxasset://sky/sun.jpg"
+    sky.MoonTextureId = "rbxasset://sky/moon.jpg"
+    sky.StarCount = 3000
+    sky.Parent = Lighting
 end
 
 -- --- Marker ---------------------------------------------------------------
