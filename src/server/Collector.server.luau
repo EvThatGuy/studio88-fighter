@@ -80,6 +80,12 @@ local function onCollect(collector: BasePart, hit: BasePart)
     -- Feed the rolling-window income chart on the stats board. Drawn
     -- every 2s by PlotAssigner's chart loop, so per-collect push is cheap.
     PlotAssigner.recordIncomeSample(ownerUserId, value)
+    -- Feed the weekly tournament counter (per-player weekly_earned with
+    -- UTC Sunday rollover). Lazy-required to avoid a load-order cycle.
+    pcall(function()
+        local WeeklyTournament = require(script.Parent:WaitForChild("WeeklyTournament"))
+        WeeklyTournament.recordEarn(ownerUserId, value)
+    end)
 
     Leaderstats.refresh(ownerUserId)
 

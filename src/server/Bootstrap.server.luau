@@ -40,6 +40,10 @@ load("Leaderstats")
 -- here ensures the module is available even if require ordering races
 -- with the bootstrap loop.
 load("AmbientAudio")
+-- WeeklyTournament tracks per-player weekly earned coins for the cross-
+-- server tournament leaderboard. Required by Collector + DailyLoginBonus
+-- + HourlyTribute via WeeklyTournament.recordEarn(userId, value).
+load("WeeklyTournament")
 
 -- Plot infrastructure: must exist before tutorial / collectibles can react.
 load("PlotAssigner")
