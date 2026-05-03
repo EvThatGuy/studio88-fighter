@@ -232,6 +232,10 @@ function PetService.snapshot(userId: number)
         })
     end
     local complete = true
+    -- Compute unique-pets-owned + total-pets so HUD can render
+    -- "OWNED 7/10 — collection bonus +50% on 3 more"
+    local uniquePetCount = 0
+    for _ in pairs(seen) do uniquePetCount += 1 end
     for _, def in ipairs(Constants.PETS) do
         if not seen[def.id] then complete = false; break end
     end
@@ -249,6 +253,9 @@ function PetService.snapshot(userId: number)
         coinsAvailable = data.coins,
         pity = data.hatchesSinceLastLegendary or 0,
         pityThreshold = Constants.PET_PITY_THRESHOLD,
+        uniquePetCount = uniquePetCount,
+        totalPetCount = #Constants.PETS,
+        collectionBonusPct = math.floor(Constants.PET_COLLECTION_COMPLETE_BONUS * 100),
     }
 end
 
