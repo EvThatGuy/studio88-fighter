@@ -52,6 +52,19 @@ local function onCollect(collector: BasePart, hit: BasePart)
     -- at later tiers don't become a machine-gun assault.
     pcall(function() AmbientAudio.playSpatial("coin", collector, 0.18) end)
 
+    -- Floating "+N" text. Owner-only — server fires only at the plot owner
+    -- so other players don't get spammed when they're nearby someone's
+    -- collector. Client renders a brief BillboardGui that drifts up + fades.
+    if player then
+        pcall(function()
+            remotes.CoinCollectedFx:FireClient(player, {
+                value = value,
+                tier = hit:GetAttribute("Tier") or 1,
+                worldPos = collector.Position,
+            })
+        end)
+    end
+
     -- Refresh the plot's stats board with the new lifetime total. This is
     -- per-collect so it spams a bit; UpdateStatsBoard is a string-set on a
     -- TextLabel, cheap. If a future profiling pass shows it's hot we can

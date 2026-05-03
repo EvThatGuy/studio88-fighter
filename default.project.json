@@ -22,6 +22,14 @@
     },
     "StarterPlayer": {
       "$className": "StarterPlayer",
+      "$properties": {
+        "CharacterWalkSpeed": 18,
+        "CharacterJumpHeight": 7.2,
+        "CharacterUseJumpPower": false,
+        "AutoJumpEnabled": false,
+        "EnableMouseLockOption": true,
+        "LoadCharacterAppearance": true
+      },
       "StarterPlayerScripts": {
         "$className": "StarterPlayerScripts",
         "Studio88": {
