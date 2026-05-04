@@ -15,6 +15,7 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Constants = require(Modules:WaitForChild("Constants"))
@@ -25,9 +26,11 @@ local playerGui = player:WaitForChild("PlayerGui")
 
 local remotes = Remotes.waitFor(15)
 
-local CYAN = Color3.fromRGB(0, 240, 255)
-local BG = Color3.fromRGB(8, 7, 13)
-local TEXT = Color3.fromRGB(248, 248, 242)
+local CYAN    = Color3.fromRGB(0, 240, 255)
+local AMBER   = Color3.fromRGB(255, 176, 0)
+local SURFACE = Color3.fromRGB(20, 17, 31)
+local DARK    = Color3.fromRGB(8, 7, 13)
+local TEXT    = Color3.fromRGB(248, 248, 242)
 
 -- Step copy. Index = step number (1..#FTUE_STEPS). Each entry tells the
 -- player WHAT TO DO NEXT (not what they just completed). Anchor is the
@@ -79,43 +82,81 @@ local bodyLbl: TextLabel? = nil
 local function buildTooltip()
     local root = Instance.new("BillboardGui")
     root.Name = "TutorialTooltip"
-    root.Size = UDim2.new(0, 280, 0, 70)
+    root.Size = UDim2.new(0, 320, 0, 90)
     root.AlwaysOnTop = true
     root.StudsOffset = Vector3.new(0, 6, 0)
     root.Parent = screen
 
     local panel = Instance.new("Frame")
     panel.Size = UDim2.new(1, 0, 1, 0)
-    panel.BackgroundColor3 = BG
-    panel.BackgroundTransparency = 0.05
+    panel.BackgroundColor3 = SURFACE
+    panel.BackgroundTransparency = 0.08
     panel.BorderSizePixel = 0
     panel.Parent = root
-    do
-        local s = Instance.new("UIStroke"); s.Color = CYAN; s.Thickness = 2; s.Parent = panel
-        local c = Instance.new("UICorner"); c.CornerRadius = UDim.new(0, 6); c.Parent = panel
-    end
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = CYAN
+    stroke.Thickness = 1.5
+    stroke.Transparency = 0.3
+    stroke.Parent = panel
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = panel
+
+    local pad = Instance.new("UIPadding")
+    pad.PaddingLeft = UDim.new(0, 10)
+    pad.PaddingRight = UDim.new(0, 10)
+    pad.PaddingTop = UDim.new(0, 8)
+    pad.PaddingBottom = UDim.new(0, 8)
+    pad.Parent = panel
+
+    -- Top accent strip (amber) for visual separation between head + body.
+    local accent = Instance.new("Frame")
+    accent.Size = UDim2.new(0, 36, 0, 3)
+    accent.Position = UDim2.new(0, 0, 0, 28)
+    accent.BackgroundColor3 = AMBER
+    accent.BorderSizePixel = 0
+    accent.Parent = panel
 
     local h = Instance.new("TextLabel")
     h.Name = "Head"
-    h.Size = UDim2.new(1, -16, 0, 26)
-    h.Position = UDim2.new(0, 8, 0, 6)
+    h.Size = UDim2.new(1, 0, 0, 24)
+    h.Position = UDim2.new(0, 0, 0, 0)
     h.BackgroundTransparency = 1
     h.Text = ""
     h.TextColor3 = CYAN
+    h.TextStrokeColor3 = DARK
+    h.TextStrokeTransparency = 0.5
     h.Font = Enum.Font.GothamBold
     h.TextScaled = true
+    h.TextXAlignment = Enum.TextXAlignment.Left
     h.Parent = panel
+
+    local hConstraint = Instance.new("UITextSizeConstraint")
+    hConstraint.MinTextSize = 14
+    hConstraint.MaxTextSize = 22
+    hConstraint.Parent = h
 
     local b = Instance.new("TextLabel")
     b.Name = "Body"
-    b.Size = UDim2.new(1, -16, 0, 30)
-    b.Position = UDim2.new(0, 8, 0, 34)
+    b.Size = UDim2.new(1, 0, 0, 38)
+    b.Position = UDim2.new(0, 0, 0, 36)
     b.BackgroundTransparency = 1
     b.Text = ""
     b.TextColor3 = TEXT
-    b.Font = Enum.Font.Code
+    b.TextStrokeColor3 = DARK
+    b.TextStrokeTransparency = 0.6
+    b.Font = Enum.Font.Gotham
     b.TextScaled = true
+    b.TextWrapped = true
+    b.TextXAlignment = Enum.TextXAlignment.Left
     b.Parent = panel
+
+    local bConstraint = Instance.new("UITextSizeConstraint")
+    bConstraint.MinTextSize = 12
+    bConstraint.MaxTextSize = 18
+    bConstraint.Parent = b
 
     return root, h, b
 end
@@ -147,10 +188,25 @@ local function showStep(stepIndex: number)
         task.wait(0.5)
     end
     if not anchor or not tooltipRoot then return end
+
+    local wasEnabled = tooltipRoot.Enabled
     tooltipRoot.Adornee = anchor
-    if headlineLbl then headlineLbl.Text = copy.headline end
+    if headlineLbl then
+        headlineLbl.Text = string.format("(%d/%d)  %s",
+            stepIndex, #STEP_COPY, copy.headline)
+    end
     if bodyLbl then bodyLbl.Text = copy.body end
     tooltipRoot.Enabled = true
+
+    -- Subtle entry animation: tween the StudsOffset Y from 9 down to 6 +
+    -- a tiny bounce-back, so the panel feels like it lands. Skipped on
+    -- step swaps where it was already visible.
+    if not wasEnabled then
+        tooltipRoot.StudsOffset = Vector3.new(0, 9, 0)
+        TweenService:Create(tooltipRoot,
+            TweenInfo.new(0.35, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+            { StudsOffset = Vector3.new(0, 6, 0) }):Play()
+    end
 end
 
 -- ---- State machine -------------------------------------------------------
