@@ -142,6 +142,20 @@ function DailyQuestService.bumpProgress(userId: number, kind: string, delta: num
                     custom_field_1 = def.id,
                 })
             end)
+            -- One-shot celebration toast on first cross to complete. Drives
+            -- claim conversion -- without this, players often don't realize
+            -- a quest finished until they re-open the modal.
+            if player then
+                pcall(function()
+                    remotes.NotificationToast:FireClient(player, {
+                        kind = "quest_complete",
+                        title = "QUEST DONE!",
+                        body = string.format("%s — tap pill to claim +%d coins",
+                            (string.gsub(def.label, "{target}", tostring(def.target))),
+                            def.reward),
+                    })
+                end)
+            end
         end
     end
 end

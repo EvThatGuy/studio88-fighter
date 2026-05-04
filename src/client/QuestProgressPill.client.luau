@@ -74,13 +74,18 @@ local function makeCard()
     sg.DisplayOrder = 71
     sg.Parent = pg
 
-    local card = Instance.new("Frame")
+    -- TextButton (not Frame) so .Activated covers both desktop click and
+    -- mobile tap. Visible+button only matters when complete=true; the
+    -- click handler is gated on the active quest's complete flag.
+    local card = Instance.new("TextButton")
     card.AnchorPoint = Vector2.new(1, 0)
     card.Position = UDim2.new(1, -16, 0, 72)  -- below boost timer (y=16-64)
     card.Size = UDim2.new(0, 220, 0, 50)
     card.BackgroundColor3 = SURFACE
     card.BackgroundTransparency = 0.1
     card.BorderSizePixel = 0
+    card.Text = ""               -- we use child labels, not the button's own text
+    card.AutoButtonColor = false -- avoid Roblox's default darken-on-hover
     card.Visible = false
     card.Parent = sg
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
@@ -178,6 +183,22 @@ local function poll()
 end
 
 makeCard()
+
+-- One-tap claim: when the active quest is complete (CLAIM state), tapping
+-- the pill fires ClaimQuest for it. Optimistically mark claimed locally so
+-- the pill updates instantly; QuestClaimed broadcast will reconcile if the
+-- claim was rejected (server sends QuestRejected in that case, ignored
+-- here -- a re-poll will pick the next active quest).
+if cardRef and cardRef:IsA("TextButton") then
+    cardRef.Activated:Connect(function()
+        local q = pickActive()
+        if not q then return end
+        if not q.complete or q.claimed then return end
+        pcall(function() remotes.ClaimQuest:FireServer(q.id) end)
+        q.claimed = true
+        applyState()
+    end)
+end
 
 task.spawn(function()
     task.wait(2)
