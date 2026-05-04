@@ -91,22 +91,30 @@ local function makeCard()
     stroke.Parent = card
     strokeRef = stroke
 
+    local pad = Instance.new("UIPadding")
+    pad.PaddingLeft = UDim.new(0, 8)
+    pad.PaddingRight = UDim.new(0, 8)
+    pad.PaddingTop = UDim.new(0, 4)
+    pad.PaddingBottom = UDim.new(0, 8)
+    pad.Parent = card
+
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -16, 0, 22)
-    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, 0, 0, 22)
+    title.Position = UDim2.new(0, 0, 0, 0)
     title.BackgroundTransparency = 1
     title.Text = "QUEST"
     title.TextColor3 = CYAN
     title.Font = Enum.Font.GothamBold
-    title.TextSize = 12
+    title.TextSize = 14
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.TextTruncate = Enum.TextTruncate.AtEnd
     title.Parent = card
     titleRef = title
 
     local barBg = Instance.new("Frame")
-    barBg.Size = UDim2.new(1, -16, 0, 8)
-    barBg.Position = UDim2.new(0, 8, 1, -16)
+    barBg.Size = UDim2.new(1, 0, 0, 8)
+    barBg.Position = UDim2.new(0, 0, 1, -8)
+    barBg.AnchorPoint = Vector2.new(0, 1)
     barBg.BackgroundColor3 = Color3.fromRGB(40, 36, 56)
     barBg.BorderSizePixel = 0
     barBg.Parent = card

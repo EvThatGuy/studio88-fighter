@@ -83,21 +83,29 @@ local function makeCard()
     stroke.Parent = card
     strokeRef = stroke
 
+    local pad = Instance.new("UIPadding")
+    pad.PaddingLeft = UDim.new(0, 8)
+    pad.PaddingRight = UDim.new(0, 8)
+    pad.PaddingTop = UDim.new(0, 4)
+    pad.PaddingBottom = UDim.new(0, 4)
+    pad.Parent = card
+
     local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -16, 0, 18)
-    title.Position = UDim2.new(0, 8, 0, 4)
+    title.Size = UDim2.new(1, 0, 0, 18)
+    title.Position = UDim2.new(0, 0, 0, 0)
     title.BackgroundTransparency = 1
     title.Text = "NEXT BONUS"
     title.TextColor3 = CYAN
     title.Font = Enum.Font.GothamBold
-    title.TextSize = 12
+    title.TextSize = 14
     title.TextXAlignment = Enum.TextXAlignment.Left
+    title.TextTruncate = Enum.TextTruncate.AtEnd
     title.Parent = card
     titleRef = title
 
     local sub = Instance.new("TextLabel")
-    sub.Size = UDim2.new(1, -16, 0, 22)
-    sub.Position = UDim2.new(0, 8, 0, 22)
+    sub.Size = UDim2.new(1, 0, 0, 22)
+    sub.Position = UDim2.new(0, 0, 0, 18)
     sub.BackgroundTransparency = 1
     sub.Text = "+0 in 0:00"
     sub.TextColor3 = AMBER
@@ -105,6 +113,10 @@ local function makeCard()
     sub.TextScaled = true
     sub.TextXAlignment = Enum.TextXAlignment.Left
     sub.Parent = card
+    local subConstraint = Instance.new("UITextSizeConstraint")
+    subConstraint.MinTextSize = 12
+    subConstraint.MaxTextSize = 22
+    subConstraint.Parent = sub
     subRef = sub
 
     cardRef = card
