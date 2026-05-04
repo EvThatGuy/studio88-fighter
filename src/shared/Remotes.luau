@@ -100,6 +100,7 @@ local REMOTE_NAMES = {
     {name = "NotificationToast", class = "RemoteEvent"}, -- generic kind/title/body toast for streak risk + future hooks
     {name = "XpLeveledUp", class = "RemoteEvent"}, -- player crossed a level threshold; client renders level-up toast
     {name = "GetXpSnapshot", class = "RemoteFunction"}, -- HUD widget: current XP + level + thresholds
+    {name = "ServerPresenceChanged", class = "RemoteEvent"}, -- broadcast {count, squadActive} on PlayerAdded/Removing
 }
 
 local function ensureFolder(): Folder
