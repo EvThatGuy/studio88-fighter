@@ -202,6 +202,10 @@ function DailyQuestService.attemptClaim(player: Player, questId: any): (boolean,
         local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(player.UserId)
     end)
+    pcall(function()
+        local XpService = require(script.Parent:WaitForChild("XpService"))
+        XpService.award(player.UserId, "quest_claim")
+    end)
     print(string.format("[DailyQuestService] %s claimed '%s' for %d coins",
         player.Name, questId, def.reward))
     return true, nil

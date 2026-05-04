@@ -173,6 +173,10 @@ function CodesService.attemptRedeem(player: Player, rawCode: any): (boolean, str
         local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(player.UserId)
     end)
+    pcall(function()
+        local XpService = require(script.Parent:WaitForChild("XpService"))
+        XpService.award(player.UserId, "code_redeem")
+    end)
     print(string.format("[CodesService] %s redeemed '%s' for %d coins",
         player.Name, code, reward))
     return true, nil

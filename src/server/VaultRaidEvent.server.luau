@@ -144,6 +144,11 @@ local function distributeRewards()
         end
         table.insert(results, {userId = userId, tags = n, share = share})
         print(string.format("[VaultRaid] userId %d +%d coins (%d tags)", userId, share, n))
+        -- XP for raid participation (1500 per Constants.XP_REWARDS)
+        pcall(function()
+            local XpService = require(script.Parent:WaitForChild("XpService"))
+            XpService.award(userId, "raid_kill")
+        end)
     end
     for _, p in ipairs(Players:GetPlayers()) do
         pcall(function()

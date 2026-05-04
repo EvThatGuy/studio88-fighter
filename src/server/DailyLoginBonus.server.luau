@@ -75,6 +75,10 @@ local function grantBonusIfDue(player: Player)
                 { day = data.streak, streak_total = data.streak }
             )
         end)
+        pcall(function()
+            local XpService = require(script.Parent:WaitForChild("XpService"))
+            XpService.award(player.UserId, "daily_login")
+        end)
     end
 
     data.lastLoginUnix = now
