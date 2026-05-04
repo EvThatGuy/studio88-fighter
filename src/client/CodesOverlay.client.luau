@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
+local UICommands = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UICommands"))
 
 local player = Players.LocalPlayer
 local remotes = Remotes.waitFor()
@@ -208,5 +209,7 @@ end)
 
 makeButton()
 player.CharacterAdded:Connect(makeButton)
+
+UICommands.register("openCodes", openModal)
 
 print("[CodesOverlay] client ready")

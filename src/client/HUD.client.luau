@@ -11,6 +11,7 @@ local TweenService = game:GetService("TweenService")
 local Modules = ReplicatedStorage:WaitForChild("Modules")
 local Constants = require(Modules:WaitForChild("Constants"))
 local Remotes = require(Modules:WaitForChild("Remotes"))
+local UICommands = require(Modules:WaitForChild("UICommands"))
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -1508,6 +1509,7 @@ local function openQuestsModal()
 end
 
 questsBtn.MouseButton1Click:Connect(openQuestsModal)
+UICommands.register("openQuests", openQuestsModal)
 
 remotes.QuestProgressed.OnClientEvent:Connect(function(questId: string, progress: number, target: number)
     if not questsState then return end
@@ -1853,11 +1855,13 @@ local function refreshRebirthShop()
     end)
 end
 
-rebirthShopBtn.MouseButton1Click:Connect(function()
+local function openRebirthShopModal()
     if not rebirthShopModal then rebirthShopModal = buildRebirthShopModal() end
     rebirthShopModal.Visible = true
     refreshRebirthShop()
-end)
+end
+rebirthShopBtn.MouseButton1Click:Connect(openRebirthShopModal)
+UICommands.register("openRebirthShop", openRebirthShopModal)
 
 remotes.RebirthShopPurchased.OnClientEvent:Connect(function(itemId: string, tokensRemaining: number)
     if rebirthShopState then
@@ -2334,14 +2338,16 @@ function refreshPets()
     end)
 end
 
-petsBtn.MouseButton1Click:Connect(function()
+local function openPetsModal()
     if not petsModal then
         petsModal, petsEggsList, petsInvList = buildPetsModal()
     end
     petsModal.Visible = true
     refreshPets()
     refreshPetBoost()
-end)
+end
+petsBtn.MouseButton1Click:Connect(openPetsModal)
+UICommands.register("openPets", openPetsModal)
 
 remotes.PetHatched.OnClientEvent:Connect(function(pet: any, petName: string)
     refreshPets()
@@ -3001,13 +3007,15 @@ function refreshAchievements()
     end)
 end
 
-achBtn.MouseButton1Click:Connect(function()
+local function openAchievementsModal()
     if not achModal then
         achModal, achList = buildAchievementsModal()
     end
     achModal.Visible = true
     refreshAchievements()
-end)
+end
+achBtn.MouseButton1Click:Connect(openAchievementsModal)
+UICommands.register("openAchievements", openAchievementsModal)
 
 -- Initial badge sync once remotes are warm
 task.delay(2, refreshAchievements)
@@ -3374,13 +3382,15 @@ local function refreshAuras()
     end)
 end
 
-auraBtn.MouseButton1Click:Connect(function()
+local function openAurasModal()
     if not auraModal then
         auraModal, auraList = buildAurasModal()
     end
     auraModal.Visible = true
     refreshAuras()
-end)
+end
+auraBtn.MouseButton1Click:Connect(openAurasModal)
+UICommands.register("openAuras", openAurasModal)
 
 local AURA_REJECT_COPY: {[string]: string} = {
     no_data = "Save data still loading.",
@@ -3693,13 +3703,15 @@ local function refreshTitles()
     end)
 end
 
-titlesBtn.MouseButton1Click:Connect(function()
+local function openTitlesModal()
     if not titlesModal then
         titlesModal, titlesList = buildTitlesModal()
     end
     titlesModal.Visible = true
     refreshTitles()
-end)
+end
+titlesBtn.MouseButton1Click:Connect(openTitlesModal)
+UICommands.register("openTitles", openTitlesModal)
 
 end -- close Player Titles section
 
@@ -3878,7 +3890,7 @@ local function spinAnim(landingIndex: number)
     end
 end
 
-spinBtn.MouseButton1Click:Connect(function()
+local function openSpinModal()
     if not spinModal then
         spinModal = buildSpinModal()
         local btn = Instance.new("TextButton")
@@ -3913,7 +3925,9 @@ spinBtn.MouseButton1Click:Connect(function()
     end
     spinModal.Visible = true
     refreshSpin()
-end)
+end
+spinBtn.MouseButton1Click:Connect(openSpinModal)
+UICommands.register("openSpin", openSpinModal)
 
 remotes.SpinResult.OnClientEvent:Connect(function(payload: any)
     if not payload then return end

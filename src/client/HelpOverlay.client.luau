@@ -10,7 +10,10 @@
 -- they bounce. The SOS is the safety net.
 
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+
+local UICommands = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("UICommands"))
 
 local player = Players.LocalPlayer
 
@@ -219,5 +222,7 @@ end
 
 makeButton()
 player.CharacterAdded:Connect(makeButton)
+
+UICommands.register("openHelp", openModal)
 
 print("[HelpOverlay] client ready")
