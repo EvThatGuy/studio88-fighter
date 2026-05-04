@@ -315,6 +315,50 @@ function LobbyDecor.build()
         end
     end
 
+    -- Central "Visit Random Plot" pad above the pedestal centerpiece.
+    -- Picks a random claimed plot belonging to another player, calls
+    -- VisitService.attemptVisit. Drives the social viral loop per
+    -- checklist mechanic 5.
+    do
+        local randomPad = part("VisitRandomPad", container, {
+            Size = Vector3.new(3, 0.4, 3),
+            Position = Vector3.new(0, 3.0, 0),
+            Material = Enum.Material.Neon,
+            Color = PINK,
+            Transparency = 0.15,
+        })
+        local mesh = Instance.new("CylinderMesh")
+        mesh.Scale = Vector3.new(1, 0.6, 1)
+        mesh.Parent = randomPad
+        local prompt = Instance.new("ProximityPrompt")
+        prompt.Name = "VisitRandomPrompt"
+        prompt.ActionText = "Visit"
+        prompt.ObjectText = "Random Plot"
+        prompt.HoldDuration = 0.2
+        prompt.MaxActivationDistance = 5
+        prompt.Parent = randomPad
+        CollectionService:AddTag(randomPad, "Studio88VisitRandomPad")
+        -- Subtle particle so it stands out as a destination
+        local pe = Instance.new("ParticleEmitter")
+        pe.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+        pe.LightEmission = 1
+        pe.Color = ColorSequence.new(PINK, CYAN)
+        pe.Rate = 8
+        pe.Speed = NumberRange.new(2, 4)
+        pe.Lifetime = NumberRange.new(0.8, 1.4)
+        pe.SpreadAngle = Vector2.new(20, 20)
+        pe.Acceleration = Vector3.new(0, 4, 0)
+        pe.Size = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.5),
+            NumberSequenceKeypoint.new(1, 1.0),
+        })
+        pe.Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.3),
+            NumberSequenceKeypoint.new(1, 1),
+        })
+        pe.Parent = randomPad
+    end
+
     -- 6 teleport pads ringing the pedestal top, one per plot anchor.
     -- Each pad has a "PlotIndex" attribute matching its anchor, plus a
     -- ProximityPrompt for jump-to-my-plot. PlotTeleportProxy.server.luau
