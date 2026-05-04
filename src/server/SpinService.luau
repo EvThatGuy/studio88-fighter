@@ -155,6 +155,14 @@ function SpinService.attemptClaim(player: Player): (boolean, string?)
         local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(userId)
     end)
+    -- XP for spin (50 baseline + 500 bonus on grand_jackpot)
+    pcall(function()
+        local XpService = require(script.Parent:WaitForChild("XpService"))
+        XpService.award(userId, "spin_used")
+        if segment.id == "grand_jackpot" then
+            XpService.award(userId, "spin_grand_jackpot")
+        end
+    end)
     print(string.format("[SpinService] %s spun and got '%s' (%s)",
         player.Name, segment.id, message))
     return true, nil

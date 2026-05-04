@@ -298,6 +298,9 @@ Constants.XP_REWARDS = {
     daily_login        = 200,
     quest_claim        = 300,
     code_redeem        = 100,
+    rebirth_shop_token = 50,    -- per token spent on rebirth shop item
+    spin_used          = 50,    -- per spin (free or paid)
+    spin_grand_jackpot = 500,   -- bonus when spin lands on grand_jackpot segment
 }
 
 -- XP per level. Index = level. xp[1]=0 (level 1 baseline), xp[2]=100, etc.

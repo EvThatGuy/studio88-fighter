@@ -93,6 +93,14 @@ function RebirthShopService.attemptPurchase(player: Player, itemId: any): (boole
         local AchievementService = require(script.Parent:WaitForChild("AchievementService"))
         AchievementService.evaluate(player.UserId)
     end)
+    -- XP per token spent (50/token via Constants.XP_REWARDS.rebirth_shop_token).
+    -- ascension (25 tokens) = 1250 XP — meaningful at mid level, not skip-tier.
+    pcall(function()
+        local XpService = require(script.Parent:WaitForChild("XpService"))
+        for _ = 1, def.cost do
+            XpService.award(player.UserId, "rebirth_shop_token")
+        end
+    end)
     print(string.format("[RebirthShopService] %s bought '%s' for %d tokens (remaining %d)",
         player.Name, itemId, def.cost, data.rebirthTokens))
     return true, nil
