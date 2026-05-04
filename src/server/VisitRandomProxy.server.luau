@@ -7,8 +7,12 @@
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local Remotes = require(ReplicatedStorage:WaitForChild("Modules"):WaitForChild("Remotes"))
 local VisitService = require(script.Parent:WaitForChild("VisitService"))
+
+local remotes = Remotes.get()
 
 local function pickRandomTarget(triggerer: Player): number?
     local candidates = {}
@@ -31,8 +35,15 @@ local function bind(pad: BasePart)
     prompt.Triggered:Connect(function(player)
         local target = pickRandomTarget(player)
         if not target then
-            -- No other plots claimed; surface a brief reason to client?
-            -- For now silent; visitor sees the pad but no target available.
+            -- Surface to the player so the pad doesn't feel broken on
+            -- empty servers (the prior silent return looked like a bug).
+            pcall(function()
+                remotes.NotificationToast:FireClient(player, {
+                    kind = "visit_no_target",
+                    title = "NO OTHER PLOTS",
+                    body = "you're the only owner online -- try again when more players join",
+                })
+            end)
             print(string.format("[VisitRandom] %s tapped pad but no other plots claimed",
                 player.Name))
             return
