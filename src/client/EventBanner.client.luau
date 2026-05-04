@@ -53,12 +53,13 @@ local function rebuildBanner()
     if not activeName or not activeEnd then return end
     local pg = player:FindFirstChildOfClass("PlayerGui")
     if not pg then return end
-    sg = Instance.new("ScreenGui")
-    (sg :: ScreenGui).Name = "Studio88EventBanner"
-    (sg :: ScreenGui).ResetOnSpawn = false
-    (sg :: ScreenGui).IgnoreGuiInset = true
-    (sg :: ScreenGui).DisplayOrder = 60
-    (sg :: ScreenGui).Parent = pg
+    local newSg = Instance.new("ScreenGui")
+    newSg.Name = "Studio88EventBanner"
+    newSg.ResetOnSpawn = false
+    newSg.IgnoreGuiInset = true
+    newSg.DisplayOrder = 60
+    newSg.Parent = pg
+    sg = newSg
 
     local accent = colorForName(activeName)
 
@@ -69,35 +70,38 @@ local function rebuildBanner()
     card.BackgroundColor3 = SURFACE
     card.BackgroundTransparency = 0.1
     card.BorderSizePixel = 0
-    card.Parent = sg :: ScreenGui
+    card.Parent = newSg
     Instance.new("UICorner", card).CornerRadius = UDim.new(0, 10)
-    strokeRef = Instance.new("UIStroke")
-    (strokeRef :: UIStroke).Color = accent
-    (strokeRef :: UIStroke).Thickness = 2
-    (strokeRef :: UIStroke).Parent = card
+    local newStroke = Instance.new("UIStroke")
+    newStroke.Color = accent
+    newStroke.Thickness = 2
+    newStroke.Parent = card
+    strokeRef = newStroke
 
-    labelRef = Instance.new("TextLabel")
-    (labelRef :: TextLabel).Size = UDim2.new(1, -16, 0, 22)
-    (labelRef :: TextLabel).Position = UDim2.new(0, 8, 0, 4)
-    (labelRef :: TextLabel).BackgroundTransparency = 1
-    (labelRef :: TextLabel).Text = string.format("★ %s · %.1fx", activeName, activeMult or 1.0)
-    (labelRef :: TextLabel).TextColor3 = accent
-    (labelRef :: TextLabel).TextStrokeTransparency = 0.3
-    (labelRef :: TextLabel).TextStrokeColor3 = DARK
-    (labelRef :: TextLabel).Font = Enum.Font.GothamBold
-    (labelRef :: TextLabel).TextScaled = true
-    (labelRef :: TextLabel).Parent = card
+    local newLabel = Instance.new("TextLabel")
+    newLabel.Size = UDim2.new(1, -16, 0, 22)
+    newLabel.Position = UDim2.new(0, 8, 0, 4)
+    newLabel.BackgroundTransparency = 1
+    newLabel.Text = string.format("★ %s · %.1fx", activeName, activeMult or 1.0)
+    newLabel.TextColor3 = accent
+    newLabel.TextStrokeTransparency = 0.3
+    newLabel.TextStrokeColor3 = DARK
+    newLabel.Font = Enum.Font.GothamBold
+    newLabel.TextScaled = true
+    newLabel.Parent = card
+    labelRef = newLabel
 
-    subRef = Instance.new("TextLabel")
-    (subRef :: TextLabel).Size = UDim2.new(1, -16, 0, 20)
-    (subRef :: TextLabel).Position = UDim2.new(0, 8, 0, 28)
-    (subRef :: TextLabel).BackgroundTransparency = 1
-    (subRef :: TextLabel).Text = "ends in ..."
-    (subRef :: TextLabel).TextColor3 = Color3.fromRGB(220, 220, 220)
-    (subRef :: TextLabel).TextStrokeTransparency = 0.5
-    (subRef :: TextLabel).Font = Enum.Font.Code
-    (subRef :: TextLabel).TextScaled = true
-    (subRef :: TextLabel).Parent = card
+    local newSub = Instance.new("TextLabel")
+    newSub.Size = UDim2.new(1, -16, 0, 20)
+    newSub.Position = UDim2.new(0, 8, 0, 28)
+    newSub.BackgroundTransparency = 1
+    newSub.Text = "ends in ..."
+    newSub.TextColor3 = Color3.fromRGB(220, 220, 220)
+    newSub.TextStrokeTransparency = 0.5
+    newSub.Font = Enum.Font.Code
+    newSub.TextScaled = true
+    newSub.Parent = card
+    subRef = newSub
 end
 
 remotes.EventStateChanged.OnClientEvent:Connect(function(payload)
@@ -114,12 +118,13 @@ end)
 task.spawn(function()
     while true do
         task.wait(1)
-        if activeEnd and subRef and subRef.Parent then
+        local s = subRef
+        if activeEnd and s and s.Parent then
             local remaining = activeEnd - os.time()
             if remaining <= 0 then
                 teardown()
             else
-                (subRef :: TextLabel).Text = "ends in " .. fmtRemaining(remaining)
+                s.Text = "ends in " .. fmtRemaining(remaining)
             end
         end
     end

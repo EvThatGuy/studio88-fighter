@@ -31,68 +31,70 @@ local pulseConn: thread? = nil
 local function ensure()
     local pg = player:WaitForChild("PlayerGui")
     if sg and sg.Parent then return end
-    sg = Instance.new("ScreenGui")
-    (sg :: ScreenGui).Name = "Studio88TributeQuickClaim"
-    (sg :: ScreenGui).ResetOnSpawn = false
-    (sg :: ScreenGui).IgnoreGuiInset = false
-    (sg :: ScreenGui).DisplayOrder = 73
-    (sg :: ScreenGui).Parent = pg
+    local newSg = Instance.new("ScreenGui")
+    newSg.Name = "Studio88TributeQuickClaim"
+    newSg.ResetOnSpawn = false
+    newSg.IgnoreGuiInset = false
+    newSg.DisplayOrder = 73
+    newSg.Parent = pg
+    sg = newSg
 
-    btnRef = Instance.new("TextButton")
-    (btnRef :: TextButton).AnchorPoint = Vector2.new(1, 1)
-    (btnRef :: TextButton).Position = UDim2.new(1, -16, 1, -16)
-    (btnRef :: TextButton).Size = UDim2.new(0, 200, 0, 50)
-    (btnRef :: TextButton).BackgroundColor3 = AMBER
-    (btnRef :: TextButton).BorderSizePixel = 0
-    (btnRef :: TextButton).Text = ""
-    (btnRef :: TextButton).TextColor3 = DARK
-    (btnRef :: TextButton).Font = Enum.Font.GothamBold
-    (btnRef :: TextButton).TextScaled = true
-    (btnRef :: TextButton).AutoButtonColor = true
-    (btnRef :: TextButton).Visible = false
-    (btnRef :: TextButton).Parent = sg :: ScreenGui
-    Instance.new("UICorner", btnRef :: TextButton).CornerRadius = UDim.new(0, 10)
+    local newBtn = Instance.new("TextButton")
+    newBtn.AnchorPoint = Vector2.new(1, 1)
+    newBtn.Position = UDim2.new(1, -16, 1, -16)
+    newBtn.Size = UDim2.new(0, 200, 0, 50)
+    newBtn.BackgroundColor3 = AMBER
+    newBtn.BorderSizePixel = 0
+    newBtn.Text = ""
+    newBtn.TextColor3 = DARK
+    newBtn.Font = Enum.Font.GothamBold
+    newBtn.TextScaled = true
+    newBtn.AutoButtonColor = true
+    newBtn.Visible = false
+    newBtn.Parent = newSg
+    Instance.new("UICorner", newBtn).CornerRadius = UDim.new(0, 10)
+    btnRef = newBtn
 
-    (btnRef :: TextButton).MouseButton1Click:Connect(function()
+    newBtn.MouseButton1Click:Connect(function()
         remotes.ClaimHourlyTribute:FireServer()
-        if btnRef then (btnRef :: TextButton).Visible = false end
+        if btnRef then btnRef.Visible = false end
     end)
 end
 
 local function refresh()
-    if not btnRef or not btnRef.Parent then return end
+    local btn = btnRef
+    if not btn or not btn.Parent then return end
     pcall(function()
         local snap = remotes.GetHourlyTribute:InvokeServer()
         if not snap or not snap.available then
-            (btnRef :: TextButton).Visible = false
+            btn.Visible = false
             return
         end
         local stacks = snap.stacks or 0
         if stacks <= 0 then
-            (btnRef :: TextButton).Visible = false
+            btn.Visible = false
             return
         end
-        local total = math.floor((snap.perStack or 0) * stacks);
-        (btnRef :: TextButton).Text = string.format("CLAIM $%s TRIBUTE (%d)", fmtCoins(total), stacks);
-        (btnRef :: TextButton).Visible = true
-        -- Pulse if capped
+        local total = math.floor((snap.perStack or 0) * stacks)
+        btn.Text = string.format("CLAIM $%s TRIBUTE (%d)", fmtCoins(total), stacks)
+        btn.Visible = true
         local cap = snap.cap or 4
         if pulseConn then task.cancel(pulseConn); pulseConn = nil end
         if stacks >= cap then
             pulseConn = task.spawn(function()
-                while btnRef and (btnRef :: TextButton).Visible do
-                    TweenService:Create(btnRef :: TextButton,
+                while btnRef and btnRef.Visible do
+                    TweenService:Create(btn,
                         TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
                         {BackgroundColor3 = PINK}):Play()
                     task.wait(0.6)
-                    TweenService:Create(btnRef :: TextButton,
+                    TweenService:Create(btn,
                         TweenInfo.new(0.6, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut),
                         {BackgroundColor3 = AMBER}):Play()
                     task.wait(0.6)
                 end
             end)
         else
-            (btnRef :: TextButton).BackgroundColor3 = AMBER
+            btn.BackgroundColor3 = AMBER
         end
     end)
 end

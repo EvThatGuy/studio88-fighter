@@ -85,7 +85,9 @@ local function makeWidget()
 end
 
 local function refresh()
-    if not labelRef or not barFillRef or not labelRef.Parent then return end
+    local lbl = labelRef
+    local bar = barFillRef
+    if not lbl or not bar or not lbl.Parent then return end
     pcall(function()
         local snap = remotes.GetXpSnapshot:InvokeServer()
         if not snap then return end
@@ -96,12 +98,12 @@ local function refresh()
         if nxt then
             local progress = (xp - prev) / math.max(1, (nxt - prev))
             progress = math.clamp(progress, 0, 1)
-            (labelRef :: TextLabel).Text = string.format("LEVEL %d · %s/%s XP",
-                lvl, fmtXp(xp - prev), fmtXp(nxt - prev));
-            (barFillRef :: Frame).Size = UDim2.new(progress, 0, 1, 0)
+            lbl.Text = string.format("LEVEL %d · %s/%s XP",
+                lvl, fmtXp(xp - prev), fmtXp(nxt - prev))
+            bar.Size = UDim2.new(progress, 0, 1, 0)
         else
-            (labelRef :: TextLabel).Text = string.format("LEVEL %d · MAX", lvl);
-            (barFillRef :: Frame).Size = UDim2.new(1, 0, 1, 0)
+            lbl.Text = string.format("LEVEL %d · MAX", lvl)
+            bar.Size = UDim2.new(1, 0, 1, 0)
         end
     end)
 end
