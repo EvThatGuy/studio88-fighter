@@ -101,6 +101,7 @@ local REMOTE_NAMES = {
     {name = "XpLeveledUp", class = "RemoteEvent"}, -- player crossed a level threshold; client renders level-up toast
     {name = "GetXpSnapshot", class = "RemoteFunction"}, -- HUD widget: current XP + level + thresholds
     {name = "ServerPresenceChanged", class = "RemoteEvent"}, -- broadcast {count, squadActive} on PlayerAdded/Removing
+    {name = "GetSessionBonus", class = "RemoteFunction"}, -- HUD widget: returns {activeSeconds, tiers=[{seconds,reward,label,claimed}]}
 }
 
 local function ensureFolder(): Folder

@@ -120,5 +120,23 @@ for _, p in ipairs(Players:GetPlayers()) do
     end
 end
 
+-- ---- Snapshot RemoteFunction ------------------------------------------
+-- Client widget polls this every ~5s to render "Next bonus in M:SS".
+remotes.GetSessionBonus.OnServerInvoke = function(player: Player)
+    local sess = sessions[player.UserId]
+    local active = (sess ~= nil) and sess.activeSeconds or 0
+    local tiers = {}
+    for i, def in ipairs(Constants.SESSION_TIME_BONUSES) do
+        table.insert(tiers, {
+            tierIdx = i,
+            seconds = def.seconds,
+            reward = def.reward,
+            label = def.label,
+            claimed = (sess ~= nil) and (sess.claimed[i] == true) or false,
+        })
+    end
+    return { activeSeconds = active, tiers = tiers }
+end
+
 task.spawn(tick)
 print("[SessionTimeBonus] armed (" .. #Constants.SESSION_TIME_BONUSES .. " tiers)")
