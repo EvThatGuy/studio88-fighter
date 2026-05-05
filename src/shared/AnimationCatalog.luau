@@ -67,39 +67,56 @@ local AnimationCatalog = {}
 AnimationCatalog.ASSETS = {
     -- Light attack combo string. CombatService fires "attacking" once per
     -- M1; the AnimationPlayer cycles through M1_1 → M1_4 on rapid presses.
+    -- Placeholder values are the Roblox-default R15 sword RightSlash
+    -- (522635514) and Lunge (522638767) — public, free, stable since
+    -- 2017. These are tool-tied animations but evaluate as arm-swing
+    -- motions on a tool-less character, which reads convincingly as a
+    -- punch. Cycling between two IDs gives the combo string visible
+    -- variety even before custom animations are recorded.
     -- TODO(custom): record 4 distinct light-attack swings; jab → cross →
     -- hook → spin (or whatever the fighter style calls for).
-    M1_1 = "",
-    M1_2 = "",
-    M1_3 = "",
-    M1_4 = "",
+    M1_1 = "rbxassetid://522635514",   -- placeholder: Sword RightSlash
+    M1_2 = "rbxassetid://522638767",   -- placeholder: Sword Lunge (forward thrust)
+    M1_3 = "rbxassetid://522635514",   -- placeholder: Sword RightSlash (repeat for cycling)
+    M1_4 = "rbxassetid://522638767",   -- placeholder: Sword Lunge (repeat for cycling)
 
     -- Heavy attack. Combat code does not yet emit M2 RemoteEvents; the
     -- entry is reserved so the catalog stays stable when wired.
     -- TODO(combat): wire an M2 / RightMouseButton path through
     -- CombatInput.client.luau → CombatService → setPhase("attacking_heavy").
-    M2_Heavy = "",
+    M2_Heavy = "rbxassetid://522638767",  -- placeholder: Sword Lunge (committed forward thrust)
 
     -- Defensive states.
     -- TODO(custom): Block stance is held while F is down; should be a
-    -- low-motion guard pose, looped. Dodge is a 0.4s sidestep / roll.
+    -- low-motion guard pose, looped. No good free Roblox-published
+    -- equivalent exists — a looping idle would not read as "blocking".
+    -- Leaving blank so AnimationPlayer skips it cleanly until you record
+    -- a real guard pose in Studio Animation Editor.
     Block = "",
+    -- TODO(custom): Dodge is a 0.4s sidestep / roll. No stable free
+    -- equivalent. Recommended: record a quick CFrame-driven roll keyframe
+    -- in Studio Animation Editor (~12 frames, Linear easing).
     Dodge = "",
 
     -- Reaction states.
     -- TODO(custom): Hitstun is a 0.6s flinch (head tilt + small recoil).
-    -- Knockdown / Wakeup not yet triggered by code (Phase 4).
+    -- TODO(custom): Knockdown / Wakeup not yet triggered by code (Phase 4
+    --   — wire when RespawnService grows a death-staging path).
     Hitstun = "",
     Knockdown = "",
     Wakeup = "",
 
     -- Ability casts. Slot index = position in the class's ability list:
-    --   Striker  Slot1 = striker_dash
-    --   Bruiser  Slot1 = bruiser_ground_slam
-    --   Swift    Slot1 = swift_double_jump
+    --   Striker  Slot1 = striker_dash         (forward burst — Lunge fits)
+    --   Bruiser  Slot1 = bruiser_ground_slam  (downward stomp — Lunge is OK as wind-up placeholder)
+    --   Swift    Slot1 = swift_double_jump    (mid-air boost)
+    -- Slot1 placeholder uses the Sword Lunge animation since it reads as
+    -- a committed forward action — fits Striker dash best, OK for the
+    -- others as a wind-up. Slot2..4 are not yet bound to any ability so
+    -- they remain blank.
     -- TODO(custom): record one cast animation per ability (or share if
     -- the cast pose is the same — e.g. all "shoulder dip + arm throw").
-    Ability_Slot1_Cast = "",
+    Ability_Slot1_Cast = "rbxassetid://522638767",  -- placeholder: Sword Lunge
     Ability_Slot2_Cast = "",
     Ability_Slot3_Cast = "",
     Ability_Slot4_Cast = "",
