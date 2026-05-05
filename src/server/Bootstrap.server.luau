@@ -60,7 +60,7 @@ load("Leaderstats")
 loadFolder("Combat", { "ClassRegistry", "StaminaService", "HitboxService", "CombatService" })
 
 -- Match flow (Phase 2 scaffolding)
-loadFolder("Match", { "MapRotation", "MatchService" })
+loadFolder("Match", { "MapRotation", "MatchService", "RespawnService" })
 
 -- Abilities (Phase 3 scaffolding)
 loadFolder("Abilities", { "AbilityRuntime" })
