@@ -48,10 +48,9 @@ local function playSound(id: string)
     task.delay(2, function() if s.Parent then s:Destroy() end end)
 end
 
-local function spawnDamageNumber(victimUserId: number, finalDamage: number, blocked: boolean)
-    local victim = Players:GetPlayerByUserId(victimUserId)
-    if not victim or not victim.Character then return end
-    local head = victim.Character:FindFirstChild("Head") :: BasePart?
+local function spawnDamageNumber(victimCharacter: Model?, finalDamage: number, blocked: boolean)
+    if not victimCharacter then return end
+    local head = victimCharacter:FindFirstChild("Head") :: BasePart?
     if not head then return end
 
     local billboard = Instance.new("BillboardGui")
@@ -91,10 +90,13 @@ end
 
 remotes.HitLanded.OnClientEvent:Connect(function(payload: any)
     if typeof(payload) ~= "table" then return end
-    local victimUserId = tonumber(payload.victimUserId)
-    if not victimUserId then return end
-    spawnDamageNumber(victimUserId, payload.finalDamage or 0, payload.blocked == true)
-    if victimUserId == player.UserId then
+    local victimCharacter = payload.victimCharacter
+    spawnDamageNumber(
+        typeof(victimCharacter) == "Instance" and victimCharacter:IsA("Model") and victimCharacter or nil,
+        payload.finalDamage or 0,
+        payload.blocked == true
+    )
+    if payload.victimUserId == player.UserId then
         flashScreen()
         playSound(payload.blocked and Constants.SOUND_IDS.block or Constants.SOUND_IDS.hit)
     end

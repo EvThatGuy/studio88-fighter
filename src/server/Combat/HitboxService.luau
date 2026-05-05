@@ -1,8 +1,9 @@
 --!strict
 -- Server-authoritative hitbox detection. The CombatService asks for a
 -- spatial query in front of an attacker's HumanoidRootPart; this module
--- runs the query, filters by team / friendly-fire rules, and returns the
--- victim characters that overlap.
+-- runs the query, filters by team / friendly-fire rules, and returns
+-- the victim characters that overlap. Includes NPCs (training dummies,
+-- future bosses) — they have a Humanoid but no Player.
 --
 -- Phase 1 ports the elomala MuchachoHitbox-style flow into here under a
 -- typed adapter. For now this is an OverlapParams query that's good
@@ -18,6 +19,12 @@ local Constants = require(Modules:WaitForChild("Constants"))
 
 local HitboxService = {}
 
+export type HitTarget = {
+    character: Model,
+    humanoid: Humanoid,
+    victimUserId: number?,    -- nil for NPC / dummy targets
+}
+
 local function characterOf(part: BasePart): Model?
     local model = part:FindFirstAncestorOfClass("Model")
     if model and model:FindFirstChildOfClass("Humanoid") then
@@ -26,11 +33,8 @@ local function characterOf(part: BasePart): Model?
     return nil
 end
 
--- Run a one-shot box query in front of the attacker. Returns a list of
--- {character, humanoid, victimUserId} for every distinct opponent
--- character that overlaps. Excludes the attacker themselves.
-function HitboxService.queryPunchTargets(attacker: Player): {{character: Model, humanoid: Humanoid, victimUserId: number}}
-    local results = {}
+function HitboxService.queryPunchTargets(attacker: Player): {HitTarget}
+    local results: {HitTarget} = {}
     local character = attacker.Character
     if not character then return results end
     local hrp = character:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -42,20 +46,24 @@ function HitboxService.queryPunchTargets(attacker: Player): {{character: Model, 
     params.FilterDescendantsInstances = {character}
     params.MaxParts = 32
 
-    local seenUserIds: {[number]: true} = {}
+    local seenChars: {[Model]: true} = {}
     local parts = workspace:GetPartBoundsInBox(origin, Constants.HITBOX_SIZE, params)
     for _, part in ipairs(parts) do
         local victimChar = characterOf(part)
-        if victimChar then
-            local victimPlayer = Players:GetPlayerFromCharacter(victimChar)
-            if victimPlayer and victimPlayer ~= attacker and not seenUserIds[victimPlayer.UserId] then
-                seenUserIds[victimPlayer.UserId] = true
-                local humanoid = victimChar:FindFirstChildOfClass("Humanoid")
-                if humanoid and humanoid.Health > 0 then
+        if victimChar and not seenChars[victimChar] then
+            seenChars[victimChar] = true
+            local humanoid = victimChar:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid.Health > 0 then
+                local victimPlayer = Players:GetPlayerFromCharacter(victimChar)
+                if victimPlayer == attacker then
+                    -- self-hit; skip (filter should already cover this, but
+                    -- belt-and-braces in case the attacker's char is in two
+                    -- places mid-respawn).
+                else
                     table.insert(results, {
                         character = victimChar,
                         humanoid = humanoid,
-                        victimUserId = victimPlayer.UserId,
+                        victimUserId = victimPlayer and victimPlayer.UserId or nil,
                     })
                 end
             end

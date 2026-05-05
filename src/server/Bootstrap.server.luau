@@ -58,12 +58,12 @@ load("Leaderstats")
 load("AntiCheat")
 
 -- Combat services (Phase 1 scaffolding; stubs until elomala port lands)
-loadFolder("Combat", { "ClassRegistry", "StaminaService", "HitboxService", "CombatService" })
+loadFolder("Combat", { "ClassRegistry", "StaminaService", "HitboxService", "CombatService", "DummyService" })
 
 -- Match flow (Phase 2 scaffolding)
-loadFolder("Match", { "MapRotation", "MatchService", "RespawnService" })
+loadFolder("Match", { "MapRotation", "MatchService", "RespawnService", "SpawnProtection" })
 
--- Abilities (Phase 3 scaffolding)
-loadFolder("Abilities", { "AbilityRuntime" })
+-- Abilities (Phase 3 — first slice: 1 ability per class)
+loadFolder("Abilities", { "AbilityLibrary", "AbilityRuntime" })
 
 print("[Bootstrap] fighter server boot complete")

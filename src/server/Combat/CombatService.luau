@@ -70,9 +70,10 @@ local function rpcCooldownOk(userId: number, rpc: string, cooldownSec: number): 
     return true
 end
 
-local function applyDamage(victim: Player, victimChar: Model, humanoid: Humanoid, attacker: Player, rawDamage: number): (boolean, number)
-    -- Returns (blocked, finalDamage). Blocked when victim is in "blocking" phase.
-    local blocked = phase[victim.UserId] == "blocking"
+local function applyDamage(victimUserId: number?, humanoid: Humanoid, rawDamage: number): (boolean, number)
+    -- Returns (blocked, finalDamage). Block requires the victim to be a
+    -- player currently in the "blocking" phase; NPCs never block.
+    local blocked = victimUserId ~= nil and phase[victimUserId] == "blocking"
     local finalDamage = blocked and rawDamage * (1 - Constants.BLOCK_DAMAGE_REDUCTION) or rawDamage
     humanoid:TakeDamage(finalDamage)
     return blocked, finalDamage
@@ -89,38 +90,37 @@ remotes.PunchRequest.OnServerEvent:Connect(function(player: Player)
     setPhase(player.UserId, "attacking")
     local targets = HitboxService.queryPunchTargets(player)
     for _, target in ipairs(targets) do
-        local victim = Players:GetPlayerByUserId(target.victimUserId)
-        if victim then
-            local blocked, finalDamage = applyDamage(victim, target.character, target.humanoid, player, rawDamage)
-            remotes.HitLanded:FireAllClients({
-                attackerUserId = player.UserId,
-                victimUserId = target.victimUserId,
-                rawDamage = rawDamage,
-                blocked = blocked,
-                finalDamage = finalDamage,
-            })
-            if not blocked then
-                stunUntil[target.victimUserId] = os.clock() + Constants.STUN_DURATION_SEC
-                setPhase(target.victimUserId, "stunned")
-                task.delay(Constants.STUN_DURATION_SEC, function()
-                    if (stunUntil[target.victimUserId] or 0) <= os.clock() then
-                        setPhase(target.victimUserId, "idle")
-                    end
-                end)
-            end
-            -- Attribute KO if this damage dropped them.
-            if target.humanoid.Health <= 0 then
-                local match = matchService()
-                if match then
-                    match.recordKO(player.UserId, target.victimUserId)
-                else
-                    -- Fallback if MatchService didn't load: tick lifetime KO
-                    -- directly so the stat doesn't regress.
-                    local data = DataStore.getCached(player.UserId)
-                    if data then
-                        data.knockouts += 1
-                        Leaderstats.refresh(player.UserId)
-                    end
+        local blocked, finalDamage = applyDamage(target.victimUserId, target.humanoid, rawDamage)
+        remotes.HitLanded:FireAllClients({
+            attackerUserId = player.UserId,
+            victimUserId = target.victimUserId,         -- nil for NPCs
+            victimCharacter = target.character,         -- always present; client looks up Head
+            rawDamage = rawDamage,
+            blocked = blocked,
+            finalDamage = finalDamage,
+        })
+        if not blocked and target.victimUserId then
+            stunUntil[target.victimUserId] = os.clock() + Constants.STUN_DURATION_SEC
+            setPhase(target.victimUserId, "stunned")
+            local stunnedId = target.victimUserId
+            task.delay(Constants.STUN_DURATION_SEC, function()
+                if (stunUntil[stunnedId] or 0) <= os.clock() then
+                    setPhase(stunnedId, "idle")
+                end
+            end)
+        end
+        -- Attribute KO if this damage dropped the target. NPCs (no userId)
+        -- still die but don't credit a KO toward player stats.
+        if target.humanoid.Health <= 0 and target.victimUserId then
+            local match = matchService()
+            if match then
+                match.recordKO(player.UserId, target.victimUserId)
+            else
+                -- Fallback: tick lifetime KO directly.
+                local data = DataStore.getCached(player.UserId)
+                if data then
+                    data.knockouts += 1
+                    Leaderstats.refresh(player.UserId)
                 end
             end
         end
