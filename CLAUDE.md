@@ -1,5 +1,19 @@
 # Roblox Studio Project -- Claude Code Rules
 
+> **PIVOT IN PROGRESS (2026-05-05).** This repo was forked from
+> `studio88-roblox` (a working tycoon) and is being repurposed into an arena
+> fighting / combat game. The tycoon code below is the **starting foundation
+> we are auditing and stripping**, not the active design. Read
+> `docs/project-plan.md` first — it is the source of truth for what we are
+> building. Hard rules in this file (Luau, server-authority, pcall'd
+> DataStore, typed functions, `task.spawn` / `task.wait`) still apply
+> verbatim. Tycoon-specific patterns (currency tick, upgrade tiers, plot
+> ring) are being phased out and will be replaced with combat patterns
+> (hitbox / stamina / round state machine / class registry) — see the
+> project plan for the new defaults.
+
+## Legacy tycoon context (kept for Phase 0 audit only)
+
 You are building a Roblox tycoon experience inside this project. The goal is a 45-90 minute average session, daily-return loop, monetized via Game Passes + Creator Rewards. Adapted from the @starmexxx Apr 26 2026 playbook.
 
 ## Language

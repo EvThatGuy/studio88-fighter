@@ -1,4 +1,15 @@
-# Roblox tycoon project
+# Studio 88 — Roblox project
+
+> **Pivot in progress (2026-05-05).** This repository was forked from
+> `studio88-roblox` (a working tycoon) and is being repurposed into a Roblox
+> arena fighting / combat game. The tycoon code described below still runs
+> and is the starting foundation we are auditing — but it is **not** the
+> direction. See **[`docs/project-plan.md`](docs/project-plan.md)** for what
+> we are actually building, the open-source-base evaluation strategy, the
+> phased roadmap, and the technical risks. Sections below this banner
+> describe the inherited tycoon and will be rewritten in Phase 0.
+
+## (Legacy) Roblox tycoon project
 
 Studio-side codebase for Studio 88's Roblox track. The world is generated at
 runtime by `WorldBuilder.server.luau` so the codebase is the source of truth;
