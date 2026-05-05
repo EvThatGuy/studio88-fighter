@@ -55,6 +55,7 @@ end
 -- Foundation: data + leaderstats first, before anyone reads cache
 load("DataStore")
 load("Leaderstats")
+load("AntiCheat")
 
 -- Combat services (Phase 1 scaffolding; stubs until elomala port lands)
 loadFolder("Combat", { "ClassRegistry", "StaminaService", "HitboxService", "CombatService" })
