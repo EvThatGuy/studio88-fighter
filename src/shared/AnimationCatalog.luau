@@ -87,12 +87,13 @@ AnimationCatalog.ASSETS = {
     M2_Heavy = "rbxassetid://522638767",  -- placeholder: Sword Lunge (committed forward thrust)
 
     -- Defensive states.
-    -- TODO(custom): Block stance is held while F is down; should be a
-    -- low-motion guard pose, looped. No good free Roblox-published
-    -- equivalent exists — a looping idle would not read as "blocking".
-    -- Leaving blank so AnimationPlayer skips it cleanly until you record
-    -- a real guard pose in Studio Animation Editor.
-    Block = "",
+    -- Block is held while F is down. Placeholder reuses the Roblox-default
+    -- R15 Idle1 (507766388, looped) so the player at least *holds a pose*
+    -- while blocking instead of snapping to nothing. Reads as "stand and
+    -- guard" — not great, but visible.
+    -- TODO(custom): record a real low-motion guard pose (arms up, weight
+    -- back, looped) in Studio Animation Editor.
+    Block = "rbxassetid://507766388",
     -- TODO(custom): Dodge is a 0.4s sidestep / roll. No stable free
     -- equivalent. Recommended: record a quick CFrame-driven roll keyframe
     -- in Studio Animation Editor (~12 frames, Linear easing).
@@ -117,9 +118,9 @@ AnimationCatalog.ASSETS = {
     -- TODO(custom): record one cast animation per ability (or share if
     -- the cast pose is the same — e.g. all "shoulder dip + arm throw").
     Ability_Slot1_Cast = "rbxassetid://522638767",  -- placeholder: Sword Lunge
-    Ability_Slot2_Cast = "",
-    Ability_Slot3_Cast = "",
-    Ability_Slot4_Cast = "",
+    Ability_Slot2_Cast = "rbxassetid://522635514",  -- placeholder: Sword RightSlash
+    Ability_Slot3_Cast = "rbxassetid://522638767",  -- placeholder: Sword Lunge (committed forward action)
+    Ability_Slot4_Cast = "rbxassetid://522635514",  -- placeholder: Sword RightSlash
 
     -- Locomotion / idle (Roblox-default R15 animations from the public
     -- Animate script — these IDs are stable and shipped with every
