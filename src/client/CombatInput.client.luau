@@ -22,6 +22,7 @@ local player = Players.LocalPlayer
 local remotes = Remotes.waitFor()
 
 local PUNCH_ACTION = "Studio88_Punch"
+local HEAVY_ACTION = "Studio88_Heavy"
 local BLOCK_ACTION = "Studio88_Block"
 local DODGE_ACTION = "Studio88_Dodge"
 
@@ -38,6 +39,12 @@ local function onPunch(_, state: Enum.UserInputState)
     if state ~= Enum.UserInputState.Begin then return end
     if not aliveAndUnfocused() then return end
     remotes.PunchRequest:FireServer()
+end
+
+local function onHeavy(_, state: Enum.UserInputState)
+    if state ~= Enum.UserInputState.Begin then return end
+    if not aliveAndUnfocused() then return end
+    remotes.HeavyAttackRequest:FireServer()
 end
 
 local function onBlock(_, state: Enum.UserInputState)
@@ -63,6 +70,12 @@ end
 ContextActionService:BindAction(
     PUNCH_ACTION, onPunch, false,
     Enum.UserInputType.MouseButton1, Enum.KeyCode.ButtonR2
+)
+-- Heavy attack: RMB OR R key (RMB is also Roblox's camera-rotate gesture
+-- on click-and-drag; tap fires our action, hold rotates). Gamepad: R1.
+ContextActionService:BindAction(
+    HEAVY_ACTION, onHeavy, false,
+    Enum.UserInputType.MouseButton2, Enum.KeyCode.R, Enum.KeyCode.ButtonR1
 )
 ContextActionService:BindAction(
     BLOCK_ACTION, onBlock, false,

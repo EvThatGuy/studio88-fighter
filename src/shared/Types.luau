@@ -7,7 +7,7 @@
 
 export type FighterClassId = string -- references Constants.CLASSES key
 
-export type CombatPhase = "idle" | "attacking" | "blocking" | "stunned" | "dodging"
+export type CombatPhase = "idle" | "attacking" | "attacking_heavy" | "blocking" | "stunned" | "dodging"
 
 export type StaminaState = {
     current: number,
@@ -75,6 +75,7 @@ export type LeaderboardRow = {
 export type RemoteMap = {
     -- Combat (client → server requests)
     PunchRequest: RemoteEvent,
+    HeavyAttackRequest: RemoteEvent, -- M2 / RMB / R; slower + higher damage; block-pierces
     BlockRequest: RemoteEvent,
     DodgeRequest: RemoteEvent,
     AbilityRequest: RemoteEvent,

@@ -33,21 +33,21 @@ local function characterOf(part: BasePart): Model?
     return nil
 end
 
-function HitboxService.queryPunchTargets(attacker: Player): {HitTarget}
+local function queryFront(attacker: Player, size: Vector3, offset: Vector3): {HitTarget}
     local results: {HitTarget} = {}
     local character = attacker.Character
     if not character then return results end
     local hrp = character:FindFirstChild("HumanoidRootPart") :: BasePart?
     if not hrp then return results end
 
-    local origin = hrp.CFrame * CFrame.new(Constants.HITBOX_OFFSET)
+    local origin = hrp.CFrame * CFrame.new(offset)
     local params = OverlapParams.new()
     params.FilterType = Enum.RaycastFilterType.Exclude
     params.FilterDescendantsInstances = {character}
     params.MaxParts = 32
 
     local seenChars: {[Model]: true} = {}
-    local parts = workspace:GetPartBoundsInBox(origin, Constants.HITBOX_SIZE, params)
+    local parts = workspace:GetPartBoundsInBox(origin, size, params)
     for _, part in ipairs(parts) do
         local victimChar = characterOf(part)
         if victimChar and not seenChars[victimChar] then
@@ -70,6 +70,14 @@ function HitboxService.queryPunchTargets(attacker: Player): {HitTarget}
         end
     end
     return results
+end
+
+function HitboxService.queryPunchTargets(attacker: Player): {HitTarget}
+    return queryFront(attacker, Constants.HITBOX_SIZE, Constants.HITBOX_OFFSET)
+end
+
+function HitboxService.queryHeavyTargets(attacker: Player): {HitTarget}
+    return queryFront(attacker, Constants.M2_HITBOX_SIZE, Constants.M2_HITBOX_OFFSET)
 end
 
 return HitboxService

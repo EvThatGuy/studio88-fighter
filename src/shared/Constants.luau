@@ -33,6 +33,17 @@ Constants.HITBOX_SIZE = Vector3.new(4, 5, 5)
 Constants.HITBOX_OFFSET = Vector3.new(0, 0, -3) -- in front of HRP
 Constants.HIT_RATE_LIMIT_PER_SEC = 6    -- server clamp on PunchRequest
 
+-- Heavy attack (M2). Slower, higher damage, partially block-piercing,
+-- longer stun. Telegraphs via M2_WINDUP_SEC so opponents can react.
+Constants.M2_DAMAGE = 18
+Constants.M2_BLOCK_DAMAGE_REDUCTION = 0.50  -- 50% absorbed (heavy partly pierces block)
+Constants.M2_HITBOX_SIZE = Vector3.new(5, 6, 6)
+Constants.M2_HITBOX_OFFSET = Vector3.new(0, 0, -3.5)
+Constants.M2_WINDUP_SEC = 0.25      -- delay between cast and damage tick (telegraph)
+Constants.M2_RECOVERY_SEC = 0.45    -- attacker locked in attacking_heavy after windup
+Constants.M2_STUN_DURATION = 1.0    -- victim stun on heavy hit
+Constants.STAMINA_M2_COST = 22
+
 -- Class registry. Each class is a fighter style with distinct movement
 -- and stamina behaviour. Abilities attach via AbilityRegistry per-class.
 -- Phase 1 ships ONE class (Striker) end-to-end; the rest are reserved
@@ -141,6 +152,7 @@ Constants.MAX_MOVE_PER_SEC = 60
 -- Per-RPC cooldowns. Server tracks last-fired time per (userId, rpc).
 Constants.RPC_COOLDOWNS = {
     PunchRequest = 1 / Constants.HIT_RATE_LIMIT_PER_SEC, -- ≈ 0.16s
+    HeavyAttackRequest = 0.7,
     BlockRequest = 0.05,
     DodgeRequest = 0.4,
     AbilityRequest = 0.1,    -- abilities have their own cooldown layer too

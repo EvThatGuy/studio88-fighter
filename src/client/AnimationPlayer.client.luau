@@ -149,6 +149,8 @@ remotes.CombatPhaseChanged.OnClientEvent:Connect(function(payload: any)
 
     if newPhase == "attacking" then
         playOn(character, nextM1Key(userId))
+    elseif newPhase == "attacking_heavy" then
+        playOn(character, "M2_Heavy")
     elseif newPhase == "blocking" then
         playOn(character, "Block")
     elseif newPhase == "dodging" then

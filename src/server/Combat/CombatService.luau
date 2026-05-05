@@ -133,6 +133,73 @@ remotes.PunchRequest.OnServerEvent:Connect(function(player: Player)
     end)
 end)
 
+-- Heavy attack (M2): slower than punch (~0.7s RPC cooldown), telegraphed
+-- by a 0.25s windup before damage applies, partially block-pierces,
+-- longer stun (1.0s vs 0.6s for punch). Damage scales off class.heavyDamage
+-- if defined, else 2x class.punchDamage. Phase = "attacking_heavy" so
+-- the client plays a different animation slot (M2_Heavy in catalog).
+remotes.HeavyAttackRequest.OnServerEvent:Connect(function(player: Player)
+    if not rpcCooldownOk(player.UserId, "HeavyAttackRequest", Constants.RPC_COOLDOWNS.HeavyAttackRequest) then return end
+    if isStunned(player.UserId) then return end
+    if not StaminaService.tryConsume(player, Constants.STAMINA_M2_COST) then return end
+
+    setPhase(player.UserId, "attacking_heavy")
+
+    local class = ClassRegistry.classFor(player.UserId)
+    local rawDamage = class.heavyDamage or (class.punchDamage or Constants.PUNCH_DAMAGE) * 2
+
+    -- Windup: damage doesn't apply until M2_WINDUP_SEC into the swing.
+    -- This is the telegraph that lets opponents block / dodge.
+    task.delay(Constants.M2_WINDUP_SEC, function()
+        if not player.Parent then return end
+        if phase[player.UserId] ~= "attacking_heavy" then return end -- got interrupted
+        local targets = HitboxService.queryHeavyTargets(player)
+        for _, target in ipairs(targets) do
+            local blocked = target.victimUserId ~= nil and phase[target.victimUserId] == "blocking"
+            local finalDamage = blocked and rawDamage * (1 - Constants.M2_BLOCK_DAMAGE_REDUCTION) or rawDamage
+            target.humanoid:TakeDamage(finalDamage)
+            remotes.HitLanded:FireAllClients({
+                attackerUserId = player.UserId,
+                victimUserId = target.victimUserId,
+                victimCharacter = target.character,
+                rawDamage = rawDamage,
+                blocked = blocked,
+                finalDamage = finalDamage,
+            })
+            if not blocked and target.victimUserId then
+                stunUntil[target.victimUserId] = os.clock() + Constants.M2_STUN_DURATION
+                setPhase(target.victimUserId, "stunned")
+                local stunnedId = target.victimUserId
+                task.delay(Constants.M2_STUN_DURATION, function()
+                    if (stunUntil[stunnedId] or 0) <= os.clock() then
+                        setPhase(stunnedId, "idle")
+                    end
+                end)
+            end
+            if target.humanoid.Health <= 0 and target.victimUserId then
+                local match = matchService()
+                if match then
+                    match.recordKO(player.UserId, target.victimUserId)
+                else
+                    local data = DataStore.getCached(player.UserId)
+                    if data then
+                        data.knockouts += 1
+                        Leaderstats.refresh(player.UserId)
+                    end
+                end
+            end
+        end
+    end)
+
+    -- Recovery: attacker stays in attacking_heavy through the windup +
+    -- recovery so they can't immediately chain. Auto-reset to idle.
+    task.delay(Constants.M2_WINDUP_SEC + Constants.M2_RECOVERY_SEC, function()
+        if phase[player.UserId] == "attacking_heavy" then
+            setPhase(player.UserId, "idle")
+        end
+    end)
+end)
+
 remotes.BlockRequest.OnServerEvent:Connect(function(player: Player, raising: any)
     if not rpcCooldownOk(player.UserId, "BlockRequest", Constants.RPC_COOLDOWNS.BlockRequest) then return end
     if isStunned(player.UserId) then return end

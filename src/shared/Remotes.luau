@@ -16,6 +16,7 @@ local FOLDER_NAME = "Studio88Remotes"
 local REMOTE_NAMES = {
     -- Combat: client → server
     {name = "PunchRequest", class = "RemoteEvent"},
+    {name = "HeavyAttackRequest", class = "RemoteEvent"},
     {name = "BlockRequest", class = "RemoteEvent"},
     {name = "DodgeRequest", class = "RemoteEvent"},
     {name = "AbilityRequest", class = "RemoteEvent"},
