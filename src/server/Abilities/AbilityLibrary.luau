@@ -6,6 +6,12 @@
 
 local Modules = game:GetService("ReplicatedStorage"):WaitForChild("Modules")
 local AbilitySpec = require(Modules:WaitForChild("AbilitySpec"))
+local Constants = require(Modules:WaitForChild("Constants"))
+
+-- CombatService exposes the modifier setters (setParry / setIronSkin /
+-- setIFrames) that the slot-2 abilities mutate. We require it here, not
+-- in each effect function, so the dependency is explicit.
+local CombatService = require(script.Parent.Parent:WaitForChild("Combat"):WaitForChild("CombatService"))
 
 local AbilityLibrary = {}
 
@@ -84,6 +90,112 @@ local function bruiserGroundSlam(player: Player): boolean
     return true
 end
 
+-- Striker / Counter Stance (Slot 2): opens a brief parry window. Any
+-- incoming hit during the window does 0 damage AND counter-stuns the
+-- attacker for PARRY_ATTACKER_STUN_SEC. Single-use — first hit consumes.
+local function strikerCounterStance(player: Player): boolean
+    local character = player.Character
+    if not character then return false end
+    local hrp = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+    if not hrp then return false end
+    CombatService.setParry(player.UserId, Constants.PARRY_WINDOW_SEC)
+
+    -- Visual: brief cyan ring at the feet so the parry window is readable.
+    local ring = Instance.new("Part")
+    ring.Anchored = true
+    ring.CanCollide = false
+    ring.Size = Vector3.new(6, 0.2, 6)
+    ring.Color = Color3.fromRGB(0, 240, 255)
+    ring.Material = Enum.Material.Neon
+    ring.Transparency = 0.3
+    ring.CFrame = CFrame.new(hrp.Position - Vector3.new(0, 2.5, 0))
+    ring.Parent = workspace
+    task.spawn(function()
+        local TweenService = game:GetService("TweenService")
+        TweenService:Create(ring, TweenInfo.new(Constants.PARRY_WINDOW_SEC, Enum.EasingStyle.Quad), {
+            Size = Vector3.new(10, 0.2, 10),
+            Transparency = 1,
+        }):Play()
+        task.wait(Constants.PARRY_WINDOW_SEC + 0.1)
+        ring:Destroy()
+    end)
+    return true
+end
+
+-- Bruiser / Iron Skin (Slot 2): IRON_SKIN_DURATION_SEC of damage
+-- reduction (multiplier IRON_SKIN_REDUCTION). Stacks with block.
+local function bruiserIronSkin(player: Player): boolean
+    local character = player.Character
+    if not character then return false end
+    local hrp = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+    if not hrp then return false end
+    CombatService.setIronSkin(player.UserId, Constants.IRON_SKIN_DURATION_SEC)
+
+    -- Visual: amber pulse under the caster while the buff is up. We
+    -- recreate the part at apply time and tween it to fade over the
+    -- buff duration so the player can see when it's about to drop.
+    local pulse = Instance.new("Part")
+    pulse.Anchored = true
+    pulse.CanCollide = false
+    pulse.Size = Vector3.new(5, 0.2, 5)
+    pulse.Color = Color3.fromRGB(255, 176, 0)
+    pulse.Material = Enum.Material.Neon
+    pulse.Transparency = 0.2
+    pulse.CFrame = CFrame.new(hrp.Position - Vector3.new(0, 2.5, 0))
+    pulse.Parent = workspace
+    -- Track the caster's HRP so the pulse follows. WeldConstraint to HRP.
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = pulse
+    weld.Part1 = hrp
+    weld.Parent = pulse
+    pulse.Anchored = false
+    task.spawn(function()
+        local TweenService = game:GetService("TweenService")
+        TweenService:Create(pulse, TweenInfo.new(Constants.IRON_SKIN_DURATION_SEC, Enum.EasingStyle.Linear), {
+            Transparency = 1,
+        }):Play()
+        task.wait(Constants.IRON_SKIN_DURATION_SEC + 0.1)
+        pulse:Destroy()
+    end)
+    return true
+end
+
+-- Swift / Wind Step (Slot 2): translate HRP forward WIND_STEP_DISTANCE
+-- studs in the facing direction with a brief WIND_STEP_IFRAME_SEC of
+-- iframes so the dash also dodges incoming hits.
+local function swiftWindStep(player: Player): boolean
+    local character = player.Character
+    if not character then return false end
+    local hrp = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+    if not hrp then return false end
+    local forward = hrp.CFrame.LookVector
+    local destination = hrp.Position + forward * Constants.WIND_STEP_DISTANCE
+    -- Preserve orientation; only translate.
+    hrp.CFrame = CFrame.new(destination, destination + forward)
+    CombatService.setIFrames(player.UserId, Constants.WIND_STEP_IFRAME_SEC)
+
+    -- Visual: a translucent pink streak from origin to destination.
+    local streak = Instance.new("Part")
+    streak.Anchored = true
+    streak.CanCollide = false
+    streak.Material = Enum.Material.Neon
+    streak.Color = Color3.fromRGB(255, 46, 136)
+    streak.Transparency = 0.4
+    local mid = (hrp.Position + destination) * 0.5
+    streak.Size = Vector3.new(0.6, 0.6, Constants.WIND_STEP_DISTANCE)
+    streak.CFrame = CFrame.new(mid, mid + forward)
+    streak.Parent = workspace
+    task.spawn(function()
+        local TweenService = game:GetService("TweenService")
+        TweenService:Create(streak, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            Transparency = 1,
+        }):Play()
+        task.wait(0.35)
+        streak:Destroy()
+    end)
+    return true
+end
+
 -- Swift / Double Jump: applies a single upward velocity boost while airborne.
 local function swiftDoubleJump(player: Player): boolean
     local character = player.Character
@@ -107,32 +219,62 @@ local function swiftDoubleJump(player: Player): boolean
 end
 
 AbilityLibrary.SPECS = {
+    -- Striker
     {
         id = "striker_dash",
         displayName = "Dash",
-        classId = "Striker",
+        classId = "striker",
         staminaCost = 30,
         cooldownSec = 4,
         blurb = "burst forward 80 studs/s for 0.18s",
         effect = strikerDash,
     },
     {
+        id = "striker_counter_stance",
+        displayName = "Counter Stance",
+        classId = "striker",
+        staminaCost = 35,
+        cooldownSec = 6,
+        blurb = "0.5s parry window — incoming hit stuns attacker 1.2s",
+        effect = strikerCounterStance,
+    },
+    -- Bruiser
+    {
         id = "bruiser_ground_slam",
         displayName = "Ground Slam",
-        classId = "Bruiser",
+        classId = "bruiser",
         staminaCost = 45,
         cooldownSec = 8,
         blurb = "AOE 22 dmg in 12-stud radius",
         effect = bruiserGroundSlam,
     },
     {
+        id = "bruiser_iron_skin",
+        displayName = "Iron Skin",
+        classId = "bruiser",
+        staminaCost = 40,
+        cooldownSec = 12,
+        blurb = "3s buff: incoming damage halved",
+        effect = bruiserIronSkin,
+    },
+    -- Swift
+    {
         id = "swift_double_jump",
         displayName = "Double Jump",
-        classId = "Swift",
+        classId = "swift",
         staminaCost = 20,
         cooldownSec = 2,
         blurb = "mid-air upward boost",
         effect = swiftDoubleJump,
+    },
+    {
+        id = "swift_wind_step",
+        displayName = "Wind Step",
+        classId = "swift",
+        staminaCost = 25,
+        cooldownSec = 5,
+        blurb = "teleport 14 studs forward + 0.25s i-frames",
+        effect = swiftWindStep,
     },
 } :: {AbilitySpec.AbilitySpec}
 

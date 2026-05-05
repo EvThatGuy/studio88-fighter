@@ -44,6 +44,16 @@ Constants.M2_RECOVERY_SEC = 0.45    -- attacker locked in attacking_heavy after 
 Constants.M2_STUN_DURATION = 1.0    -- victim stun on heavy hit
 Constants.STAMINA_M2_COST = 22
 
+-- Slot-2 ability tuning. Per-spec stamina/cooldown live in AbilityLibrary;
+-- timings + magnitudes that the CombatService modifier system consults
+-- live here so balance changes don't require code edits.
+Constants.PARRY_WINDOW_SEC = 0.5            -- Counter Stance: incoming-hit window
+Constants.PARRY_ATTACKER_STUN_SEC = 1.2     -- attacker is counter-stunned on parry
+Constants.IRON_SKIN_DURATION_SEC = 3.0      -- Iron Skin uptime
+Constants.IRON_SKIN_REDUCTION = 0.5         -- multiplier on incoming damage during Iron Skin
+Constants.WIND_STEP_DISTANCE = 14           -- studs forward
+Constants.WIND_STEP_IFRAME_SEC = 0.25       -- invulnerable window after teleport
+
 -- Class registry. Each class is a fighter style with distinct movement
 -- and stamina behaviour. Abilities attach via AbilityRegistry per-class.
 -- Phase 1 ships ONE class (Striker) end-to-end; the rest are reserved

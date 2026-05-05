@@ -43,6 +43,21 @@ local CombatService = {}
 local phase: {[number]: string} = {}              -- userId -> CombatPhase
 local stunUntil: {[number]: number} = {}          -- userId -> os.clock() unstun time
 local lastRpc: {[number]: {[string]: number}} = {} -- userId -> {rpcName -> os.clock()}
+-- Modifier deadlines applied by Slot-2 abilities. All are os.clock()
+-- timestamps that gate damage in applyDamage. Set via the public
+-- CombatService.setParry / setIronSkin / setIFrames functions called
+-- from AbilityLibrary effects.
+type Modifiers = { parryUntil: number?, ironSkinUntil: number?, iframeUntil: number? }
+local modifiers: {[number]: Modifiers} = {}
+
+local function modifiersFor(userId: number): Modifiers
+    local m = modifiers[userId]
+    if not m then
+        m = {}
+        modifiers[userId] = m
+    end
+    return m
+end
 
 local function setPhase(userId: number, newPhase: string)
     phase[userId] = newPhase
@@ -70,13 +85,67 @@ local function rpcCooldownOk(userId: number, rpc: string, cooldownSec: number): 
     return true
 end
 
-local function applyDamage(victimUserId: number?, humanoid: Humanoid, rawDamage: number): (boolean, number)
-    -- Returns (blocked, finalDamage). Block requires the victim to be a
-    -- player currently in the "blocking" phase; NPCs never block.
+-- DamageOutcome tags how a hit landed: "hit" baseline, "blocked" when
+-- guard reduced damage, "iframed" / "parried" when modifier prevented
+-- damage entirely, "iron_skin" when the buff halved it. Callers use
+-- this to decide whether to stun the victim, counter-stun the attacker,
+-- or skip stun entirely.
+local function applyDamage(
+    victimUserId: number?,
+    humanoid: Humanoid,
+    rawDamage: number,
+    blockReduction: number?
+): (boolean, number, string)
+    local now = os.clock()
+    local mods = victimUserId and modifiers[victimUserId] or nil
+
+    if mods then
+        if mods.iframeUntil and now < mods.iframeUntil then
+            return false, 0, "iframed"
+        end
+        if mods.parryUntil and now < mods.parryUntil then
+            mods.parryUntil = nil  -- consume
+            return false, 0, "parried"
+        end
+    end
+
+    local reduction = blockReduction or Constants.BLOCK_DAMAGE_REDUCTION
     local blocked = victimUserId ~= nil and phase[victimUserId] == "blocking"
-    local finalDamage = blocked and rawDamage * (1 - Constants.BLOCK_DAMAGE_REDUCTION) or rawDamage
+    local finalDamage = blocked and rawDamage * (1 - reduction) or rawDamage
+    local outcome: string = blocked and "blocked" or "hit"
+
+    if mods and mods.ironSkinUntil and now < mods.ironSkinUntil then
+        finalDamage = finalDamage * Constants.IRON_SKIN_REDUCTION
+        if not blocked then outcome = "iron_skin" end
+    end
+
     humanoid:TakeDamage(finalDamage)
-    return blocked, finalDamage
+    return blocked, finalDamage, outcome
+end
+
+-- Public modifier setters called from AbilityLibrary effects.
+function CombatService.setParry(userId: number, durationSec: number)
+    modifiersFor(userId).parryUntil = os.clock() + durationSec
+end
+
+function CombatService.setIronSkin(userId: number, durationSec: number)
+    modifiersFor(userId).ironSkinUntil = os.clock() + durationSec
+end
+
+function CombatService.setIFrames(userId: number, durationSec: number)
+    modifiersFor(userId).iframeUntil = os.clock() + durationSec
+end
+
+-- Counter-stun helper: applied to attackers who connect on a parrying
+-- victim. Used by both M1 and M2 handlers.
+local function stunForCounter(userId: number, durationSec: number)
+    stunUntil[userId] = os.clock() + durationSec
+    setPhase(userId, "stunned")
+    task.delay(durationSec, function()
+        if (stunUntil[userId] or 0) <= os.clock() then
+            setPhase(userId, "idle")
+        end
+    end)
 end
 
 remotes.PunchRequest.OnServerEvent:Connect(function(player: Player)
@@ -90,7 +159,7 @@ remotes.PunchRequest.OnServerEvent:Connect(function(player: Player)
     setPhase(player.UserId, "attacking")
     local targets = HitboxService.queryPunchTargets(player)
     for _, target in ipairs(targets) do
-        local blocked, finalDamage = applyDamage(target.victimUserId, target.humanoid, rawDamage)
+        local blocked, finalDamage, outcome = applyDamage(target.victimUserId, target.humanoid, rawDamage)
         remotes.HitLanded:FireAllClients({
             attackerUserId = player.UserId,
             victimUserId = target.victimUserId,         -- nil for NPCs
@@ -98,8 +167,13 @@ remotes.PunchRequest.OnServerEvent:Connect(function(player: Player)
             rawDamage = rawDamage,
             blocked = blocked,
             finalDamage = finalDamage,
+            outcome = outcome,
         })
-        if not blocked and target.victimUserId then
+        if outcome == "parried" then
+            -- Victim's Counter Stance ate the hit; attacker is counter-stunned.
+            stunForCounter(player.UserId, Constants.PARRY_ATTACKER_STUN_SEC)
+            -- Skip rest of loop iteration; no victim stun, no KO check (0 dmg).
+        elseif not blocked and outcome ~= "iframed" and target.victimUserId then
             stunUntil[target.victimUserId] = os.clock() + Constants.STUN_DURATION_SEC
             setPhase(target.victimUserId, "stunned")
             local stunnedId = target.victimUserId
@@ -110,7 +184,8 @@ remotes.PunchRequest.OnServerEvent:Connect(function(player: Player)
             end)
         end
         -- Attribute KO if this damage dropped the target. NPCs (no userId)
-        -- still die but don't credit a KO toward player stats.
+        -- still die but don't credit a KO toward player stats. Parried /
+        -- iframed hits did 0 damage so this naturally never trips.
         if target.humanoid.Health <= 0 and target.victimUserId then
             local match = matchService()
             if match then
@@ -155,9 +230,10 @@ remotes.HeavyAttackRequest.OnServerEvent:Connect(function(player: Player)
         if phase[player.UserId] ~= "attacking_heavy" then return end -- got interrupted
         local targets = HitboxService.queryHeavyTargets(player)
         for _, target in ipairs(targets) do
-            local blocked = target.victimUserId ~= nil and phase[target.victimUserId] == "blocking"
-            local finalDamage = blocked and rawDamage * (1 - Constants.M2_BLOCK_DAMAGE_REDUCTION) or rawDamage
-            target.humanoid:TakeDamage(finalDamage)
+            local blocked, finalDamage, outcome = applyDamage(
+                target.victimUserId, target.humanoid, rawDamage,
+                Constants.M2_BLOCK_DAMAGE_REDUCTION
+            )
             remotes.HitLanded:FireAllClients({
                 attackerUserId = player.UserId,
                 victimUserId = target.victimUserId,
@@ -165,8 +241,11 @@ remotes.HeavyAttackRequest.OnServerEvent:Connect(function(player: Player)
                 rawDamage = rawDamage,
                 blocked = blocked,
                 finalDamage = finalDamage,
+                outcome = outcome,
             })
-            if not blocked and target.victimUserId then
+            if outcome == "parried" then
+                stunForCounter(player.UserId, Constants.PARRY_ATTACKER_STUN_SEC)
+            elseif not blocked and outcome ~= "iframed" and target.victimUserId then
                 stunUntil[target.victimUserId] = os.clock() + Constants.M2_STUN_DURATION
                 setPhase(target.victimUserId, "stunned")
                 local stunnedId = target.victimUserId
@@ -233,6 +312,7 @@ Players.PlayerRemoving:Connect(function(player)
     phase[player.UserId] = nil
     stunUntil[player.UserId] = nil
     lastRpc[player.UserId] = nil
+    modifiers[player.UserId] = nil
 end)
 
 return CombatService

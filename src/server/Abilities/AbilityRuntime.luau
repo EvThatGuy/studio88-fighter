@@ -60,7 +60,7 @@ remotes.AbilityRequest.OnServerEvent:Connect(function(player: Player, requestId:
     local slotIndex = tonumber((requestId:match("^ability_(%d+)$")))
     if slotIndex then
         local class = ClassRegistry.classFor(player.UserId)
-        local list = AbilityLibrary.BY_CLASS[class.id] or AbilityLibrary.BY_CLASS[Constants.DEFAULT_CLASS]
+        local list = AbilityLibrary.BY_CLASS[class.id]
         if not list or not list[slotIndex] then return end
         abilityId = list[slotIndex].id
     end
