@@ -27,6 +27,7 @@ local REMOTE_NAMES = {
     -- Class selection
     {name = "SelectClass", class = "RemoteEvent"},
     {name = "ClassSelected", class = "RemoteEvent"},
+    {name = "OpenClassSelect", class = "RemoteEvent"},
     {name = "GetClasses", class = "RemoteFunction"},
     -- Match flow
     {name = "MatchStateChanged", class = "RemoteEvent"},

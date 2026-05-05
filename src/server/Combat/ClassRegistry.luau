@@ -35,6 +35,19 @@ function ClassRegistry.applyToCharacter(player: Player, character: Model)
     end
 end
 
+-- Pushes the OpenClassSelect prompt to the client if the player has never
+-- explicitly chosen a class. Spawned in a task because waitForCached
+-- yields up to ~10s while DataStore's GetAsync resolves.
+local function maybePromptClassSelect(player: Player)
+    task.spawn(function()
+        local data = DataStore.waitForCached(player.UserId, 10)
+        if not data then return end
+        if data.hasChosenClass then return end
+        if not player.Parent then return end -- left mid-load
+        remotes.OpenClassSelect:FireClient(player)
+    end)
+end
+
 local function bindCharacterEvents(player: Player)
     if player.Character then
         ClassRegistry.applyToCharacter(player, player.Character)
@@ -42,6 +55,7 @@ local function bindCharacterEvents(player: Player)
     player.CharacterAdded:Connect(function(character)
         ClassRegistry.applyToCharacter(player, character)
     end)
+    maybePromptClassSelect(player)
 end
 
 Players.PlayerAdded:Connect(bindCharacterEvents)
@@ -55,6 +69,7 @@ remotes.SelectClass.OnServerEvent:Connect(function(player: Player, classId: any)
     local data = DataStore.getCached(player.UserId)
     if not data then return end
     data.selectedClass = classId
+    data.hasChosenClass = true
     if player.Character then
         ClassRegistry.applyToCharacter(player, player.Character)
     end

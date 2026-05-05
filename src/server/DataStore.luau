@@ -46,6 +46,7 @@ local function defaultPlayerData(): Types.PlayerData
     return {
         schemaVersion = Constants.DATASTORE_VERSION,
         selectedClass = Constants.DEFAULT_CLASS,
+        hasChosenClass = false,
         xp = 0,
         xpLevel = 1,
         wins = 0,
@@ -128,6 +129,20 @@ local function saveToStore(userId: number, data: Types.PlayerData)
 end
 
 function DataStore.getCached(userId: number): Types.PlayerData?
+    return cache[userId]
+end
+
+-- Polls until cached PlayerData is non-nil, since onPlayerAdded yields on
+-- GetAsync. Other PlayerAdded handlers that need data should call this
+-- instead of getCached so they don't race the load.
+function DataStore.waitForCached(userId: number, timeoutSec: number?): Types.PlayerData?
+    local timeout = timeoutSec or 10
+    local deadline = os.clock() + timeout
+    while os.clock() < deadline do
+        local data = cache[userId]
+        if data then return data end
+        task.wait(0.1)
+    end
     return cache[userId]
 end
 

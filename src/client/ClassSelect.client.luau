@@ -446,6 +446,13 @@ ContextActionService:BindAction(OPEN_ACTION, function(_, state)
     setOpen(not screenGui.Enabled)
 end, false, Enum.KeyCode.C, Enum.KeyCode.ButtonY)
 
+-- Server pushes OpenClassSelect on PlayerAdded for players who haven't
+-- explicitly chosen a class yet (hasChosenClass=false). Auto-open the
+-- modal so the very first thing a new player sees is the class roster.
+remotes.OpenClassSelect.OnClientEvent:Connect(function()
+    setOpen(true)
+end)
+
 -- Close on Esc as well
 UserInputService.InputBegan:Connect(function(input, processed)
     if processed then return end

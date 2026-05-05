@@ -51,6 +51,7 @@ export type MatchState = {
 export type PlayerData = {
     schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION
     selectedClass: FighterClassId,  -- last-picked class; persists across sessions
+    hasChosenClass: boolean,        -- true once the player has explicitly clicked a class card; false drives the auto-open class-select modal on join
     xp: number,
     xpLevel: number,
     wins: number,
@@ -85,6 +86,7 @@ export type RemoteMap = {
     -- Class selection
     SelectClass: RemoteEvent,       -- client → server; payload {classId}
     ClassSelected: RemoteEvent,     -- server → client; payload {classId}
+    OpenClassSelect: RemoteEvent,   -- server → client; payload nil; fired on PlayerAdded when hasChosenClass=false so the modal auto-opens
     GetClasses: RemoteFunction,     -- client → server; returns class registry snapshot
     -- Match flow
     MatchStateChanged: RemoteEvent, -- server → ALL; payload MatchState
