@@ -81,6 +81,7 @@ export type RemoteMap = {
     HitLanded: RemoteEvent,         -- payload {attackerUserId, victimUserId, finalDamage, blocked}
     StaminaUpdated: RemoteEvent,    -- server → client; payload {current, max}
     CombatPhaseChanged: RemoteEvent,-- server → client; payload {phase: CombatPhase, sourceUserId}
+    AbilityCast: RemoteEvent,       -- server → ALL; payload {casterUserId, abilityId, slotIndex} fired by AbilityRuntime on successful cast
     -- Class selection
     SelectClass: RemoteEvent,       -- client → server; payload {classId}
     ClassSelected: RemoteEvent,     -- server → client; payload {classId}

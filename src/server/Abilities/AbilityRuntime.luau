@@ -36,6 +36,18 @@ local function setReadyAt(userId: number, abilityId: string, when: number)
     map[abilityId] = when
 end
 
+-- Resolve a slot index for a given (classId, abilityId) so the client
+-- can pick the right Ability_SlotN_Cast animation key. Returns 1 by
+-- default if the ability doesn't appear in the class list (defensive).
+local function resolveSlotIndex(classId: string, abilityId: string): number
+    local list = AbilityLibrary.BY_CLASS[classId]
+    if not list then return 1 end
+    for i, s in ipairs(list) do
+        if s.id == abilityId then return i end
+    end
+    return 1
+end
+
 remotes.AbilityRequest.OnServerEvent:Connect(function(player: Player, requestId: any)
     if typeof(requestId) ~= "string" then return end
     local now = os.clock()
@@ -80,6 +92,19 @@ remotes.AbilityRequest.OnServerEvent:Connect(function(player: Player, requestId:
     end
 
     setReadyAt(player.UserId, abilityId, now + spec.cooldownSec)
+
+    -- Animation broadcast: every client renders the cast animation on
+    -- the caster's character. Slot index = position in the class's
+    -- ability list so the client maps to Ability_SlotN_Cast in the
+    -- AnimationCatalog.
+    if not slotIndex then
+        slotIndex = resolveSlotIndex(class.id, abilityId)
+    end
+    remotes.AbilityCast:FireAllClients({
+        casterUserId = player.UserId,
+        abilityId = abilityId,
+        slotIndex = slotIndex,
+    })
 end)
 
 -- Client query: what abilities + cooldowns does THIS player currently see?

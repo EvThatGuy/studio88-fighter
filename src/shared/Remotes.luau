@@ -23,6 +23,7 @@ local REMOTE_NAMES = {
     {name = "HitLanded", class = "RemoteEvent"},
     {name = "StaminaUpdated", class = "RemoteEvent"},
     {name = "CombatPhaseChanged", class = "RemoteEvent"},
+    {name = "AbilityCast", class = "RemoteEvent"},
     -- Class selection
     {name = "SelectClass", class = "RemoteEvent"},
     {name = "ClassSelected", class = "RemoteEvent"},

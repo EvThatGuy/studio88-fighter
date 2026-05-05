@@ -32,6 +32,14 @@ local AMBIENT_ROTATION = {
 
 local AmbientAudio = {}
 
+-- Set by AmbientAudio.server.luau at boot from its AMBIENT_AUDIO_ENABLED
+-- flag. When false, every public function below is a no-op so no Sound
+-- instances ever get created on the server (defensive — there are no
+-- callers in the fighter tree today, but a future module that requires
+-- this without going through the boot script would still respect the
+-- gate).
+AmbientAudio.ENABLED = true
+
 local function makeSound(name: string, soundPath: string, volume: number, looped: boolean): Sound
     local s = Instance.new("Sound")
     s.Name = name
@@ -43,6 +51,7 @@ local function makeSound(name: string, soundPath: string, volume: number, looped
 end
 
 function AmbientAudio.startAmbient()
+    if not AmbientAudio.ENABLED then return end
     local existing = SoundService:FindFirstChild("LobbyAmbient")
     if existing then existing:Destroy() end
     local s = makeSound("LobbyAmbient", AMBIENT_ROTATION[1], 0.15, true)
@@ -65,6 +74,7 @@ function AmbientAudio.startAmbient()
 end
 
 function AmbientAudio.ensureUiPings()
+    if not AmbientAudio.ENABLED then return end
     local container = SoundService:FindFirstChild("Studio88UIPings")
     if container then container:Destroy() end
     container = Instance.new("Folder")
@@ -83,6 +93,7 @@ end
 -- completes. Volume default 0.4. Optional pitch (PlaybackSpeed) default 1.0.
 -- Silent no-op if soundKey unknown.
 function AmbientAudio.playSpatial(soundKey: string, attachTo: BasePart, volume: number?, pitch: number?)
+    if not AmbientAudio.ENABLED then return end
     local soundPath = SOUND_PATHS[soundKey]
     if not soundPath or not attachTo then return end
     local s = Instance.new("Sound")
