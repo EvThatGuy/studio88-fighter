@@ -35,6 +35,18 @@ local function matchService(): any
     return _matchService
 end
 
+local _duelService: any = nil
+local function duelService(): any
+    if not _duelService then
+        local matchFolder = script.Parent.Parent:WaitForChild("Match", 5)
+        if matchFolder then
+            local mod = matchFolder:FindFirstChild("DuelService")
+            if mod then _duelService = require(mod) end
+        end
+    end
+    return _duelService
+end
+
 local remotes = Remotes.get()
 
 local CombatService = {}
@@ -123,6 +135,16 @@ local function applyDamage(
     return blocked, finalDamage, outcome
 end
 
+-- Damage gate consulted before applying a hit. Currently delegates to
+-- the duel system (only duelists can damage each other, non-duelists
+-- can't damage them, NPCs always allowed). Exposed so AbilityLibrary
+-- AOE effects can also gate before iterating victims.
+function CombatService.canDamage(attackerUserId: number, victimUserId: number?): boolean
+    local duel = duelService()
+    if duel then return duel.canDamage(attackerUserId, victimUserId) end
+    return true
+end
+
 -- Public modifier setters called from AbilityLibrary effects.
 function CombatService.setParry(userId: number, durationSec: number)
     modifiersFor(userId).parryUntil = os.clock() + durationSec
@@ -159,6 +181,12 @@ remotes.PunchRequest.OnServerEvent:Connect(function(player: Player)
     setPhase(player.UserId, "attacking")
     local targets = HitboxService.queryPunchTargets(player)
     for _, target in ipairs(targets) do
+        -- Duel gate: skip targets the attacker isn't allowed to damage
+        -- under the active duel rules (e.g. attacker is dueling someone
+        -- else, or victim is in a duel that doesn't include the attacker).
+        if not CombatService.canDamage(player.UserId, target.victimUserId) then
+            continue
+        end
         local blocked, finalDamage, outcome = applyDamage(target.victimUserId, target.humanoid, rawDamage)
         remotes.HitLanded:FireAllClients({
             attackerUserId = player.UserId,
@@ -187,15 +215,19 @@ remotes.PunchRequest.OnServerEvent:Connect(function(player: Player)
         -- still die but don't credit a KO toward player stats. Parried /
         -- iframed hits did 0 damage so this naturally never trips.
         if target.humanoid.Health <= 0 and target.victimUserId then
-            local match = matchService()
-            if match then
-                match.recordKO(player.UserId, target.victimUserId)
-            else
-                -- Fallback: tick lifetime KO directly.
-                local data = DataStore.getCached(player.UserId)
-                if data then
-                    data.knockouts += 1
-                    Leaderstats.refresh(player.UserId)
+            local duel = duelService()
+            local routed = duel and duel.recordKO(player.UserId, target.victimUserId)
+            if not routed then
+                local match = matchService()
+                if match then
+                    match.recordKO(player.UserId, target.victimUserId)
+                else
+                    -- Fallback: tick lifetime KO directly.
+                    local data = DataStore.getCached(player.UserId)
+                    if data then
+                        data.knockouts += 1
+                        Leaderstats.refresh(player.UserId)
+                    end
                 end
             end
         end
@@ -230,6 +262,9 @@ remotes.HeavyAttackRequest.OnServerEvent:Connect(function(player: Player)
         if phase[player.UserId] ~= "attacking_heavy" then return end -- got interrupted
         local targets = HitboxService.queryHeavyTargets(player)
         for _, target in ipairs(targets) do
+            if not CombatService.canDamage(player.UserId, target.victimUserId) then
+                continue
+            end
             local blocked, finalDamage, outcome = applyDamage(
                 target.victimUserId, target.humanoid, rawDamage,
                 Constants.M2_BLOCK_DAMAGE_REDUCTION
@@ -256,14 +291,18 @@ remotes.HeavyAttackRequest.OnServerEvent:Connect(function(player: Player)
                 end)
             end
             if target.humanoid.Health <= 0 and target.victimUserId then
-                local match = matchService()
-                if match then
-                    match.recordKO(player.UserId, target.victimUserId)
-                else
-                    local data = DataStore.getCached(player.UserId)
-                    if data then
-                        data.knockouts += 1
-                        Leaderstats.refresh(player.UserId)
+                local duel = duelService()
+                local routed = duel and duel.recordKO(player.UserId, target.victimUserId)
+                if not routed then
+                    local match = matchService()
+                    if match then
+                        match.recordKO(player.UserId, target.victimUserId)
+                    else
+                        local data = DataStore.getCached(player.UserId)
+                        if data then
+                            data.knockouts += 1
+                            Leaderstats.refresh(player.UserId)
+                        end
                     end
                 end
             end

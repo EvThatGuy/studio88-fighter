@@ -70,6 +70,21 @@ export type LeaderboardRow = {
     knockouts: number,
 }
 
+-- 1v1 duel state (per-player view; server pushes via DuelStateChanged).
+export type DuelPhase = "idle" | "queued" | "active" | "ended"
+
+export type DuelClientState = {
+    phase: DuelPhase,
+    queueTotal: number?,        -- queued: total waiting (incl. self)
+    opponentUserId: number?,    -- active/ended: opponent's userId
+    opponentName: string?,      -- active/ended
+    selfScore: number?,         -- active/ended: my KO count this duel
+    opponentScore: number?,     -- active/ended
+    endsAtUnix: number?,        -- active: os.time() when duel hard-stops
+    won: boolean?,              -- ended: did I win
+    xpAwarded: number?,         -- ended
+}
+
 -- Remote map. Each entry corresponds to a name in Remotes.luau and is the
 -- typed handle returned from Remotes.get() / Remotes.waitFor().
 export type RemoteMap = {
@@ -92,6 +107,9 @@ export type RemoteMap = {
     -- Match flow
     MatchStateChanged: RemoteEvent, -- server → ALL; payload MatchState
     GetMatchState: RemoteFunction,  -- client → server; returns current MatchState
+    -- 1v1 duel queue
+    DuelQueueRequest: RemoteEvent,  -- client → server; payload {join: boolean}
+    DuelStateChanged: RemoteEvent,  -- server → specific client; payload DuelClientState
     -- Generic notifications
     NotificationToast: RemoteEvent, -- server → client; payload {kind, title, body}
     -- Daily retention

@@ -94,6 +94,16 @@ Constants.MATCH_DURATION_SEC = 180      -- 3 min hard cap
 Constants.MATCH_RESULTS_SEC = 10
 Constants.RESPAWN_DELAY_SEC = 3
 
+-- 1v1 Duel queue. Players opt in via K key; server pairs the first two
+-- queued and runs an isolated duel concurrent with the deathmatch.
+-- Duelists can only damage each other (CombatService gates), KOs route
+-- to duel score not match score, lifetime stats still tick.
+Constants.DUEL_KO_TARGET = 3            -- first to 3 KOs wins the duel
+Constants.DUEL_DURATION_SEC = 90        -- hard time cap; higher score at expiry wins
+Constants.DUEL_WIN_XP = 250
+Constants.DUEL_LOSS_XP = 75
+Constants.DUEL_RESULTS_DISPLAY_SEC = 5  -- how long the win/loss banner stays on the HUD
+
 -- Map rotation. Phase 2 wires real maps; for now a single placeholder.
 Constants.MAPS = {
     {id = "placeholder_arena", displayName = "Placeholder Arena"},

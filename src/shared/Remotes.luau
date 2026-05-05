@@ -33,6 +33,9 @@ local REMOTE_NAMES = {
     -- Match flow
     {name = "MatchStateChanged", class = "RemoteEvent"},
     {name = "GetMatchState", class = "RemoteFunction"},
+    -- 1v1 duel queue
+    {name = "DuelQueueRequest", class = "RemoteEvent"},
+    {name = "DuelStateChanged", class = "RemoteEvent"},
     -- Generic
     {name = "NotificationToast", class = "RemoteEvent"},
     -- Retention

@@ -61,7 +61,7 @@ load("AntiCheat")
 loadFolder("Combat", { "ClassRegistry", "StaminaService", "HitboxService", "CombatService", "DummyService" })
 
 -- Match flow (Phase 2 scaffolding)
-loadFolder("Match", { "MapRotation", "MatchService", "RespawnService", "SpawnProtection" })
+loadFolder("Match", { "MapRotation", "MatchService", "DuelService", "RespawnService", "SpawnProtection" })
 
 -- Abilities (Phase 3 — first slice: 1 ability per class)
 loadFolder("Abilities", { "AbilityLibrary", "AbilityRuntime" })

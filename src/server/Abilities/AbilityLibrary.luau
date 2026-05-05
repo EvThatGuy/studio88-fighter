@@ -55,6 +55,7 @@ local function bruiserGroundSlam(player: Player): boolean
     params.FilterDescendantsInstances = {character}
     params.MaxParts = 64
 
+    local Players = game:GetService("Players")
     local seen: {[Model]: true} = {}
     local parts = workspace:GetPartBoundsInBox(origin, size, params)
     for _, part in ipairs(parts) do
@@ -63,7 +64,11 @@ local function bruiserGroundSlam(player: Player): boolean
             seen[model] = true
             local humanoid = model:FindFirstChildOfClass("Humanoid")
             if humanoid and humanoid.Health > 0 then
-                humanoid:TakeDamage(SLAM_DAMAGE)
+                local victimPlayer = Players:GetPlayerFromCharacter(model)
+                local victimUserId = victimPlayer and victimPlayer.UserId or nil
+                if CombatService.canDamage(player.UserId, victimUserId) then
+                    humanoid:TakeDamage(SLAM_DAMAGE)
+                end
             end
         end
     end
