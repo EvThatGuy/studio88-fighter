@@ -1,37 +1,27 @@
 --!strict
--- When a Humanoid dies, count it for whoever last hit them (Phase 4 will
--- track explicit attribution; for now the killer is whoever has the last
--- damage event in CombatService — but since Humanoid.Died fires before
--- we could plumb that, this MVP just respawns after a delay).
--- Awards a loss to the dead player's persistent record on each death.
+-- Owns respawn timing only. Match-level wins / losses are attributed in
+-- MatchService.awardResults; this script just makes sure dead fighters
+-- come back after RESPAWN_DELAY_SEC.
 
 local Players = game:GetService("Players")
 
 local Modules = game:GetService("ReplicatedStorage"):WaitForChild("Modules")
 local Constants = require(Modules:WaitForChild("Constants"))
 
-local DataStore = require(script.Parent.Parent:WaitForChild("DataStore"))
-local Leaderstats = require(script.Parent.Parent:WaitForChild("Leaderstats"))
-
 local RespawnService = {}
+
+-- Disable Roblox's built-in 5s auto-respawn so we control timing.
+Players.CharacterAutoLoads = true
+Players.RespawnTime = Constants.RESPAWN_DELAY_SEC
 
 local function bind(player: Player, character: Model)
     local humanoid = character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
-    local awarded = false
+    -- LoadCharacter is called automatically by Roblox after Players.RespawnTime
+    -- when CharacterAutoLoads is true; the bind hook is reserved for any
+    -- future post-death hooks (telemetry, killcam, etc).
     humanoid.Died:Connect(function()
-        if awarded then return end
-        awarded = true
-        local data = DataStore.getCached(player.UserId)
-        if data then
-            data.losses += 1
-            data.matchesPlayed += 1
-            Leaderstats.refresh(player.UserId)
-        end
-        task.wait(Constants.RESPAWN_DELAY_SEC)
-        if player.Parent then
-            player:LoadCharacter()
-        end
+        -- Hook intentionally empty; Players.RespawnTime drives respawn.
     end)
 end
 

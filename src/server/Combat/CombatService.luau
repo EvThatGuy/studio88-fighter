@@ -21,6 +21,20 @@ local ClassRegistry = require(script.Parent:WaitForChild("ClassRegistry"))
 local StaminaService = require(script.Parent:WaitForChild("StaminaService"))
 local HitboxService = require(script.Parent:WaitForChild("HitboxService"))
 
+-- Lazy-required to avoid load-order coupling with Match/. CombatService
+-- loads under the Combat folder before Match/ is loaded by Bootstrap.
+local _matchService: any = nil
+local function matchService(): any
+    if not _matchService then
+        local matchFolder = script.Parent.Parent:WaitForChild("Match", 5)
+        if matchFolder then
+            local mod = matchFolder:WaitForChild("MatchService", 5)
+            if mod then _matchService = require(mod) end
+        end
+    end
+    return _matchService
+end
+
 local remotes = Remotes.get()
 
 local CombatService = {}
@@ -94,12 +108,19 @@ remotes.PunchRequest.OnServerEvent:Connect(function(player: Player)
                     end
                 end)
             end
-            -- Award KO if we just dropped them
+            -- Attribute KO if this damage dropped them.
             if target.humanoid.Health <= 0 then
-                local data = DataStore.getCached(player.UserId)
-                if data then
-                    data.knockouts += 1
-                    Leaderstats.refresh(player.UserId)
+                local match = matchService()
+                if match then
+                    match.recordKO(player.UserId, target.victimUserId)
+                else
+                    -- Fallback if MatchService didn't load: tick lifetime KO
+                    -- directly so the stat doesn't regress.
+                    local data = DataStore.getCached(player.UserId)
+                    if data then
+                        data.knockouts += 1
+                        Leaderstats.refresh(player.UserId)
+                    end
                 end
             end
         end
