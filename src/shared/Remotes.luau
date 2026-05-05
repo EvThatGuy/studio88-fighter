@@ -14,94 +14,29 @@ local Remotes = {}
 local FOLDER_NAME = "Studio88Remotes"
 
 local REMOTE_NAMES = {
-    {name = "GetBalance", class = "RemoteFunction"},
-    {name = "PurchaseUpgrade", class = "RemoteEvent"},
-    {name = "BalanceUpdated", class = "RemoteEvent"},
-    {name = "LeaderboardUpdated", class = "RemoteEvent"},
-    {name = "TierUpgraded", class = "RemoteEvent"},
+    -- Combat: client → server
+    {name = "PunchRequest", class = "RemoteEvent"},
+    {name = "BlockRequest", class = "RemoteEvent"},
+    {name = "DodgeRequest", class = "RemoteEvent"},
+    {name = "AbilityRequest", class = "RemoteEvent"},
+    -- Combat: server → client
+    {name = "HitLanded", class = "RemoteEvent"},
+    {name = "StaminaUpdated", class = "RemoteEvent"},
+    {name = "CombatPhaseChanged", class = "RemoteEvent"},
+    -- Class selection
+    {name = "SelectClass", class = "RemoteEvent"},
+    {name = "ClassSelected", class = "RemoteEvent"},
+    {name = "GetClasses", class = "RemoteFunction"},
+    -- Match flow
+    {name = "MatchStateChanged", class = "RemoteEvent"},
+    {name = "GetMatchState", class = "RemoteFunction"},
+    -- Generic
+    {name = "NotificationToast", class = "RemoteEvent"},
+    -- Retention
     {name = "DailyBonusGranted", class = "RemoteEvent"},
-    {name = "PurchaseRejected", class = "RemoteEvent"},
-    {name = "RequestRebirth", class = "RemoteEvent"},
-    {name = "RebirthGranted", class = "RemoteEvent"},
-    {name = "RebirthRejected", class = "RemoteEvent"},
-    {name = "RequestRedeemCode", class = "RemoteEvent"},
-    {name = "CodeRedeemed", class = "RemoteEvent"},
-    {name = "CodeRejected", class = "RemoteEvent"},
+    -- Monetization
     {name = "GetPassOwnership", class = "RemoteFunction"},
     {name = "PassPurchased", class = "RemoteEvent"},
-    {name = "GetDailyQuests", class = "RemoteFunction"},
-    {name = "ClaimQuest", class = "RemoteEvent"},
-    {name = "QuestProgressed", class = "RemoteEvent"},
-    {name = "QuestClaimed", class = "RemoteEvent"},
-    {name = "QuestRejected", class = "RemoteEvent"},
-    {name = "EventStateChanged", class = "RemoteEvent"},
-    {name = "TutorialStepReached", class = "RemoteEvent"},
-    {name = "GetTutorialStep", class = "RemoteFunction"},
-    {name = "GetRebirthShop", class = "RemoteFunction"},
-    {name = "BuyRebirthShopItem", class = "RemoteEvent"},
-    {name = "RebirthShopPurchased", class = "RemoteEvent"},
-    {name = "RebirthShopRejected", class = "RemoteEvent"},
-    {name = "GetPetState", class = "RemoteFunction"},
-    {name = "HatchEgg", class = "RemoteEvent"},
-    {name = "PetHatched", class = "RemoteEvent"},
-    {name = "PetHatchRejected", class = "RemoteEvent"},
-    {name = "EquipPet", class = "RemoteEvent"},
-    {name = "UnequipPet", class = "RemoteEvent"},
-    {name = "PetEquipChanged", class = "RemoteEvent"},
-    {name = "GetAchievements", class = "RemoteFunction"},
-    {name = "AchievementUnlocked", class = "RemoteEvent"},
-    {name = "FusePets", class = "RemoteEvent"},
-    {name = "PetFuseRejected", class = "RemoteEvent"},
-    {name = "GetHourlyTribute", class = "RemoteFunction"},
-    {name = "ClaimHourlyTribute", class = "RemoteEvent"},
-    {name = "HourlyTributeClaimed", class = "RemoteEvent"},
-    {name = "HourlyTributeRejected", class = "RemoteEvent"},
-    {name = "GetAuras", class = "RemoteFunction"},
-    {name = "EquipAura", class = "RemoteEvent"},
-    {name = "AuraReplicate", class = "RemoteEvent"},
-    {name = "AuraRejected", class = "RemoteEvent"},
-    {name = "GetActivityFeed", class = "RemoteFunction"},
-    {name = "ActivityFeedUpdated", class = "RemoteEvent"},
-    {name = "GetFriendCode", class = "RemoteFunction"},
-    {name = "ReferralBonusGranted", class = "RemoteEvent"},
-    {name = "AutoEquipPets", class = "RemoteEvent"},
-    {name = "StreakEggGranted", class = "RemoteEvent"},
-    {name = "GetPetBoost", class = "RemoteFunction"},
-    {name = "BuyPetBoost", class = "RemoteEvent"},
-    {name = "PetBoostStateChanged", class = "RemoteEvent"},
-    {name = "PetBoostRejected", class = "RemoteEvent"},
-    {name = "SquadBonusChanged", class = "RemoteEvent"},
-    {name = "GetTitles", class = "RemoteFunction"},
-    {name = "EquipTitle", class = "RemoteEvent"},
-    {name = "TitleReplicate", class = "RemoteEvent"},
-    {name = "TitleRejected", class = "RemoteEvent"},
-    {name = "GetSpinState", class = "RemoteFunction"},
-    {name = "ClaimSpin", class = "RemoteEvent"},
-    {name = "SpinResult", class = "RemoteEvent"},
-    {name = "SpinRejected", class = "RemoteEvent"},
-    {name = "GetNotifications", class = "RemoteFunction"},
-    {name = "VisitPlayer", class = "RemoteEvent"},
-    {name = "VisitRejected", class = "RemoteEvent"},
-    {name = "VisitedByPlayer", class = "RemoteEvent"},
-    {name = "GetPlayerStats", class = "RemoteFunction"},
-    {name = "WelcomeBanner", class = "RemoteEvent"},  -- 3s join banner with player + tier + lifetime coins
-    {name = "CoinCollectedFx", class = "RemoteEvent"}, -- floating "+N" text at collector position on every collect
-    {name = "GetDailyStreakSchedule", class = "RemoteFunction"}, -- HUD modal preview of upcoming days + jackpot tags
-    {name = "SessionBonusGranted", class = "RemoteEvent"}, -- 15/30/60min play bonus auto-granted in session
-    {name = "RebirthReadyNudge", class = "RemoteEvent"}, -- one-shot toast when rebirth eligibility flips false->true
-    {name = "IdleReturnBonusGranted", class = "RemoteEvent"}, -- one-shot toast on rejoin with offline-earnings bonus
-    {name = "GetWeeklyTournament", class = "RemoteFunction"}, -- HUD widget: "MY WEEK $X (rank Y)" current week status
-    {name = "GetWeeklyTournamentTopN", class = "RemoteFunction"}, -- modal: top N {userId, name, weeklyEarned} for current week
-    {name = "GetDevProducts", class = "RemoteFunction"}, -- HUD shop: returns dev product catalog with productIds
-    {name = "VaultRaidSpawned", class = "RemoteEvent"}, -- broadcast when raid boss spawns
-    {name = "VaultRaidEnded", class = "RemoteEvent"}, -- broadcast with reward distribution results
-    {name = "GetDailyShop", class = "RemoteFunction"}, -- HUD modal: today's 3 items + my purchase state
-    {name = "BuyDailyShopItem", class = "RemoteEvent"}, -- player initiates a daily shop buy
-    {name = "NotificationToast", class = "RemoteEvent"}, -- generic kind/title/body toast for streak risk + future hooks
-    {name = "XpLeveledUp", class = "RemoteEvent"}, -- player crossed a level threshold; client renders level-up toast
-    {name = "GetXpSnapshot", class = "RemoteFunction"}, -- HUD widget: current XP + level + thresholds
-    {name = "ServerPresenceChanged", class = "RemoteEvent"}, -- broadcast {count, squadActive} on PlayerAdded/Removing
-    {name = "GetSessionBonus", class = "RemoteFunction"}, -- HUD widget: returns {activeSeconds, tiers=[{seconds,reward,label,claimed}]}
 }
 
 local function ensureFolder(): Folder
@@ -131,7 +66,6 @@ local function ensureRemote(folder: Folder, spec: {name: string, class: string})
     return remote
 end
 
--- Server entry point: synchronously creates folder + remotes if missing.
 function Remotes.get(): Types.RemoteMap
     local folder = ensureFolder()
     local map = {}
@@ -141,7 +75,6 @@ function Remotes.get(): Types.RemoteMap
     return map :: any
 end
 
--- Client entry point: yields until folder + every remote replicates.
 function Remotes.waitFor(timeoutSec: number?): Types.RemoteMap
     local timeout = timeoutSec or 10
     local folder = ReplicatedStorage:WaitForChild(FOLDER_NAME, timeout)

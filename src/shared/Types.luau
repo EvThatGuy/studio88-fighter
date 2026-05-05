@@ -1,135 +1,100 @@
 --!strict
--- Shared type definitions. Keep this file alongside any structural change
--- to the DataStore schema; bump Constants.DATASTORE_VERSION too.
+-- Studio 88 Fighter — shared type definitions. Bump
+-- Constants.DATASTORE_VERSION whenever PlayerData shape changes; DataStore
+-- migrations key off the prior version.
 
-export type OwnedPet = {
-    uid: string,                    -- unique instance id (string-encoded incremented counter)
-    petId: string,                  -- references Constants.PETS[].id
-    rarity: string,                 -- denormalized for snapshot speed
-    obtainedUnix: number,           -- when it was hatched
+-- Combat ────────────────────────────────────────────────────────────────
+
+export type FighterClassId = string -- references Constants.CLASSES key
+
+export type CombatPhase = "idle" | "attacking" | "blocking" | "stunned" | "dodging"
+
+export type StaminaState = {
+    current: number,
+    max: number,
+    regenPerSec: number,
 }
 
-export type DailyQuestState = {
-    dateKey: string,                -- "YYYY-MM-DD" UTC; rolls over the whole table at midnight
-    progress: {[string]: number},   -- questId -> count toward target
-    claimed: {[string]: boolean},   -- questId -> claimed flag (one-shot per day)
+export type HitboxSpec = {
+    size: Vector3,
+    offset: Vector3,         -- relative to HumanoidRootPart CFrame
+    durationSec: number,
 }
+
+export type DamageEvent = {
+    attackerUserId: number,
+    victimUserId: number,
+    rawDamage: number,
+    blocked: boolean,
+    finalDamage: number,
+    unix: number,
+}
+
+-- Match ─────────────────────────────────────────────────────────────────
+
+export type MatchPhase = "lobby" | "countdown" | "active" | "results"
+
+export type MatchState = {
+    phase: MatchPhase,
+    mapId: string?,
+    startUnix: number?,
+    endUnix: number?,
+    participants: {number},     -- userIds in current match
+    scores: {[number]: number}, -- userId -> KO count
+}
+
+-- Persistent player data ────────────────────────────────────────────────
+-- Fighter-specific shape. Tycoon fields (coins, lifetimeCoins, upgradeTier,
+-- pets, rebirths, etc.) are gone. Money / shop systems will reappear in
+-- Phase 4 when monetization is wired.
 
 export type PlayerData = {
-    coins: number,                  -- spendable balance
-    lifetimeCoins: number,          -- never decreases; drives leaderboard
-    upgradeTier: number,            -- 1..#Constants.UPGRADE_TIERS
-    lastLoginUnix: number,          -- os.time() at last full login
-    lastLogoutUnix: number?,        -- os.time() at last PlayerRemoving (for idle-return bonus)
-    weeklyEarnedCoins: number?,     -- coins earned this UTC-week (Sun 00:00 reset); WeeklyTournament metric
-    weeklyResetUnix: number?,       -- start of current tracked week, unix; reset on Sunday rollover
-    redeemedDevProducts: {[string]: boolean}?, -- {[PurchaseId]=true} idempotency ledger for ProcessReceipt
-    dailyShopBought: {[string]: boolean}?,    -- {[itemId]=true} per-day daily-shop one-shot ledger
-    dailyShopDateKey: string?,                -- "YYYY-MM-DD" UTC of the dailyShopBought set; reset on rollover
-    xp: number?,                              -- cosmetic XP track; grows from any positive action; level derived
-    xpLevel: number?,                         -- last computed level (cached so we know when to fire LevelUp toast)
-    streak: number,                 -- consecutive days logged in
-    starterPackPurchasedUnix: number?, -- for the 30-min Starter Pack window
-    rebirths: number,               -- prestige count; permanent across all sessions
-    rebirthTokens: number,          -- spendable tokens for the rebirth shop; +1 per rebirth
-    purchasedRebirthUpgrades: {[string]: boolean}, -- {[itemId]=true} one-shot ledger
-    pets: {OwnedPet},               -- inventory; one entry per hatched pet (duplicates allowed for stack count)
-    equippedPetIds: {string},       -- list of OwnedPet.uid currently equipped (length <= PET_MAX_EQUIPPED)
-    redeemedCodes: {[string]: boolean}, -- {[UPPERCASE_CODE] = true} for one-shot enforcement
-    dailyQuests: DailyQuestState,   -- today's quest progress + claim state
-    tutorialStep: number,           -- highest FTUE step completed (0..#FTUE_STEPS); 0 = brand new
-    achievementsUnlocked: {[string]: number}, -- {[achievementId] = unlockedUnix}
-    questsClaimedTotal: number,     -- monotonic across all days (for "Quest Grinder" achievement)
-    lastHourlyTributeUnix: number,  -- last time the hourly-tribute stacks were claimed; used to compute available
-    equippedAura: string?,          -- {AURAS[].id} or nil; visible to all players via character Trail
-    friendCode: string,             -- this player's sharable code (e.g. "STUD-AB3X4"); generated on first join
-    referredBy: string?,            -- friend code that referred them, if any (one-shot)
-    referralCount: number,          -- how many people redeemed THIS player's code
-    pendingReferralBonusCoins: number, -- queued bonus from referrals while offline; granted on next session start
-    petBoostExpiresUnix: number,    -- unix when the active pet-boost expires; <= os.time() means inactive
-    hatchesSinceLastLegendary: number, -- pity counter; force-legendary at PET_PITY_THRESHOLD, reset on any legendary
-    equippedTitle: string?,         -- {PLAYER_TITLES[].id} or nil; rendered above character
-    lastSpinDateKey: string,        -- "YYYY-MM-DD" UTC of last claim; "" means never
-    schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION at write time
+    schemaVersion: string,          -- mirrors Constants.DATASTORE_VERSION
+    selectedClass: FighterClassId,  -- last-picked class; persists across sessions
+    xp: number,
+    xpLevel: number,
+    wins: number,
+    losses: number,
+    knockouts: number,              -- lifetime KO count; drives leaderboard
+    matchesPlayed: number,
+    streak: number,                 -- daily-login streak
+    lastLoginUnix: number,
+    lastLogoutUnix: number?,
+    redeemedDevProducts: {[string]: boolean}?, -- {[PurchaseId] = true} idempotency
 }
 
 export type LeaderboardRow = {
     userId: number,
     name: string,
-    lifetimeCoins: number,
+    knockouts: number,
 }
 
+-- Remote map. Each entry corresponds to a name in Remotes.luau and is the
+-- typed handle returned from Remotes.get() / Remotes.waitFor().
 export type RemoteMap = {
-    GetBalance: RemoteFunction,
-    PurchaseUpgrade: RemoteEvent,
-    BalanceUpdated: RemoteEvent,    -- server -> client push on every tick
-    LeaderboardUpdated: RemoteEvent,-- server -> client push every refresh
-    TierUpgraded: RemoteEvent,      -- server -> client; payload {newTier, mult}
-    DailyBonusGranted: RemoteEvent, -- server -> client; payload {streak, reward}
-    PurchaseRejected: RemoteEvent,  -- server -> client; payload {reason, needed?}
-    RequestRebirth: RemoteEvent,    -- client -> server; ask to prestige
-    RebirthGranted: RemoteEvent,    -- server -> client; payload {rebirths, newMult}
-    RebirthRejected: RemoteEvent,   -- server -> client; payload {reason, needed?}
-    RequestRedeemCode: RemoteEvent, -- client -> server; payload {code: string}
-    CodeRedeemed: RemoteEvent,      -- server -> client; payload {code, reward}
-    CodeRejected: RemoteEvent,      -- server -> client; payload {code, reason}
-    GetPassOwnership: RemoteFunction, -- client -> server; returns {[passKey]: boolean}
-    PassPurchased: RemoteEvent,     -- server -> client; payload {passKey, passId}
-    GetDailyQuests: RemoteFunction, -- client -> server; returns {dateKey, quests=[{id,kind,target,reward,label,progress,claimed}], totalRewardClaimable}
-    ClaimQuest: RemoteEvent,        -- client -> server; payload {questId}
-    QuestProgressed: RemoteEvent,   -- server -> client; payload {questId, progress, target}
-    QuestClaimed: RemoteEvent,      -- server -> client; payload {questId, reward}
-    QuestRejected: RemoteEvent,     -- server -> client; payload {questId, reason}
-    EventStateChanged: RemoteEvent, -- server -> client; payload {active, event?, endsInSec?}
-    TutorialStepReached: RemoteEvent, -- server -> client; payload {stepIndex, stepId}
-    GetTutorialStep: RemoteFunction,  -- client -> server; returns current step number
-    GetRebirthShop: RemoteFunction,   -- client -> server; returns {tokens, items=[{id,title,sub,cost,owned}]}
-    BuyRebirthShopItem: RemoteEvent,  -- client -> server; payload {itemId}
-    RebirthShopPurchased: RemoteEvent,-- server -> client; payload {itemId, tokensRemaining}
-    RebirthShopRejected: RemoteEvent, -- server -> client; payload {itemId, reason, needed?}
-    GetPetState: RemoteFunction,      -- client -> server; returns {pets, equippedPetIds, eggs, collectionComplete}
-    HatchEgg: RemoteEvent,            -- client -> server; payload {eggId}
-    PetHatched: RemoteEvent,          -- server -> client; payload {pet=OwnedPet, petName}
-    PetHatchRejected: RemoteEvent,    -- server -> client; payload {eggId, reason, needed?}
-    EquipPet: RemoteEvent,            -- client -> server; payload {uid}
-    UnequipPet: RemoteEvent,          -- client -> server; payload {uid}
-    PetEquipChanged: RemoteEvent,     -- server -> client; payload {equippedPetIds}
-    GetAchievements: RemoteFunction,  -- client -> server; returns {entries=[{id,name,desc,unlocked,unlockedUnix?,progress,target,rewardCoins,rewardTokens}], unlockedCount, totalCount}
-    AchievementUnlocked: RemoteEvent, -- server -> client; payload {id, name, rewardCoins, rewardTokens}
-    FusePets: RemoteEvent,            -- client -> server; payload {rarity}
-    PetFuseRejected: RemoteEvent,     -- server -> client; payload {rarity, reason, needed?}
-    GetHourlyTribute: RemoteFunction, -- client -> server; returns {available, capped, nextStackInSec, perStackReward}
-    ClaimHourlyTribute: RemoteEvent,  -- client -> server; no payload
-    HourlyTributeClaimed: RemoteEvent,-- server -> client; payload {stacks, totalReward}
-    HourlyTributeRejected: RemoteEvent,-- server -> client; payload {reason}
-    GetAuras: RemoteFunction,         -- client -> server; returns {entries=[{id,name,desc,color,rarity,unlocked,equipped,progress,target}], equippedAura, unlockedCount, totalCount}
-    EquipAura: RemoteEvent,           -- client -> server; payload {auraId or nil to unequip}
-    AuraReplicate: RemoteEvent,       -- server -> ALL clients; payload {userId, auraId or nil} so every client renders trail
-    AuraRejected: RemoteEvent,        -- server -> client; payload {auraId, reason}
-    GetActivityFeed: RemoteFunction,  -- client -> server; returns {entries=[{kind, userName, detail, unix, agoSec}]}
-    ActivityFeedUpdated: RemoteEvent, -- server -> client; payload {entries} (push when feed changes server-side)
-    GetFriendCode: RemoteFunction,    -- client -> server; returns {friendCode, referralCount, referredBy, pendingBonusCoins}
-    ReferralBonusGranted: RemoteEvent,-- server -> client; payload {sourceCount, totalBonus} (fires when a referrer's bonus is realized)
-    AutoEquipPets: RemoteEvent,       -- client -> server; no payload (server picks optimal best-mult unequipped pets up to PET_MAX_EQUIPPED)
-    StreakEggGranted: RemoteEvent,    -- server -> client; payload {streakDay, eggId, pet=OwnedPet, petName} (issued alongside DailyBonusGranted at threshold streaks)
-    GetPetBoost: RemoteFunction,      -- client -> server; returns {active, remainingSec, multiplier, costForCurrentTier}
-    BuyPetBoost: RemoteEvent,         -- client -> server; no payload (server pulls cost-for-current-tier)
-    PetBoostStateChanged: RemoteEvent,-- server -> client; payload {active, remainingSec, multiplier}
-    PetBoostRejected: RemoteEvent,    -- server -> client; payload {reason, needed?}
-    SquadBonusChanged: RemoteEvent,   -- server -> ALL clients; payload {active, count, threshold, multiplier}
-    GetTitles: RemoteFunction,        -- client -> server; returns {entries=[{id,name,color,unlocked,equipped,trigger,progress,target}], equippedTitle}
-    EquipTitle: RemoteEvent,          -- client -> server; payload {titleId or "" to clear}
-    TitleReplicate: RemoteEvent,      -- server -> ALL clients; payload {userId, titleId or nil, name, color}
-    TitleRejected: RemoteEvent,       -- server -> client; payload {titleId, reason}
-    GetSpinState: RemoteFunction,     -- client -> server; returns {available, segments=[{id,label,color,weight}], nextResetSec}
-    ClaimSpin: RemoteEvent,           -- client -> server; no payload
-    SpinResult: RemoteEvent,          -- server -> client; payload {segmentId, label, kind, valueGranted, message}
-    SpinRejected: RemoteEvent,        -- server -> client; payload {reason}
-    GetNotifications: RemoteFunction, -- client -> server; returns {entries=[{kind,label,actionHint,count?}], total}
-    VisitPlayer: RemoteEvent,         -- client -> server; payload {targetUserId}
-    VisitRejected: RemoteEvent,       -- server -> client; payload {reason, retryInSec?}
-    VisitedByPlayer: RemoteEvent,     -- server -> OWNER; payload {visitorName, tipCoins} when someone visits their plot
-    GetPlayerStats: RemoteFunction,   -- client -> server; returns career-summary snapshot for the stats modal
+    -- Combat (client → server requests)
+    PunchRequest: RemoteEvent,
+    BlockRequest: RemoteEvent,
+    DodgeRequest: RemoteEvent,
+    AbilityRequest: RemoteEvent,
+    -- Combat (server → client replication)
+    HitLanded: RemoteEvent,         -- payload {attackerUserId, victimUserId, finalDamage, blocked}
+    StaminaUpdated: RemoteEvent,    -- server → client; payload {current, max}
+    CombatPhaseChanged: RemoteEvent,-- server → client; payload {phase: CombatPhase, sourceUserId}
+    -- Class selection
+    SelectClass: RemoteEvent,       -- client → server; payload {classId}
+    ClassSelected: RemoteEvent,     -- server → client; payload {classId}
+    GetClasses: RemoteFunction,     -- client → server; returns class registry snapshot
+    -- Match flow
+    MatchStateChanged: RemoteEvent, -- server → ALL; payload MatchState
+    GetMatchState: RemoteFunction,  -- client → server; returns current MatchState
+    -- Generic notifications
+    NotificationToast: RemoteEvent, -- server → client; payload {kind, title, body}
+    -- Daily retention
+    DailyBonusGranted: RemoteEvent, -- server → client; payload {streak, xpReward}
+    -- Monetization
+    GetPassOwnership: RemoteFunction, -- returns {[passKey]: boolean}
+    PassPurchased: RemoteEvent,
 }
 
 return {}

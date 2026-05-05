@@ -1,34 +1,37 @@
-# Roblox Studio Project -- Claude Code Rules
+# Roblox Studio Project — Claude Code Rules
 
-> **PIVOT IN PROGRESS (2026-05-05).** This repo was forked from
-> `studio88-roblox` (a working tycoon) and is being repurposed into an arena
-> fighting / combat game. The tycoon code below is the **starting foundation
-> we are auditing and stripping**, not the active design. Read
-> `docs/project-plan.md` first — it is the source of truth for what we are
-> building. Hard rules in this file (Luau, server-authority, pcall'd
-> DataStore, typed functions, `task.spawn` / `task.wait`) still apply
-> verbatim. Tycoon-specific patterns (currency tick, upgrade tiers, plot
-> ring) are being phased out and will be replaced with combat patterns
-> (hitbox / stamina / round state machine / class registry) — see the
-> project plan for the new defaults.
+> **Project pivot (2026-05-05).** This repo was forked from `studio88-roblox`
+> (a working tycoon) and is being repurposed into an arena fighting / combat
+> game. Tycoon-era code lives under `legacy/` for reference / salvage during
+> Phase 0 — it is **not** mounted into Rojo. Read `docs/project-plan.md` for
+> the open-source-base evaluation strategy and the phased roadmap.
 
-## Legacy tycoon context (kept for Phase 0 audit only)
-
-You are building a Roblox tycoon experience inside this project. The goal is a 45-90 minute average session, daily-return loop, monetized via Game Passes + Creator Rewards. Adapted from the @starmexxx Apr 26 2026 playbook.
+You are building a Roblox arena fighting / combat game inside this project.
+Target session: 5–15 minute matches in a round-based PvP loop, with class
+selection, stamina-driven combat, and per-match progression. Long-term
+retention via daily login + cosmetic unlocks + monetization (Game Passes +
+Dev Products) reusing patterns from the tycoon.
 
 ## Language
 
-This project uses **Luau** -- not Lua, not JavaScript, not TypeScript.
+This project uses **Luau** — not Lua, not JavaScript, not TypeScript.
 Always write strict Luau with type annotations.
 
 ## Architecture
 
-- Server scripts: `src/server/` (mounted at `ServerScriptService` in Studio)
-- Client scripts: `src/client/` (mounted at `StarterPlayerScripts`)
-- Shared modules: `src/shared/` (mounted at `ReplicatedStorage/Modules`)
+- Server scripts: `src/server/` (mounted at `ServerScriptService.Studio88`)
+- Client scripts: `src/client/` (mounted at `StarterPlayerScripts.Studio88`)
+- Shared modules: `src/shared/` (mounted at `ReplicatedStorage.Modules`)
 - Use `RemoteEvents` for ALL client-server communication
-- Use `RemoteFunctions` only when the client needs a synchronous reply (e.g. balance queries)
+- Use `RemoteFunctions` only when the client needs a synchronous reply
 - Use `DataStoreService` for ALL persistent data, never client-side
+
+Server scaffolding (Phase 0):
+
+- `src/server/Combat/` — `ClassRegistry`, `StaminaService`, `HitboxService`, `CombatService`
+- `src/server/Match/` — `MapRotation`, `MatchService`
+- `src/server/Abilities/` — `AbilityRuntime` (Phase 3)
+- `src/server/DataStore.luau`, `Leaderstats.luau`, `Bootstrap.server.luau` — foundation
 
 ## Roblox Services
 
@@ -42,23 +45,47 @@ local MarketplaceService = game:GetService("MarketplaceService")
 local RunService = game:GetService("RunService")
 ```
 
-## Hard rules
+## Hard rules (unchanged from tycoon era — these are foundation rules)
 
-- **Server-side validation on every currency / inventory transaction.** Never trust the client.
-- Use `pcall()` on every `DataStoreService` call. Retry with backoff on failure.
+- **Server-side validation on every combat / inventory transaction.** Never
+  trust the client. Hit RPCs are rate-limited; hitbox queries run from the
+  server's view of the attacker's CFrame, not client-reported positions.
+- Use `pcall()` on every `DataStoreService` call. Retry with backoff on
+  failure.
 - Use `task.spawn()` and `task.wait()`, never `coroutine.wrap()` or `wait()`.
-- Type-annotate every function parameter and return. Use `local function foo(player: Player): boolean`.
-- DataStores are versioned: when changing the player-data schema, bump the store name (`PlayerCurrency_v1` -> `_v2`) and write a migration in the load function.
-- Game Passes are checked via `MarketplaceService:UserOwnsGamePassAsync(userId, passId)` -- cache the result per session.
-- Never block the main thread for more than 1 frame. If a heavy computation is needed, yield with `task.wait()`.
+- Type-annotate every function parameter and return. Use
+  `local function foo(player: Player): boolean`.
+- DataStores are versioned: when changing PlayerData, bump the store name
+  (`PlayerData_fighter_v1` → `_v2`) and write a migration in DataStore.luau.
+- Game Passes are checked via `MarketplaceService:UserOwnsGamePassAsync` —
+  cache the result per session.
+- Never block the main thread for more than 1 frame. Yield with `task.wait()`.
 
-## Tycoon-specific patterns to default to
+## Fighter-specific patterns to default to
 
-- **Currency tick**: server-only loop, `task.wait(1)` inside `task.spawn`, mutate `playerData[userId].coins` only on the server.
-- **Daily login bonus**: track `os.time()` of last login in the DataStore, compare day-of-year, give escalating reward by streak (Day 1: 500, Day 7: 5000, Day 30: 50000). This is the single highest-impact feature for Creator Rewards return rate.
-- **Upgrade tiers**: 5 tiers at 250 / 1000 / 5000 / 20000 / 100000 coins, each multiplies income or unlocks a new income source.
-- **Leaderboard**: track lifetime coins earned (not current balance). Update every 10 seconds. Show top 10 on a billboard plus rank in personal HUD.
-- **Game Passes**: 3 tiers -- Starter Pack (50-75 R$, 2x income for 30 min), VIP (200-300 R$, 1.5x permanent), Premium (500-800 R$, 3x permanent + auto-collect AFK).
+- **Server-authoritative combat.** Client emits intent (`PunchRequest`,
+  `BlockRequest`, etc.); server runs hitbox queries, stamina checks,
+  damage application. Client is purely a renderer for server state.
+- **Stamina ledger.** `Constants.STAMINA_*` defines costs and regen rates;
+  `StaminaService.tryConsume(player, amount)` is the gate every action
+  passes through.
+- **Class registry.** `Constants.CLASSES` is the source of truth for
+  walkspeed, stamina cap, base punch damage. `ClassRegistry.applyToCharacter`
+  applies stats on `CharacterAdded`.
+- **Hitbox queries.** Use OverlapParams against a box in front of the
+  attacker's HRP. Filter out the attacker. Only damage characters with a
+  Humanoid and Health > 0. Phase 1 ports the elomala MuchachoHitbox flow
+  through `HitboxService` as the canonical implementation.
+- **Match state machine.** `MatchService` cycles
+  `lobby → countdown → active → results`. Constants own the durations.
+  The phase is broadcast to every client via `MatchStateChanged`.
+- **Anti-exploit.** `Constants.RPC_COOLDOWNS` clamps every action RPC.
+  `Constants.MAX_MOVE_PER_SEC` clamps any client-reported position delta.
+- **Daily login** retains the tycoon's mechanic: track `os.time()` of last
+  login, compare day-of-year, give escalating XP reward by streak. This is
+  the highest-impact retention feature and is genre-agnostic.
+- **Game Passes**: 3 tiers — Starter Pack / VIP / Premium — but rewards are
+  cosmetic + class-access flavoured for the fighter, not income multipliers.
 
 ## File naming
 
@@ -66,10 +93,26 @@ local RunService = game:GetService("RunService")
 - Client scripts: `*.client.luau`
 - Shared modules: `*.luau` (no suffix)
 
+## Source provenance & licensing rules
+
+- The open-source bases listed in `docs/project-plan.md` are
+  **references / accelerators**, not direct imports.
+- **Never copy** raw assets, animations, UI, audio, maps, or `rbxassetid://`
+  references from those sources into this repo.
+- Any extracted scripts land first in `src/imported/<source>/` so the diff
+  is reviewable. They graduate to `src/server` / `src/client` only after a
+  wrapper / adapter exists and the source is read line-by-line.
+- **DO NOT USE** `IIIStatusIII/Roblox-Uncopylocked-Games` — license risk.
+
 ## When in doubt
 
-Prefer correctness over cleverness. Prefer server-side over client-side. Prefer typed code over untyped. Prefer one good system shipped over five half-built systems.
+Prefer correctness over cleverness. Prefer server-side over client-side.
+Prefer typed code over untyped. Prefer one good system shipped over five
+half-built systems.
 
 ## MCP
 
-The `boshyxd/robloxstudio-mcp` server is wired up. You have 54 tools to manipulate the live Studio session: create instances, set properties, write scripts, read output logs, run playtests. Use them. Don't ask the human to drag things in Studio when you can do it yourself.
+The `boshyxd/robloxstudio-mcp` server is wired up. You have 54 tools to
+manipulate the live Studio session: create instances, set properties, write
+scripts, read output logs, run playtests. Use them. Don't ask the human to
+drag things in Studio when you can do it yourself.

@@ -1,5 +1,5 @@
 {
-  "name": "studio88-tycoon",
+  "name": "studio88-fighter",
   "tree": {
     "$className": "DataModel",
     "ServerScriptService": {
@@ -23,7 +23,7 @@
     "StarterPlayer": {
       "$className": "StarterPlayer",
       "$properties": {
-        "CharacterWalkSpeed": 18,
+        "CharacterWalkSpeed": 16,
         "CharacterJumpHeight": 7.2,
         "CharacterUseJumpPower": false,
         "AutoJumpEnabled": false,
@@ -48,11 +48,11 @@
       "$properties": {
         "Ambient": [0.42, 0.40, 0.46],
         "OutdoorAmbient": [0.55, 0.55, 0.60],
-        "Brightness": 2.5,
-        "ClockTime": 14.5,
+        "Brightness": 2.0,
+        "ClockTime": 14.0,
         "FogColor": [0.55, 0.50, 0.62],
-        "FogStart": 250,
-        "FogEnd": 2000
+        "FogStart": 400,
+        "FogEnd": 4000
       }
     }
   }
