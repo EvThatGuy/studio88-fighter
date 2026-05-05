@@ -40,10 +40,7 @@
     "Workspace": {
       "$className": "Workspace",
       "$properties": {
-        "FilteringEnabled": true,
-        "AvatarType": "R15",
-        "AnimationsType": "Standard",
-        "CollisionsType": "OuterBox"
+        "FilteringEnabled": true
       }
     },
     "Lighting": {
